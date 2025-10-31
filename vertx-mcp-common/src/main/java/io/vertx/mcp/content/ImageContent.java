@@ -1,16 +1,12 @@
 package io.vertx.mcp.content;
 
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
 
 public class ImageContent extends BinaryContent {
 
-    protected ImageContent(String mimeType, Buffer data) {
-        super(mimeType, data);
-    }
+  public static final String TYPE = "image";
 
-    @Override
-    public JsonObject toJson() {
-        return null;
-    }
+  public ImageContent(String mimeType, Buffer data) {
+    super(TYPE, mimeType, data);
+  }
 }
