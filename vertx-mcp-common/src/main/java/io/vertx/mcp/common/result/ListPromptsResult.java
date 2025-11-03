@@ -2,14 +2,16 @@ package io.vertx.mcp.common.result;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.prompt.Prompt;
+
+import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
 public class ListPromptsResult extends Result {
 
-  private JsonArray prompts;
+  private List<Prompt> prompts;
   private String nextCursor;
 
   public ListPromptsResult() {
@@ -21,11 +23,11 @@ public class ListPromptsResult extends Result {
     ListPromptsResultConverter.fromJson(json, this);
   }
 
-  public JsonArray getPrompts() {
+  public List<Prompt> getPrompts() {
     return prompts;
   }
 
-  public ListPromptsResult setPrompts(JsonArray prompts) {
+  public ListPromptsResult setPrompts(List<Prompt> prompts) {
     this.prompts = prompts;
     return this;
   }

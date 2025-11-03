@@ -2,14 +2,16 @@ package io.vertx.mcp.common.result;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.resources.ResourceTemplate;
+
+import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
 public class ListResourceTemplatesResult extends Result {
 
-  private JsonArray resourceTemplates;
+  private List<ResourceTemplate> resourceTemplates;
   private String nextCursor;
 
   public ListResourceTemplatesResult() {
@@ -21,11 +23,11 @@ public class ListResourceTemplatesResult extends Result {
     ListResourceTemplatesResultConverter.fromJson(json, this);
   }
 
-  public JsonArray getResourceTemplates() {
+  public List<ResourceTemplate> getResourceTemplates() {
     return resourceTemplates;
   }
 
-  public ListResourceTemplatesResult setResourceTemplates(JsonArray resourceTemplates) {
+  public ListResourceTemplatesResult setResourceTemplates(List<ResourceTemplate> resourceTemplates) {
     this.resourceTemplates = resourceTemplates;
     return this;
   }

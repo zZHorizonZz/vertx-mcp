@@ -65,7 +65,7 @@ public class ResourceLinkContent implements Content {
     json.put("title", title);
     json.put("description", description);
     json.put("mimeType", mimeType);
-    if (annotations != null) {
+    if (annotations != null && !annotations.isEmpty()) {
       json.put("annotations", annotations);
     }
     return json;

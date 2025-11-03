@@ -2,8 +2,11 @@ package io.vertx.mcp.common.request;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.sampling.ModelPreferences;
+import io.vertx.mcp.common.sampling.SamplingMessage;
+
+import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
@@ -11,13 +14,13 @@ public class CreateMessageRequest extends Request {
 
   private static final String METHOD = "sampling/createMessage";
 
-  private JsonArray messages;
-  private JsonObject modelPreferences;
+  private List<SamplingMessage> messages;
+  private ModelPreferences modelPreferences;
   private String systemPrompt;
   private String includeContext;
   private Double temperature;
   private Integer maxTokens;
-  private JsonArray stopSequences;
+  private List<String> stopSequences;
   private JsonObject metadata;
 
   public CreateMessageRequest() {
@@ -29,20 +32,20 @@ public class CreateMessageRequest extends Request {
     CreateMessageRequestConverter.fromJson(json, this);
   }
 
-  public JsonArray getMessages() {
+  public List<SamplingMessage> getMessages() {
     return messages;
   }
 
-  public CreateMessageRequest setMessages(JsonArray messages) {
+  public CreateMessageRequest setMessages(List<SamplingMessage> messages) {
     this.messages = messages;
     return this;
   }
 
-  public JsonObject getModelPreferences() {
+  public ModelPreferences getModelPreferences() {
     return modelPreferences;
   }
 
-  public CreateMessageRequest setModelPreferences(JsonObject modelPreferences) {
+  public CreateMessageRequest setModelPreferences(ModelPreferences modelPreferences) {
     this.modelPreferences = modelPreferences;
     return this;
   }
@@ -83,11 +86,11 @@ public class CreateMessageRequest extends Request {
     return this;
   }
 
-  public JsonArray getStopSequences() {
+  public List<String> getStopSequences() {
     return stopSequences;
   }
 
-  public CreateMessageRequest setStopSequences(JsonArray stopSequences) {
+  public CreateMessageRequest setStopSequences(List<String> stopSequences) {
     this.stopSequences = stopSequences;
     return this;
   }

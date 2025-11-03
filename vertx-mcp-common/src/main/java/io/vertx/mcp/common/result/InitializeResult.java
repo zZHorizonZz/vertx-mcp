@@ -3,14 +3,16 @@ package io.vertx.mcp.common.result;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.Implementation;
+import io.vertx.mcp.common.capabilities.ServerCapabilities;
 
 @DataObject
 @JsonGen(publicConverter = false)
 public class InitializeResult extends Result {
 
   private String protocolVersion;
-  private JsonObject capabilities;
-  private JsonObject serverInfo;
+  private ServerCapabilities capabilities;
+  private Implementation serverInfo;
   private String instructions;
 
   public InitializeResult() {
@@ -31,20 +33,20 @@ public class InitializeResult extends Result {
     return this;
   }
 
-  public JsonObject getCapabilities() {
+  public ServerCapabilities getCapabilities() {
     return capabilities;
   }
 
-  public InitializeResult setCapabilities(JsonObject capabilities) {
+  public InitializeResult setCapabilities(ServerCapabilities capabilities) {
     this.capabilities = capabilities;
     return this;
   }
 
-  public JsonObject getServerInfo() {
+  public Implementation getServerInfo() {
     return serverInfo;
   }
 
-  public InitializeResult setServerInfo(JsonObject serverInfo) {
+  public InitializeResult setServerInfo(Implementation serverInfo) {
     this.serverInfo = serverInfo;
     return this;
   }

@@ -74,7 +74,9 @@ public abstract class Resource {
       json.put("size", size());
     }
 
-    json.put("annotations", this.annotations);
+    if (annotations != null && !annotations.isEmpty()) {
+      json.put("annotations", this.annotations);
+    }
     return json;
   }
 }

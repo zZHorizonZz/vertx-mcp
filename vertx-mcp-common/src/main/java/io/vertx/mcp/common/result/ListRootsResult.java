@@ -2,14 +2,16 @@ package io.vertx.mcp.common.result;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.root.Root;
+
+import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
 public class ListRootsResult extends Result {
 
-  private JsonArray roots;
+  private List<Root> roots;
 
   public ListRootsResult() {
     super(null);
@@ -20,11 +22,11 @@ public class ListRootsResult extends Result {
     ListRootsResultConverter.fromJson(json, this);
   }
 
-  public JsonArray getRoots() {
+  public List<Root> getRoots() {
     return roots;
   }
 
-  public ListRootsResult setRoots(JsonArray roots) {
+  public ListRootsResult setRoots(List<Root> roots) {
     this.roots = roots;
     return this;
   }

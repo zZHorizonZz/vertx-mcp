@@ -2,14 +2,16 @@ package io.vertx.mcp.common.result;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.tool.Tool;
+
+import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
 public class ListToolsResult extends Result {
 
-  private JsonArray tools;
+  private List<Tool> tools;
   private String nextCursor;
 
   public ListToolsResult() {
@@ -21,11 +23,11 @@ public class ListToolsResult extends Result {
     ListToolsResultConverter.fromJson(json, this);
   }
 
-  public JsonArray getTools() {
+  public List<Tool> getTools() {
     return tools;
   }
 
-  public ListToolsResult setTools(JsonArray tools) {
+  public ListToolsResult setTools(List<Tool> tools) {
     this.tools = tools;
     return this;
   }
