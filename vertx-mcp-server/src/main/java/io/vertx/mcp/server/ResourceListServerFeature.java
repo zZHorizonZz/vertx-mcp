@@ -1,6 +1,6 @@
 package io.vertx.mcp.server;
 
-import io.vertx.mcp.resources.Resource;
+import io.vertx.mcp.common.resources.Resource;
 
 import java.util.List;
 
