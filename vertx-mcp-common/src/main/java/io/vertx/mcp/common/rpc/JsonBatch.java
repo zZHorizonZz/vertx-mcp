@@ -143,9 +143,8 @@ public class JsonBatch {
   /**
    * Creates a response batch for this request batch.
    * <p>
-   * This method processes each request in the batch and generates a corresponding response.
-   * Notifications (requests without an id) do not generate responses.
-   * Invalid requests generate error responses.
+   * This method processes each request in the batch and generates a corresponding response. Notifications (requests without an id) do not generate responses. Invalid requests
+   * generate error responses.
    *
    * @param processor the function that processes each request and returns a response
    * @return a new batch response

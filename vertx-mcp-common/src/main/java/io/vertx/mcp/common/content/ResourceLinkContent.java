@@ -4,11 +4,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.resources.Resource;
 import io.vertx.mcp.common.resources.ResourceAnnotations;
 
-import java.net.URI;
-
 public class ResourceLinkContent implements Content {
 
-  private final URI uri;
+  private final String uri;
   private final String name;
   private final String title;
   private final String description;
@@ -16,14 +14,14 @@ public class ResourceLinkContent implements Content {
   private final ResourceAnnotations annotations;
 
   public ResourceLinkContent(Resource resource) {
-    this(resource.uri(), resource.name(), resource.title(), resource.description(), resource.mimeType(), resource.annotations());
+    this(resource.getUri(), resource.getName(), resource.getTitle(), resource.getDescription(), resource.getMimeType(), resource.getAnnotations());
   }
 
-  public ResourceLinkContent(URI uri, String name, String title, String description, String mimeType) {
+  public ResourceLinkContent(String uri, String name, String title, String description, String mimeType) {
     this(uri, name, title, description, mimeType, null);
   }
 
-  public ResourceLinkContent(URI uri, String name, String title, String description, String mimeType, ResourceAnnotations annotations) {
+  public ResourceLinkContent(String uri, String name, String title, String description, String mimeType, ResourceAnnotations annotations) {
     this.uri = uri;
     this.name = name;
     this.title = title;
@@ -32,7 +30,7 @@ public class ResourceLinkContent implements Content {
     this.annotations = annotations;
   }
 
-  public URI uri() {
+  public String uri() {
     return uri;
   }
 
@@ -60,7 +58,7 @@ public class ResourceLinkContent implements Content {
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     json.put("type", "resource_link");
-    json.put("uri", uri.toString());
+    json.put("uri", uri);
     json.put("name", name);
     json.put("title", title);
     json.put("description", description);

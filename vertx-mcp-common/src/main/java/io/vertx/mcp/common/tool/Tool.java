@@ -3,6 +3,7 @@ package io.vertx.mcp.common.tool;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.Meta;
 
 import java.util.Map;
 
@@ -11,7 +12,7 @@ import java.util.Map;
  */
 @DataObject
 @JsonGen(publicConverter = false)
-public class Tool {
+public class Tool implements Meta {
 
   private String name;
   private String title;
@@ -69,8 +70,7 @@ public class Tool {
   }
 
   /**
-   * Gets a human-readable description of the tool.
-   * This can be used by clients to improve the LLM's understanding of available tools.
+   * Gets a human-readable description of the tool. This can be used by clients to improve the LLM's understanding of available tools.
    *
    * @return tool description
    */
@@ -110,8 +110,7 @@ public class Tool {
   }
 
   /**
-   * Gets an optional JSON Schema object defining the structure of the tool's output
-   * returned in the structuredContent field of a CallToolResult.
+   * Gets an optional JSON Schema object defining the structure of the tool's output returned in the structuredContent field of a CallToolResult.
    *
    * @return output schema
    */
@@ -131,8 +130,7 @@ public class Tool {
   }
 
   /**
-   * Gets optional additional tool information.
-   * Display name precedence order is: title, annotations.title, then name.
+   * Gets optional additional tool information. Display name precedence order is: title, annotations.title, then name.
    *
    * @return tool annotations
    */
@@ -156,19 +154,19 @@ public class Tool {
    *
    * @return metadata map
    */
-  public Map<String, Object> get_meta() {
+  @Override
+  public Map<String, Object> getMeta() {
     return _meta;
   }
 
   /**
    * Sets the metadata for the tool.
    *
-   * @param _meta metadata map
-   * @return this instance for method chaining
+   * @param meta metadata map
    */
-  public Tool set_meta(Map<String, Object> _meta) {
-    this._meta = _meta;
-    return this;
+  @Override
+  public void setMeta(Map<String, Object> meta) {
+    this._meta = meta;
   }
 
   public JsonObject toJson() {

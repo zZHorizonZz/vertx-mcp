@@ -530,7 +530,7 @@ export interface Resource extends BaseMetadata {
   annotations?: Annotations;
 
   /**
-   * The size of the raw resource content, in bytes (i.e., before base64 encoding or any tokenization), if known.
+   * The size of the raw resource getContent, in bytes (i.e., before base64 encoding or any tokenization), if known.
    *
    * This can be used by Hosts to display file sizes and estimate context window usage.
    */
@@ -777,7 +777,7 @@ export interface ListToolsResult extends PaginatedResult {
  */
 export interface CallToolResult extends Result {
   /**
-   * A list of content objects that represent the unstructured result of the tool call.
+   * A list of getContent objects that represent the unstructured result of the tool call.
    */
   content: ContentBlock[];
 
@@ -1048,7 +1048,7 @@ export interface Annotations {
   /**
    * Describes who the intended customer of this object or data is.
    *
-   * It can include multiple entries to indicate content useful for multiple audiences (e.g., `["user", "assistant"]`).
+   * It can include multiple entries to indicate getContent useful for multiple audiences (e.g., `["user", "assistant"]`).
    */
   audience?: Role[];
 
@@ -1090,7 +1090,7 @@ export interface TextContent {
   type: "text";
 
   /**
-   * The text content of the message.
+   * The text getContent of the message.
    */
   text: string;
 

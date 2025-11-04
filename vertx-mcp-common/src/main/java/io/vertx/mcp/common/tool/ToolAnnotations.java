@@ -1,5 +1,7 @@
 package io.vertx.mcp.common.tool;
 
+import io.vertx.codegen.annotations.DataObject;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Annotations;
 
 import java.util.Map;
@@ -7,13 +9,12 @@ import java.util.Map;
 /**
  * Additional properties describing a Tool to clients.
  * <p>
- * NOTE: all properties in ToolAnnotations are <strong>hints</strong>.
- * They are not guaranteed to provide a faithful description of
- * tool behavior (including descriptive properties like title).
+ * NOTE: all properties in ToolAnnotations are <strong>hints</strong>. They are not guaranteed to provide a faithful description of tool behavior (including descriptive properties
+ * like title).
  * <p>
- * Clients should never make tool use decisions based on ToolAnnotations
- * received from untrusted servers.
+ * Clients should never make tool use decisions based on ToolAnnotations received from untrusted servers.
  */
+@DataObject
 public class ToolAnnotations extends Annotations {
 
   private static final String TITLE_KEY = "title";
@@ -27,6 +28,15 @@ public class ToolAnnotations extends Annotations {
    */
   public ToolAnnotations() {
     super();
+  }
+
+  /**
+   * Creates a new ToolAnnotations instance from a JsonObject.
+   *
+   * @param json JSON object containing annotations
+   */
+  public ToolAnnotations(JsonObject json) {
+    super(json);
   }
 
   /**
@@ -64,8 +74,7 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * Sets whether the tool does not modify its environment.
-   * Default: false
+   * Sets whether the tool does not modify its environment. Default: false
    *
    * @param readOnlyHint true if read-only
    * @return this instance for method chaining
@@ -80,8 +89,7 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * If true, the tool does not modify its environment.
-   * Default: false
+   * If true, the tool does not modify its environment. Default: false
    *
    * @return true if read-only
    */
@@ -94,9 +102,7 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * Sets whether the tool may perform destructive updates.
-   * If false, the tool performs only additive updates.
-   * (This property is meaningful only when readOnlyHint == false)
+   * Sets whether the tool may perform destructive updates. If false, the tool performs only additive updates. (This property is meaningful only when readOnlyHint == false)
    * Default: true
    *
    * @param destructiveHint true if destructive
@@ -112,10 +118,8 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * If true, the tool may perform destructive updates to its environment.
-   * If false, the tool performs only additive updates.
-   * (This property is meaningful only when readOnlyHint == false)
-   * Default: true
+   * If true, the tool may perform destructive updates to its environment. If false, the tool performs only additive updates. (This property is meaningful only when readOnlyHint ==
+   * false) Default: true
    *
    * @return true if destructive
    */
@@ -128,11 +132,8 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * Sets whether the tool is idempotent.
-   * If true, calling the tool repeatedly with the same arguments
-   * will have no additional effect on its environment.
-   * (This property is meaningful only when readOnlyHint == false)
-   * Default: false
+   * Sets whether the tool is idempotent. If true, calling the tool repeatedly with the same arguments will have no additional effect on its environment. (This property is
+   * meaningful only when readOnlyHint == false) Default: false
    *
    * @param idempotentHint true if idempotent
    * @return this instance for method chaining
@@ -147,9 +148,7 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * If true, calling the tool repeatedly with the same arguments
-   * will have no additional effect on its environment.
-   * (This property is meaningful only when readOnlyHint == false)
+   * If true, calling the tool repeatedly with the same arguments will have no additional effect on its environment. (This property is meaningful only when readOnlyHint == false)
    * Default: false
    *
    * @return true if idempotent
@@ -163,12 +162,8 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * Sets whether this tool interacts with an open world.
-   * If true, this tool may interact with an "open world" of external
-   * entities. If false, the tool's domain of interaction is closed.
-   * For example, the world of a web search tool is open, whereas that
-   * of a memory tool is not.
-   * Default: true
+   * Sets whether this tool interacts with an open world. If true, this tool may interact with an "open world" of external entities. If false, the tool's domain of interaction is
+   * closed. For example, the world of a web search tool is open, whereas that of a memory tool is not. Default: true
    *
    * @param openWorldHint true if open-world
    * @return this instance for method chaining
@@ -183,11 +178,8 @@ public class ToolAnnotations extends Annotations {
   }
 
   /**
-   * If true, this tool may interact with an "open world" of external
-   * entities. If false, the tool's domain of interaction is closed.
-   * For example, the world of a web search tool is open, whereas that
-   * of a memory tool is not.
-   * Default: true
+   * If true, this tool may interact with an "open world" of external entities. If false, the tool's domain of interaction is closed. For example, the world of a web search tool is
+   * open, whereas that of a memory tool is not. Default: true
    *
    * @return true if open-world
    */

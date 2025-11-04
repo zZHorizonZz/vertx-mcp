@@ -3,6 +3,7 @@ package io.vertx.mcp.common.root;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.Meta;
 
 import java.util.Map;
 
@@ -11,7 +12,7 @@ import java.util.Map;
  */
 @DataObject
 @JsonGen(publicConverter = false)
-public class Root {
+public class Root implements Meta {
 
   private String uri;
   private String name;
@@ -25,9 +26,7 @@ public class Root {
   }
 
   /**
-   * Gets the URI identifying the root. This must start with file:// for now.
-   * This restriction may be relaxed in future versions of the protocol to allow
-   * other URI schemes.
+   * Gets the URI identifying the root. This must start with file:// for now. This restriction may be relaxed in future versions of the protocol to allow other URI schemes.
    *
    * @return root URI
    */
@@ -47,9 +46,8 @@ public class Root {
   }
 
   /**
-   * Gets an optional name for the root. This can be used to provide a human-readable
-   * identifier for the root, which may be useful for display purposes or for
-   * referencing the root in other parts of the application.
+   * Gets an optional name for the root. This can be used to provide a human-readable identifier for the root, which may be useful for display purposes or for referencing the root
+   * in other parts of the application.
    *
    * @return root name
    */
@@ -73,19 +71,19 @@ public class Root {
    *
    * @return metadata map
    */
-  public Map<String, Object> get_meta() {
+  @Override
+  public Map<String, Object> getMeta() {
     return _meta;
   }
 
   /**
    * Sets the metadata for the root.
    *
-   * @param _meta metadata map
-   * @return this instance for method chaining
+   * @param meta metadata map
    */
-  public Root set_meta(Map<String, Object> _meta) {
-    this._meta = _meta;
-    return this;
+  @Override
+  public void setMeta(Map<String, Object> meta) {
+    this._meta = meta;
   }
 
   public JsonObject toJson() {

@@ -9,15 +9,12 @@ import java.util.List;
 /**
  * The server's preferences for model selection, requested of the client during sampling.
  * <p>
- * Because LLMs can vary along multiple dimensions, choosing the "best" model is
- * rarely straightforward. Different models excel in different areas—some are
- * faster but less capable, others are more capable but more expensive, and so
- * on. This interface allows servers to express their priorities across multiple
- * dimensions to help clients make an appropriate selection for their use case.
+ * Because LLMs can vary along multiple dimensions, choosing the "best" model is rarely straightforward. Different models excel in different areas—some are faster but less capable,
+ * others are more capable but more expensive, and so on. This interface allows servers to express their priorities across multiple dimensions to help clients make an appropriate
+ * selection for their use case.
  * <p>
- * These preferences are always advisory. The client MAY ignore them. It is also
- * up to the client to decide how to interpret these preferences and how to
- * balance them against other considerations.
+ * These preferences are always advisory. The client MAY ignore them. It is also up to the client to decide how to interpret these preferences and how to balance them against other
+ * considerations.
  */
 @DataObject
 @JsonGen(publicConverter = false)
@@ -36,11 +33,8 @@ public class ModelPreferences {
   }
 
   /**
-   * Gets optional hints to use for model selection.
-   * If multiple hints are specified, the client MUST evaluate them in order
-   * (such that the first match is taken).
-   * The client SHOULD prioritize these hints over the numeric priorities, but
-   * MAY still use the priorities to select from ambiguous matches.
+   * Gets optional hints to use for model selection. If multiple hints are specified, the client MUST evaluate them in order (such that the first match is taken). The client SHOULD
+   * prioritize these hints over the numeric priorities, but MAY still use the priorities to select from ambiguous matches.
    *
    * @return list of model hints
    */
@@ -60,8 +54,7 @@ public class ModelPreferences {
   }
 
   /**
-   * Gets how much to prioritize cost when selecting a model. A value of 0 means cost
-   * is not important, while a value of 1 means cost is the most important factor.
+   * Gets how much to prioritize cost when selecting a model. A value of 0 means cost is not important, while a value of 1 means cost is the most important factor.
    *
    * @return cost priority between 0.0 and 1.0
    */
@@ -70,8 +63,7 @@ public class ModelPreferences {
   }
 
   /**
-   * Sets how much to prioritize cost when selecting a model.
-   * Must be a value between 0.0 and 1.0.
+   * Sets how much to prioritize cost when selecting a model. Must be a value between 0.0 and 1.0.
    *
    * @param costPriority cost priority between 0.0 and 1.0
    * @return this instance for method chaining
@@ -82,9 +74,8 @@ public class ModelPreferences {
   }
 
   /**
-   * Gets how much to prioritize sampling speed (latency) when selecting a model. A
-   * value of 0 means speed is not important, while a value of 1 means speed is
-   * the most important factor.
+   * Gets how much to prioritize sampling speed (latency) when selecting a model. A value of 0 means speed is not important, while a value of 1 means speed is the most important
+   * factor.
    *
    * @return speed priority between 0.0 and 1.0
    */
@@ -93,8 +84,7 @@ public class ModelPreferences {
   }
 
   /**
-   * Sets how much to prioritize sampling speed (latency) when selecting a model.
-   * Must be a value between 0.0 and 1.0.
+   * Sets how much to prioritize sampling speed (latency) when selecting a model. Must be a value between 0.0 and 1.0.
    *
    * @param speedPriority speed priority between 0.0 and 1.0
    * @return this instance for method chaining
@@ -105,9 +95,8 @@ public class ModelPreferences {
   }
 
   /**
-   * Gets how much to prioritize intelligence and capabilities when selecting a
-   * model. A value of 0 means intelligence is not important, while a value of 1
-   * means intelligence is the most important factor.
+   * Gets how much to prioritize intelligence and capabilities when selecting a model. A value of 0 means intelligence is not important, while a value of 1 means intelligence is
+   * the most important factor.
    *
    * @return intelligence priority between 0.0 and 1.0
    */
@@ -116,8 +105,7 @@ public class ModelPreferences {
   }
 
   /**
-   * Sets how much to prioritize intelligence and capabilities when selecting a model.
-   * Must be a value between 0.0 and 1.0.
+   * Sets how much to prioritize intelligence and capabilities when selecting a model. Must be a value between 0.0 and 1.0.
    *
    * @param intelligencePriority intelligence priority between 0.0 and 1.0
    * @return this instance for method chaining

@@ -1,12 +1,13 @@
 package io.vertx.mcp.common;
 
+import io.vertx.core.json.JsonObject;
+
 import java.util.*;
 
 /**
  * Abstract base class for annotations that provide hints to clients about how to use or display objects.
  * <p>
- * Implements Map to allow custom annotations beyond the standard ones.
- * Subclasses define their own specific annotation fields.
+ * Implements Map to allow custom annotations beyond the standard ones. Subclasses define their own specific annotation fields.
  */
 public abstract class Annotations implements Map<String, Object> {
 
@@ -17,6 +18,15 @@ public abstract class Annotations implements Map<String, Object> {
    */
   protected Annotations() {
     this.delegate = new HashMap<>();
+  }
+
+  /**
+   * Creates a new Annotations instance from a JsonObject.
+   *
+   * @param json JSON object containing annotations
+   */
+  protected Annotations(JsonObject json) {
+    this.delegate = new HashMap<>(json.getMap());
   }
 
   /**
@@ -110,5 +120,9 @@ public abstract class Annotations implements Map<String, Object> {
   @Override
   public String toString() {
     return delegate.toString();
+  }
+
+  public JsonObject toJson() {
+    return new JsonObject(delegate);
   }
 }

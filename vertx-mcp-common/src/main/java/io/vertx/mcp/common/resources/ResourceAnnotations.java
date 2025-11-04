@@ -1,8 +1,13 @@
 package io.vertx.mcp.common.resources;
 
+import io.vertx.codegen.annotations.DataObject;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Annotations;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Annotations for MCP resources that provide hints to clients about how to use or display the resource.
@@ -18,6 +23,7 @@ import java.util.*;
  *
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources#annotations">Model Context Protocol Specification</a>
  */
+@DataObject
 public class ResourceAnnotations extends Annotations {
 
   private static final String AUDIENCE_KEY = "audience";
@@ -29,6 +35,15 @@ public class ResourceAnnotations extends Annotations {
    */
   public ResourceAnnotations() {
     super();
+  }
+
+  /**
+   * Creates a new ResourceAnnotations instance from a JsonObject.
+   *
+   * @param json JSON object containing annotations
+   */
+  public ResourceAnnotations(JsonObject json) {
+    super(json);
   }
 
   /**

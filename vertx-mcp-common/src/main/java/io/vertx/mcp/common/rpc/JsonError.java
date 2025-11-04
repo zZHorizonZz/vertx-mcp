@@ -24,10 +24,6 @@ import io.vertx.core.json.JsonObject;
  */
 public class JsonError {
 
-  private static final String CODE_FIELD = "code";
-  private static final String MESSAGE_FIELD = "message";
-  private static final String DATA_FIELD = "data";
-
   // Standard error codes
   public static final int PARSE_ERROR = -32700;
   public static final int INVALID_REQUEST = -32600;
@@ -35,11 +31,12 @@ public class JsonError {
   public static final int METHOD_NOT_ALLOWED = -32000;
   public static final int INVALID_PARAMS = -32602;
   public static final int INTERNAL_ERROR = -32603;
-
   // Server error codes range from -32000 to -32099
   public static final int SERVER_ERROR_MIN = -32099;
   public static final int SERVER_ERROR_MAX = -32000;
-
+  private static final String CODE_FIELD = "code";
+  private static final String MESSAGE_FIELD = "message";
+  private static final String DATA_FIELD = "data";
   private final int code;
   private final String message;
   private final Object data;

@@ -3,6 +3,7 @@ package io.vertx.mcp.common.prompt;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.Meta;
 
 import java.util.List;
 import java.util.Map;
@@ -12,7 +13,7 @@ import java.util.Map;
  */
 @DataObject
 @JsonGen(publicConverter = false)
-public class Prompt {
+public class Prompt implements Meta {
 
   private String name;
   private String title;
@@ -112,19 +113,19 @@ public class Prompt {
    *
    * @return metadata map
    */
-  public Map<String, Object> get_meta() {
+  @Override
+  public Map<String, Object> getMeta() {
     return _meta;
   }
 
   /**
    * Sets the metadata for the prompt.
    *
-   * @param _meta metadata map
-   * @return this instance for method chaining
+   * @param meta metadata map
    */
-  public Prompt set_meta(Map<String, Object> _meta) {
-    this._meta = _meta;
-    return this;
+  @Override
+  public void setMeta(Map<String, Object> meta) {
+    this._meta = meta;
   }
 
   public JsonObject toJson() {

@@ -23,8 +23,7 @@ public class Implementation {
   }
 
   /**
-   * Gets the name of the implementation. Intended for programmatic or logical use,
-   * but used as a display name in past specs or fallback (if title isn't present).
+   * Gets the name of the implementation. Intended for programmatic or logical use, but used as a display name in past specs or fallback (if title isn't present).
    *
    * @return implementation name
    */
@@ -64,9 +63,8 @@ public class Implementation {
   }
 
   /**
-   * Gets the title of the implementation. Intended for UI and end-user contexts —
-   * optimized to be human-readable and easily understood, even by those unfamiliar
-   * with domain-specific terminology.
+   * Gets the title of the implementation. Intended for UI and end-user contexts — optimized to be human-readable and easily understood, even by those unfamiliar with
+   * domain-specific terminology.
    *
    * @return implementation title
    */

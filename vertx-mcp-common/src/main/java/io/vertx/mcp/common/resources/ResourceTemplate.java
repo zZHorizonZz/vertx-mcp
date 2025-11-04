@@ -3,6 +3,7 @@ package io.vertx.mcp.common.resources;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.Meta;
 
 import java.util.Map;
 
@@ -11,7 +12,7 @@ import java.util.Map;
  */
 @DataObject
 @JsonGen(publicConverter = false)
-public class ResourceTemplate {
+public class ResourceTemplate implements Meta {
 
   private String name;
   private String title;
@@ -89,8 +90,7 @@ public class ResourceTemplate {
   }
 
   /**
-   * Gets a description of what this template is for.
-   * This can be used by clients to improve the LLM's understanding of available resources.
+   * Gets a description of what this template is for. This can be used by clients to improve the LLM's understanding of available resources.
    *
    * @return template description
    */
@@ -110,8 +110,7 @@ public class ResourceTemplate {
   }
 
   /**
-   * Gets the MIME type for all resources that match this template.
-   * This should only be included if all resources matching this template have the same type.
+   * Gets the MIME type for all resources that match this template. This should only be included if all resources matching this template have the same type.
    *
    * @return MIME type
    */
@@ -155,19 +154,19 @@ public class ResourceTemplate {
    *
    * @return metadata map
    */
-  public Map<String, Object> get_meta() {
+  @Override
+  public Map<String, Object> getMeta() {
     return _meta;
   }
 
   /**
    * Sets the metadata for the template.
    *
-   * @param _meta metadata map
-   * @return this instance for method chaining
+   * @param meta metadata map
    */
-  public ResourceTemplate set_meta(Map<String, Object> _meta) {
-    this._meta = _meta;
-    return this;
+  @Override
+  public void setMeta(Map<String, Object> meta) {
+    this._meta = meta;
   }
 
   public JsonObject toJson() {

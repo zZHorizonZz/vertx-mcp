@@ -5,8 +5,7 @@ import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
 
 /**
- * Capabilities a client may support. Known capabilities are defined here, in this schema,
- * but this is not a closed set: any client can define its own, additional capabilities.
+ * Capabilities a client may support. Known capabilities are defined here, in this schema, but this is not a closed set: any client can define its own, additional capabilities.
  */
 @DataObject
 @JsonGen(publicConverter = false)

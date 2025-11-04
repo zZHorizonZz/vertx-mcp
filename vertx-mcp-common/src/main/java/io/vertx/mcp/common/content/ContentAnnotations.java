@@ -1,11 +1,16 @@
 package io.vertx.mcp.common.content;
 
+import io.vertx.codegen.annotations.DataObject;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Annotations;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Annotations for content blocks that provide hints to clients about how to use or display the content.
+ * Annotations for getContent blocks that provide hints to clients about how to use or display the getContent.
  * <p>
  * Supports standard MCP annotations:
  * <ul>
@@ -15,6 +20,7 @@ import java.util.*;
  * <p>
  * Also supports custom annotations via the Map interface.
  */
+@DataObject
 public class ContentAnnotations extends Annotations {
 
   private static final String AUDIENCE_KEY = "audience";
@@ -28,6 +34,15 @@ public class ContentAnnotations extends Annotations {
   }
 
   /**
+   * Creates a new ContentAnnotations instance from a JsonObject.
+   *
+   * @param json JSON object containing annotations
+   */
+  public ContentAnnotations(JsonObject json) {
+    super(json);
+  }
+
+  /**
    * Creates a new ContentAnnotations instance with the given initial annotations.
    *
    * @param annotations initial annotations
@@ -37,7 +52,7 @@ public class ContentAnnotations extends Annotations {
   }
 
   /**
-   * Sets the audience for this content.
+   * Sets the audience for this getContent.
    *
    * @param audience list of intended audiences ("user" and/or "assistant")
    * @return this instance for method chaining
@@ -57,7 +72,7 @@ public class ContentAnnotations extends Annotations {
   }
 
   /**
-   * Sets the audience for this content.
+   * Sets the audience for this getContent.
    *
    * @param audience intended audiences ("user" and/or "assistant")
    * @return this instance for method chaining
@@ -67,7 +82,7 @@ public class ContentAnnotations extends Annotations {
   }
 
   /**
-   * Gets the audience for this content.
+   * Gets the audience for this getContent.
    *
    * @return list of intended audiences, or null if not set
    */
@@ -81,7 +96,7 @@ public class ContentAnnotations extends Annotations {
   }
 
   /**
-   * Sets the priority for this content.
+   * Sets the priority for this getContent.
    *
    * @param priority number from 0.0 to 1.0 indicating importance (1 = most important, 0 = least important)
    * @return this instance for method chaining
@@ -100,7 +115,7 @@ public class ContentAnnotations extends Annotations {
   }
 
   /**
-   * Gets the priority for this content.
+   * Gets the priority for this getContent.
    *
    * @return priority value between 0.0 and 1.0, or null if not set
    */

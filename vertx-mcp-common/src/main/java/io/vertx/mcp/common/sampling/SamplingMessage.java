@@ -42,18 +42,18 @@ public class SamplingMessage {
   }
 
   /**
-   * Gets the content of the message (TextContent, ImageContent, or AudioContent).
+   * Gets the getContent of the message (TextContent, ImageContent, or AudioContent).
    *
-   * @return message content
+   * @return message getContent
    */
   public JsonObject getContent() {
     return content;
   }
 
   /**
-   * Sets the content of the message (TextContent, ImageContent, or AudioContent).
+   * Sets the getContent of the message (TextContent, ImageContent, or AudioContent).
    *
-   * @param content message content
+   * @param content message getContent
    * @return this instance for method chaining
    */
   public SamplingMessage setContent(JsonObject content) {
