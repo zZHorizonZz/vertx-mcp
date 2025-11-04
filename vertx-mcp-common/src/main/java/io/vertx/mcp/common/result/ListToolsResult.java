@@ -9,10 +9,9 @@ import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
-public class ListToolsResult extends Result {
+public class ListToolsResult extends PaginatedResult {
 
   private List<Tool> tools;
-  private String nextCursor;
 
   public ListToolsResult() {
     super(null);
@@ -32,12 +31,9 @@ public class ListToolsResult extends Result {
     return this;
   }
 
-  public String getNextCursor() {
-    return nextCursor;
-  }
-
+  @Override
   public ListToolsResult setNextCursor(String nextCursor) {
-    this.nextCursor = nextCursor;
+    super.setNextCursor(nextCursor);
     return this;
   }
 

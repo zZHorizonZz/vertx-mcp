@@ -9,10 +9,9 @@ import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
-public class ListResourceTemplatesResult extends Result {
+public class ListResourceTemplatesResult extends PaginatedResult {
 
   private List<ResourceTemplate> resourceTemplates;
-  private String nextCursor;
 
   public ListResourceTemplatesResult() {
     super(null);
@@ -32,12 +31,9 @@ public class ListResourceTemplatesResult extends Result {
     return this;
   }
 
-  public String getNextCursor() {
-    return nextCursor;
-  }
-
+  @Override
   public ListResourceTemplatesResult setNextCursor(String nextCursor) {
-    this.nextCursor = nextCursor;
+    super.setNextCursor(nextCursor);
     return this;
   }
 

@@ -7,10 +7,9 @@ import io.vertx.core.json.JsonObject;
 
 @DataObject
 @JsonGen(publicConverter = false)
-public class ListResourcesResult extends Result {
+public class ListResourcesResult extends PaginatedResult {
 
   private JsonArray resources;
-  private String nextCursor;
 
   public ListResourcesResult() {
     super(null);
@@ -30,12 +29,9 @@ public class ListResourcesResult extends Result {
     return this;
   }
 
-  public String getNextCursor() {
-    return nextCursor;
-  }
-
+  @Override
   public ListResourcesResult setNextCursor(String nextCursor) {
-    this.nextCursor = nextCursor;
+    super.setNextCursor(nextCursor);
     return this;
   }
 

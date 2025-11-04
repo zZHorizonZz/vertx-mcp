@@ -1,6 +1,9 @@
 package io.vertx.mcp.server;
 
-import java.util.function.Function;
-
-public interface ServerFeature<T>  {
+/**
+ * Base marker interface for MCP server features.
+ * Server features handle specific capabilities like tools, resources, prompts, etc.
+ * Context is obtained from Vert.x context.
+ */
+public interface ServerFeature {
 }

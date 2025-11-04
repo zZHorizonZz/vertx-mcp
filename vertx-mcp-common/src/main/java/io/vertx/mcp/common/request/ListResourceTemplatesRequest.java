@@ -6,11 +6,9 @@ import io.vertx.core.json.JsonObject;
 
 @DataObject
 @JsonGen(publicConverter = false)
-public class ListResourceTemplatesRequest extends Request {
+public class ListResourceTemplatesRequest extends PaginatedRequest {
 
   private static final String METHOD = "resources/templates/list";
-
-  private String cursor;
 
   public ListResourceTemplatesRequest() {
     super(METHOD, null);
@@ -21,12 +19,9 @@ public class ListResourceTemplatesRequest extends Request {
     ListResourceTemplatesRequestConverter.fromJson(json, this);
   }
 
-  public String getCursor() {
-    return cursor;
-  }
-
+  @Override
   public ListResourceTemplatesRequest setCursor(String cursor) {
-    this.cursor = cursor;
+    super.setCursor(cursor);
     return this;
   }
 

@@ -6,11 +6,9 @@ import io.vertx.core.json.JsonObject;
 
 @DataObject
 @JsonGen(publicConverter = false)
-public class ListToolsRequest extends Request {
+public class ListToolsRequest extends PaginatedRequest {
 
   private static final String METHOD = "tools/list";
-
-  private String cursor;
 
   public ListToolsRequest() {
     super(METHOD, null);
@@ -21,12 +19,9 @@ public class ListToolsRequest extends Request {
     ListToolsRequestConverter.fromJson(json, this);
   }
 
-  public String getCursor() {
-    return cursor;
-  }
-
+  @Override
   public ListToolsRequest setCursor(String cursor) {
-    this.cursor = cursor;
+    super.setCursor(cursor);
     return this;
   }
 

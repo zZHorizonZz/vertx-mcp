@@ -9,10 +9,9 @@ import java.util.List;
 
 @DataObject
 @JsonGen(publicConverter = false)
-public class ListPromptsResult extends Result {
+public class ListPromptsResult extends PaginatedResult {
 
   private List<Prompt> prompts;
-  private String nextCursor;
 
   public ListPromptsResult() {
     super(null);
@@ -32,12 +31,9 @@ public class ListPromptsResult extends Result {
     return this;
   }
 
-  public String getNextCursor() {
-    return nextCursor;
-  }
-
+  @Override
   public ListPromptsResult setNextCursor(String nextCursor) {
-    this.nextCursor = nextCursor;
+    super.setNextCursor(nextCursor);
     return this;
   }
 
