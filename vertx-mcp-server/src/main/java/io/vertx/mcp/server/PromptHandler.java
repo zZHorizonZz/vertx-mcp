@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Handler for prompt operations like listing prompts.
  */
-public interface PromptHandler {
+public interface PromptHandler extends ServerFeature {
 
   /**
    * Lists all available prompts.

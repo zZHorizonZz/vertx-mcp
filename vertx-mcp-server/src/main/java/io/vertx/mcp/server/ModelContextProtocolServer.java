@@ -15,7 +15,7 @@ public interface ModelContextProtocolServer {
   // Individual item registration
   void addTool(Tool tool, ToolServerFeature feature);
 
-  void addResource(Resource resource, ResourceServerFeature feature);
+  void addResource(Resource resource, DynamicResourceHandler feature);
 
   void addResourceTemplate(ResourceTemplate template);
 
@@ -26,7 +26,7 @@ public interface ModelContextProtocolServer {
   // Handler registration
   void setToolHandler(ToolHandler handler);
 
-  void setResourceHandler(ResourceHandler handler);
+  void setResourceHandler(ResourceServerFeature handler);
 
   void setPromptHandler(PromptHandler handler);
 

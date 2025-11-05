@@ -24,6 +24,11 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-uri-template</artifactId>
+      <version>5.0.5</version>
+    </dependency>
   </dependencies>
 
 </project>

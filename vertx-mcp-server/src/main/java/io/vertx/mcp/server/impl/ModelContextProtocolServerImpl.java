@@ -13,13 +13,13 @@ import java.util.Map;
 public class ModelContextProtocolServerImpl implements ModelContextProtocolServer {
 
   private final Map<Tool, ToolServerFeature> tools = new HashMap<>();
-  private final Map<Resource, ResourceServerFeature> resources = new HashMap<>();
+  private final Map<Resource, DynamicResourceHandler> resources = new HashMap<>();
   private final Map<ResourceTemplate, Void> resourceTemplates = new HashMap<>();
   private final Map<Prompt, PromptServerFeature> prompts = new HashMap<>();
   private final Map<Root, Void> roots = new HashMap<>();
 
   private ToolHandler toolHandler;
-  private ResourceHandler resourceHandler;
+  private ResourceServerFeature resourceServerFeature;
   private PromptHandler promptHandler;
   private RootsHandler rootsHandler;
 
@@ -29,7 +29,7 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
   }
 
   @Override
-  public void addResource(Resource resource, ResourceServerFeature feature) {
+  public void addResource(Resource resource, DynamicResourceHandler feature) {
     resources.put(resource, feature);
   }
 
@@ -54,8 +54,8 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
   }
 
   @Override
-  public void setResourceHandler(ResourceHandler handler) {
-    this.resourceHandler = handler;
+  public void setResourceHandler(ResourceServerFeature handler) {
+    this.resourceServerFeature = handler;
   }
 
   @Override

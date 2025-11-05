@@ -2,13 +2,37 @@ package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
 import io.vertx.mcp.common.resources.Resource;
+import io.vertx.mcp.common.resources.ResourceTemplate;
 
-import java.util.function.Supplier;
+import java.util.List;
 
 /**
- * Server feature for individual resource provision.
- * Implements Supplier to provide the resource.
- * Context is obtained from Vert.x context.
+ * Handler for resource operations like listing resources and templates.
  */
-public interface ResourceServerFeature extends ServerFeature, Supplier<Future<Resource>> {
+public interface ResourceServerFeature {
+
+  /**
+   * Lists all available resources.
+   *
+   * @param cursor pagination cursor
+   * @return a future that completes with the list of resources
+   */
+  Future<List<Resource>> listResources(String cursor);
+
+  /**
+   * Lists all available resource templates.
+   *
+   * @param cursor pagination cursor
+   * @return a future that completes with the list of resource templates
+   */
+  Future<List<ResourceTemplate>> listResourceTemplates(String cursor);
+
+  /**
+   * Checks if resource subscriptions are supported.
+   *
+   * @return true if subscriptions are supported
+   */
+  default boolean supportsSubscribe() {
+    return false;
+  }
 }
