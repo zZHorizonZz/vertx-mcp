@@ -35,6 +35,7 @@ public class ListResourcesResult extends PaginatedResult {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListResourcesResultConverter.toJson(this, json);

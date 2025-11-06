@@ -17,6 +17,7 @@ public class EmptyResult extends Result {
     EmptyResultConverter.fromJson(json, this);
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     EmptyResultConverter.toJson(this, json);

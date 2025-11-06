@@ -6,6 +6,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.mcp.common.request.PingRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import org.junit.Test;
@@ -209,7 +210,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
       }));
 
     // Test 2: Request (has id)
-    JsonRequest request = JsonRequest.createRequest("ping", new JsonObject(), 1);
+    JsonRequest request = new PingRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {

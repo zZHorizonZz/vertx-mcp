@@ -40,6 +40,7 @@ public class CallToolRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     CallToolRequestConverter.toJson(this, json);

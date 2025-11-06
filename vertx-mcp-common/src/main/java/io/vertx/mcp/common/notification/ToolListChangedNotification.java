@@ -19,6 +19,7 @@ public class ToolListChangedNotification extends Notification {
     ToolListChangedNotificationConverter.fromJson(json, this);
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ToolListChangedNotificationConverter.toJson(this, json);

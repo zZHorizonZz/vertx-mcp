@@ -6,6 +6,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.mcp.common.request.InitializeRequest;
+import io.vertx.mcp.common.request.PingRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import org.junit.Test;
@@ -25,7 +27,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    JsonRequest initRequest = new InitializeRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -55,6 +57,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testInitializeWithoutSessionsDoesNotGenerateSessionId(TestContext context) {
     ServerOptions options = new ServerOptions()
+      .setStreamingEnabled(false)
       .setSessionsEnabled(false);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
@@ -63,7 +66,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    JsonRequest initRequest = new InitializeRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -100,7 +103,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
     Async async = context.async();
 
     // First, initialize to get a session ID
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    JsonRequest initRequest = new InitializeRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -110,7 +113,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
       })
       .compose(sessionId -> {
         // Now make another request with the session ID
-        JsonRequest pingRequest = JsonRequest.createRequest("ping", new JsonObject(), 2);
+        JsonRequest pingRequest = new PingRequest().toRequest(2);
 
         return client.request(HttpMethod.POST, port, "localhost", "/")
           .compose(req -> {
@@ -143,7 +146,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest pingRequest = JsonRequest.createRequest("ping", new JsonObject(), 1);
+    JsonRequest pingRequest = new PingRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -171,7 +174,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
     Async async = context.async();
 
     // Ping without session ID should still work
-    JsonRequest pingRequest = JsonRequest.createRequest("ping", new JsonObject(), 1);
+    JsonRequest pingRequest = new PingRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {

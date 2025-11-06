@@ -30,6 +30,7 @@ public class SubscribeRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     SubscribeRequestConverter.toJson(this, json);

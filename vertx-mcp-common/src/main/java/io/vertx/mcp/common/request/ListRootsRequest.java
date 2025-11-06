@@ -19,6 +19,7 @@ public class ListRootsRequest extends Request {
     ListRootsRequestConverter.fromJson(json, this);
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListRootsRequestConverter.toJson(this, json);

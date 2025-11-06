@@ -1,7 +1,6 @@
 package io.vertx.mcp.server.impl;
 
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
@@ -46,69 +45,64 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
 
   @Override
   public void handle(ServerRequest request) {
-    // Set up a handler to read the JSON-RPC request and determine the method
-    request.handler(jsonData -> {
-      try {
-        JsonRequest jsonRequest = JsonRequest.fromJson(jsonData);
+    try {
+      JsonRequest jsonRequest = request.getJsonRequest();
 
-        // Store the parsed JSON-RPC request in the ServerRequest
-        request.setJsonRequest(jsonRequest);
+      String method = jsonRequest.getMethod();
 
-        String method = jsonRequest.getMethod();
+      // Check if this is a notification (no id means no response expected)
+      boolean isNotification = jsonRequest.isNotification();
 
-        // Check if this is a notification (no id means no response expected)
-        boolean isNotification = jsonRequest.isNotification();
+      // Check if notifications are enabled
+      if (isNotification && !options.getNotificationsEnabled()) {
+        // Notifications are disabled, ignore silently but still acknowledge with 202
+        request.response().endWithAccepted();
+        return;
+      }
 
-        // Check if notifications are enabled
-        if (isNotification && !options.getNotificationsEnabled()) {
-          // Notifications are disabled, ignore silently
-          return;
-        }
+      // Find a feature that can handle this method
+      Optional<ServerFeature> feature = features.stream()
+        .filter(f -> f.hasCapability(method))
+        .findFirst();
 
-        // Find a feature that can handle this method
-        Optional<ServerFeature> feature = features.stream()
-          .filter(f -> f.hasCapability(method))
-          .findFirst();
-
-        if (feature.isEmpty()) {
-          // No feature found
-          if (isNotification) {
-            // Notifications don't get error responses, just log and return 202 Accepted
-            System.err.println("No handler for notification: " + method);
-            request.response().endWithAccepted();
-            return;
-          }
-
-          // For requests, return method not found error
-          JsonResponse errorResponse = JsonResponse.error(
-            jsonRequest,
-            JsonError.methodNotFound(method)
-          );
-          request.response().end(errorResponse);
-          return;
-        }
-
-        // For notifications, send 202 Accepted immediately and handle in background
+      if (feature.isEmpty()) {
+        // No feature found
         if (isNotification) {
+          // Notifications don't get error responses, just log and return 202 Accepted
+          System.err.println("No handler for notification: " + method);
           request.response().endWithAccepted();
-          // Process the notification asynchronously (fire and forget)
-          Handler<ServerRequest> handler = feature.get();
-          handler.handle(request);
-        } else {
-          // For requests, call the feature handler which will send the response
-          Handler<ServerRequest> handler = feature.get();
-          handler.handle(request);
+          return;
         }
 
-      } catch (Exception e) {
-        // Failed to parse the request - return invalid request error
-        JsonResponse errorResponse = new JsonResponse(
-          JsonError.invalidRequest(e.getMessage()),
-          null
+        // For requests, return method not found error
+        JsonResponse errorResponse = JsonResponse.error(
+          jsonRequest,
+          JsonError.methodNotFound(method)
         );
         request.response().end(errorResponse);
+        return;
       }
-    });
+
+      // For notifications, send 202 Accepted immediately and handle in background
+      if (isNotification) {
+        request.response().endWithAccepted();
+        // Process the notification asynchronously (fire and forget)
+        Handler<ServerRequest> handler = feature.get();
+        handler.handle(request);
+      } else {
+        // For requests, call the feature handler which will send the response
+        Handler<ServerRequest> handler = feature.get();
+        handler.handle(request);
+      }
+
+    } catch (Exception e) {
+      // Failed to parse the request - return invalid request error
+      JsonResponse errorResponse = new JsonResponse(
+        JsonError.invalidRequest(e.getMessage()),
+        null
+      );
+      request.response().end(errorResponse);
+    }
   }
 
   @Override

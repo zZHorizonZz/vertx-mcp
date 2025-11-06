@@ -41,6 +41,7 @@ public class GetPromptResult extends Result {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     GetPromptResultConverter.toJson(this, json);

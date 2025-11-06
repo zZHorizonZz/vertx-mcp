@@ -25,6 +25,7 @@ public class ListResourcesRequest extends PaginatedRequest {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListResourcesRequestConverter.toJson(this, json);

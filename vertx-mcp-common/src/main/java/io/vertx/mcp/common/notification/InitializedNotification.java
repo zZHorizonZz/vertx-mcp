@@ -19,6 +19,7 @@ public class InitializedNotification extends Notification {
     InitializedNotificationConverter.fromJson(json, this);
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     InitializedNotificationConverter.toJson(this, json);

@@ -50,6 +50,7 @@ public class LoggingMessageNotification extends Notification {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     LoggingMessageNotificationConverter.toJson(this, json);

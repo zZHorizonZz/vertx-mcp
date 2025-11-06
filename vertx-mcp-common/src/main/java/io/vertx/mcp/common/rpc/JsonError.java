@@ -127,7 +127,7 @@ public class JsonError {
    * @return a new method not found error
    */
   public static JsonError methodNotFound(String method) {
-    return new JsonError(METHOD_NOT_FOUND, "Method not found", method);
+    return new JsonError(METHOD_NOT_FOUND, "Method not found: " + method, method);
   }
 
   /**

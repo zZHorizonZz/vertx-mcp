@@ -31,6 +31,7 @@ public class ListRootsResult extends Result {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListRootsResultConverter.toJson(this, json);

@@ -25,6 +25,7 @@ public class ListToolsRequest extends PaginatedRequest {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListToolsRequestConverter.toJson(this, json);

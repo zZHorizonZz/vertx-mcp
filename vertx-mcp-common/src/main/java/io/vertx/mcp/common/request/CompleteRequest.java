@@ -50,6 +50,7 @@ public class CompleteRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     CompleteRequestConverter.toJson(this, json);

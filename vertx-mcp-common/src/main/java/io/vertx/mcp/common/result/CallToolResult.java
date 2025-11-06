@@ -49,6 +49,7 @@ public class CallToolResult extends Result {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     CallToolResultConverter.toJson(this, json);

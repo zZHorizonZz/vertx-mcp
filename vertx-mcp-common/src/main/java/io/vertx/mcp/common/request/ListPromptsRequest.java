@@ -25,6 +25,7 @@ public class ListPromptsRequest extends PaginatedRequest {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListPromptsRequestConverter.toJson(this, json);

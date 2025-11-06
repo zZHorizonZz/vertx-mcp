@@ -38,7 +38,8 @@ public class HttpServerResponseImpl implements ServerResponse {
 
   @Override
   public void init() {
-    httpResponse.putHeader("Content-Type", "application/json");
+    // Don't set Content-Type here - it will be set when sending the response
+    // based on whether SSE is enabled or not
   }
 
   @Override
@@ -80,6 +81,7 @@ public class HttpServerResponseImpl implements ServerResponse {
       return session.send(response);
     }
 
+    httpResponse.setStatusCode(200);
     httpResponse.putHeader("Content-Type", "application/json");
     return httpResponse.end(response.toJson().toBuffer());
   }
@@ -100,7 +102,16 @@ public class HttpServerResponseImpl implements ServerResponse {
       return Future.failedFuture("Response already ended");
     }
     ended = true;
+
+    // For notifications, we don't use SSE even if it's enabled
+    // Reset headers to plain 202 Accepted
     httpResponse.setStatusCode(202);
+    // Clear SSE headers if they were set
+    httpResponse.headers().remove("Content-Type");
+    httpResponse.headers().remove("Cache-Control");
+    httpResponse.headers().remove("Connection");
+    httpResponse.setChunked(false);
+
     return httpResponse.end();
   }
 

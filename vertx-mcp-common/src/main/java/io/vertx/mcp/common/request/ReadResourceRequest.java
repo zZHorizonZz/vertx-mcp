@@ -30,6 +30,7 @@ public class ReadResourceRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ReadResourceRequestConverter.toJson(this, json);

@@ -40,6 +40,7 @@ public class GetPromptRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     GetPromptRequestConverter.toJson(this, json);

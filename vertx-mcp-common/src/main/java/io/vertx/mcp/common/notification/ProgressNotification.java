@@ -60,6 +60,7 @@ public class ProgressNotification extends Notification {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ProgressNotificationConverter.toJson(this, json);

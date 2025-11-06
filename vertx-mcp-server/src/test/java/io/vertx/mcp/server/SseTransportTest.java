@@ -6,6 +6,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.mcp.common.request.InitializeRequest;
+import io.vertx.mcp.common.request.PingRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import org.junit.Test;
 
@@ -26,7 +28,7 @@ public class SseTransportTest extends HttpTransportTestBase {
     Async async = context.async();
 
     // First, initialize to get a session ID
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    JsonRequest initRequest = new InitializeRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -36,7 +38,7 @@ public class SseTransportTest extends HttpTransportTestBase {
       })
       .compose(sessionId -> {
         // Now make a request with the session ID (not a notification)
-        JsonRequest pingRequest = JsonRequest.createRequest("ping", new JsonObject(), 2);
+        JsonRequest pingRequest = new PingRequest().toRequest(2);
 
         return client.request(HttpMethod.POST, port, "localhost", "/")
           .compose(req -> {
@@ -77,7 +79,7 @@ public class SseTransportTest extends HttpTransportTestBase {
     Async async = context.async();
 
     // First, initialize to get a session ID
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    JsonRequest initRequest = new InitializeRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -123,7 +125,7 @@ public class SseTransportTest extends HttpTransportTestBase {
     Async async = context.async();
 
     // Ping without session ID
-    JsonRequest pingRequest = JsonRequest.createRequest("ping", new JsonObject(), 1);
+    JsonRequest pingRequest = new PingRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -153,7 +155,7 @@ public class SseTransportTest extends HttpTransportTestBase {
     Async async = context.async();
 
     // Initialize to get session
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    JsonRequest initRequest = new InitializeRequest().toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
@@ -163,7 +165,7 @@ public class SseTransportTest extends HttpTransportTestBase {
       })
       .compose(sessionId -> {
         // Request with session ID but streaming disabled
-        JsonRequest pingRequest = JsonRequest.createRequest("ping", new JsonObject(), 2);
+        JsonRequest pingRequest = new PingRequest().toRequest(2);
 
         return client.request(HttpMethod.POST, port, "localhost", "/")
           .compose(req -> {

@@ -37,6 +37,7 @@ public class ListPromptsResult extends PaginatedResult {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListPromptsResultConverter.toJson(this, json);

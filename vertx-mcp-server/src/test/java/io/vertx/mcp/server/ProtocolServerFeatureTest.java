@@ -6,6 +6,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.mcp.common.request.InitializeRequest;
+import io.vertx.mcp.common.request.PingRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.impl.ResourceServerFeature;
@@ -25,12 +27,13 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    InitializeRequest initRequest = new InitializeRequest();
+    JsonRequest jsonRequest = initRequest.toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
         req.putHeader("Content-Type", "application/json");
-        return req.send(initRequest.toJson().toBuffer())
+        return req.send(jsonRequest.toJson().toBuffer())
           .compose(resp -> resp.body());
       })
       .onComplete(context.asyncAssertSuccess(body -> {
@@ -67,12 +70,13 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    InitializeRequest initRequest = new InitializeRequest();
+    JsonRequest jsonRequest = initRequest.toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
         req.putHeader("Content-Type", "application/json");
-        return req.send(initRequest.toJson().toBuffer())
+        return req.send(jsonRequest.toJson().toBuffer())
           .compose(resp -> resp.body());
       })
       .onComplete(context.asyncAssertSuccess(body -> {
@@ -93,6 +97,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   @Test
   public void testInitializeWithoutSessionsNoSubscribe(TestContext context) {
     ServerOptions options = new ServerOptions()
+      .setStreamingEnabled(false)
       .setSessionsEnabled(false);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
@@ -103,12 +108,13 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest initRequest = JsonRequest.createRequest("initialize", new JsonObject(), 1);
+    InitializeRequest initRequest = new InitializeRequest();
+    JsonRequest jsonRequest = initRequest.toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
         req.putHeader("Content-Type", "application/json");
-        return req.send(initRequest.toJson().toBuffer())
+        return req.send(jsonRequest.toJson().toBuffer())
           .compose(resp -> resp.body());
       })
       .onComplete(context.asyncAssertSuccess(body -> {
@@ -135,12 +141,13 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest pingRequest = JsonRequest.createRequest("ping", new JsonObject(), 1);
+    PingRequest pingRequest = new PingRequest();
+    JsonRequest jsonRequest = pingRequest.toRequest(1);
 
     client.request(HttpMethod.POST, port, "localhost", "/")
       .compose(req -> {
         req.putHeader("Content-Type", "application/json");
-        return req.send(pingRequest.toJson().toBuffer())
+        return req.send(jsonRequest.toJson().toBuffer())
           .compose(resp -> resp.body());
       })
       .onComplete(context.asyncAssertSuccess(body -> {

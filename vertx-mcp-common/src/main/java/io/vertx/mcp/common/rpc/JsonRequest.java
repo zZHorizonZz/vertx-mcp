@@ -28,7 +28,7 @@ import io.vertx.core.json.JsonObject;
 public class JsonRequest {
 
   private static final String JSONRPC_VERSION = "2.0";
-  private static final String JSONRPC_FIELD = "version";
+  private static final String JSONRPC_FIELD = "jsonrpc";
 
   private static final String METHOD_FIELD = "method";
   private static final String PARAMS_FIELD = "params";

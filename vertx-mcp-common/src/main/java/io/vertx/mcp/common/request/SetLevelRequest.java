@@ -30,6 +30,7 @@ public class SetLevelRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     SetLevelRequestConverter.toJson(this, json);

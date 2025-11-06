@@ -40,6 +40,7 @@ public class CancelledNotification extends Notification {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     CancelledNotificationConverter.toJson(this, json);

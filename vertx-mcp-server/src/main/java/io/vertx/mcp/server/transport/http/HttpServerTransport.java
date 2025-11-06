@@ -49,8 +49,11 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
         serverRequest.setSession(session);
         serverResponse.setSession(session);
 
-        // Enable SSE if this is not a notification (will be determined after parsing)
-        serverRequest.setSseCandidate(true);
+        // Enable SSE immediately if streaming is enabled
+        // We'll decide later whether to actually use it based on if it's a notification
+        if (options.getStreamingEnabled()) {
+          session.enableSse();
+        }
       } else {
         // Invalid session ID - reject request
         httpRequest.response()
@@ -60,11 +63,22 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
       }
     }
 
-    // Initialize the request with the response
-    serverRequest.init(serverResponse);
+    // Set handler to dispatch to server when request is fully parsed
+    serverRequest.handler(v -> {
+      context.dispatch(serverRequest, server);
+    });
 
-    // Dispatch the request to the MCP server
-    context.dispatch(serverRequest, server);
+    // Set exception handler to handle errors
+    serverRequest.exceptionHandler(t -> {
+      // Handle parsing errors by returning invalid request error
+      httpRequest.response()
+        .setStatusCode(400)
+        .putHeader("Content-Type", "application/json")
+        .end("{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Invalid Request\"},\"id\":null}");
+    });
+
+    // Initialize the request with the response (starts reading body)
+    serverRequest.init(serverResponse);
   }
 
   public SessionManager getSessionManager() {

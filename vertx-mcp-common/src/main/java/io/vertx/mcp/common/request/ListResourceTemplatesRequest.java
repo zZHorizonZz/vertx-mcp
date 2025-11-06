@@ -25,6 +25,7 @@ public class ListResourceTemplatesRequest extends PaginatedRequest {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListResourceTemplatesRequestConverter.toJson(this, json);

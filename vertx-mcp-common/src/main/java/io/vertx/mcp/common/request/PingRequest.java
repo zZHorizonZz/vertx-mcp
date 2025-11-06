@@ -19,9 +19,7 @@ public class PingRequest extends Request {
     PingRequestConverter.fromJson(json, this);
   }
 
-  /**
-   * @return a JSON representation of options
-   */
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     PingRequestConverter.toJson(this, json);

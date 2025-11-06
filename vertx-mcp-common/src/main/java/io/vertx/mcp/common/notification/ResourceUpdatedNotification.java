@@ -30,6 +30,7 @@ public class ResourceUpdatedNotification extends Notification {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ResourceUpdatedNotificationConverter.toJson(this, json);

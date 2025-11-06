@@ -29,6 +29,7 @@ public class ReadResourceResult extends Result {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ReadResourceResultConverter.toJson(this, json);

@@ -1,7 +1,9 @@
 package io.vertx.mcp.common.notification;
 
 import io.vertx.codegen.annotations.GenIgnore;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Meta;
+import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.Map;
 
@@ -14,6 +16,12 @@ public abstract class Notification implements Meta {
   public Notification(String method, Map<String, Object> _meta) {
     this.method = method;
     this._meta = _meta;
+  }
+
+  public abstract JsonObject toJson();
+
+  public JsonRequest toRequest() {
+    return JsonRequest.createNotification(method, toJson());
   }
 
   @GenIgnore

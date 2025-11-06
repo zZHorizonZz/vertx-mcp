@@ -63,6 +63,7 @@ public class InitializeResult extends Result {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     InitializeResultConverter.toJson(this, json);

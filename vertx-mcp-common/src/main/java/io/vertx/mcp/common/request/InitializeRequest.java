@@ -52,6 +52,7 @@ public class InitializeRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     InitializeRequestConverter.toJson(this, json);

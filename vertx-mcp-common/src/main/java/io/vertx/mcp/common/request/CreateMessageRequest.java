@@ -104,6 +104,7 @@ public class CreateMessageRequest extends Request {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     CreateMessageRequestConverter.toJson(this, json);

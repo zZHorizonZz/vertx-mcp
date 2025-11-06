@@ -38,6 +38,7 @@ public class ElicitResult extends Result {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ElicitResultConverter.toJson(this, json);

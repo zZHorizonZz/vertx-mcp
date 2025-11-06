@@ -19,6 +19,7 @@ public class RootsListChangedNotification extends Notification {
     RootsListChangedNotificationConverter.fromJson(json, this);
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     RootsListChangedNotificationConverter.toJson(this, json);

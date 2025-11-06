@@ -1,7 +1,10 @@
 package io.vertx.mcp.common.result;
 
 import io.vertx.codegen.annotations.GenIgnore;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Meta;
+import io.vertx.mcp.common.rpc.JsonRequest;
+import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.Map;
 
@@ -11,6 +14,12 @@ public abstract class Result implements Meta {
 
   public Result(Map<String, Object> _meta) {
     this._meta = _meta;
+  }
+
+  public abstract JsonObject toJson();
+
+  public JsonResponse toRequest(JsonRequest request) {
+    return JsonResponse.success(request, toJson());
   }
 
   @Override

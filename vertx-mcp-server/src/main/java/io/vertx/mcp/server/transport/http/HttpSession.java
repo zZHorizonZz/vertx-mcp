@@ -38,7 +38,7 @@ public class HttpSession implements Session {
 
   @Override
   public void enableSse() {
-    if (!headersWritten) {
+    if (!headersWritten && !httpResponse.headWritten()) {
       sseEnabled = true;
       httpResponse.setChunked(true);
       httpResponse.putHeader("Content-Type", "text/event-stream");

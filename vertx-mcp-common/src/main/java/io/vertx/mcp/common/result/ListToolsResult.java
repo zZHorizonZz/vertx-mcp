@@ -37,6 +37,7 @@ public class ListToolsResult extends PaginatedResult {
     return this;
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     ListToolsResultConverter.toJson(this, json);

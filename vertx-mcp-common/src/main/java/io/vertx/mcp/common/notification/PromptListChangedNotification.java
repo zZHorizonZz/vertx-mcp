@@ -19,6 +19,7 @@ public class PromptListChangedNotification extends Notification {
     PromptListChangedNotificationConverter.fromJson(json, this);
   }
 
+  @Override
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     PromptListChangedNotificationConverter.toJson(this, json);
