@@ -10,7 +10,10 @@ import io.vertx.mcp.common.capabilities.ServerCapabilities;
 @JsonGen(publicConverter = false)
 public class InitializeResult extends Result {
 
-  private String protocolVersion;
+  public static final String DEFAULT_PROTOCOL_VERSION = "2025-06-18";
+
+  private String protocolVersion = DEFAULT_PROTOCOL_VERSION;
+
   private ServerCapabilities capabilities;
   private Implementation serverInfo;
   private String instructions;

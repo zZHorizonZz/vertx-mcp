@@ -1,34 +1,63 @@
 package io.vertx.mcp.server;
 
-import io.vertx.mcp.common.prompt.Prompt;
-import io.vertx.mcp.common.resources.Resource;
-import io.vertx.mcp.common.resources.ResourceTemplate;
-import io.vertx.mcp.common.root.Root;
-import io.vertx.mcp.common.tool.Tool;
+import io.vertx.core.Handler;
+import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
+import io.vertx.mcp.server.impl.ProtocolServerFeature;
+import io.vertx.mcp.server.impl.SessionServerFeature;
+
+import java.util.List;
 
 /**
- * Main interface for the Model Context Protocol server.
- * Supports registering individual items (tools, resources, prompts, roots) and handlers.
+ * Main interface for the Model Context Protocol server. Supports registering individual items (tools, resources, prompts, roots) and handlers.
  */
-public interface ModelContextProtocolServer {
+public interface ModelContextProtocolServer extends Handler<ServerRequest> {
 
-  // Individual item registration
-  void addTool(Tool tool, ToolServerFeature feature);
+  /**
+   * Creates a new MCP server with default options and protocol features pre-registered.
+   *
+   * @return a new server instance with protocol and session features registered
+   */
+  static ModelContextProtocolServer create() {
+    return create(new ServerOptions());
+  }
 
-  void addResource(Resource resource, DynamicResourceHandler feature);
+  /**
+   * Creates a new MCP server with default protocol features pre-registered.
+   *
+   * @param serverName the server name
+   * @param serverVersion the server version
+   * @return a new server instance with protocol and session features registered
+   */
+  static ModelContextProtocolServer create(String serverName, String serverVersion) {
+    ServerOptions options = new ServerOptions()
+      .setServerName(serverName)
+      .setServerVersion(serverVersion);
+    return create(options);
+  }
 
-  void addResourceTemplate(ResourceTemplate template);
+  /**
+   * Creates a new MCP server with the specified options and protocol features pre-registered.
+   *
+   * @param options the server options
+   * @return a new server instance with protocol and session features registered
+   */
+  static ModelContextProtocolServer create(ServerOptions options) {
+    ModelContextProtocolServer server = new ModelContextProtocolServerImpl(options);
 
-  void addPrompt(Prompt prompt, PromptServerFeature feature);
+    // Register protocol feature (handles initialize, ping)
+    ProtocolServerFeature protocolFeature = new ProtocolServerFeature(server, options);
+    server.serverFeatures(protocolFeature);
 
-  void addRoot(Root root);
+    // Register session feature if sessions are enabled (handles subscribe, unsubscribe)
+    if (options.getSessionsEnabled()) {
+      SessionServerFeature sessionFeature = new SessionServerFeature(options);
+      server.serverFeatures(sessionFeature);
+    }
 
-  // Handler registration
-  void setToolHandler(ToolHandler handler);
+    return server;
+  }
 
-  void setResourceHandler(ResourceServerFeature handler);
+  ModelContextProtocolServer serverFeatures(ServerFeature feature);
 
-  void setPromptHandler(PromptHandler handler);
-
-  void setRootsHandler(RootsHandler handler);
+  List<ServerFeature> features();
 }
