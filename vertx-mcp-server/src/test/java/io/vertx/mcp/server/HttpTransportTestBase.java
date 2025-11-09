@@ -1,8 +1,10 @@
 package io.vertx.mcp.server;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.*;
+import io.vertx.core.MultiMap;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.mcp.server.transport.http.HttpServerTransport;
@@ -44,5 +46,22 @@ public abstract class HttpTransportTestBase {
     server.listen().onComplete(context.asyncAssertSuccess(s -> {
       port = s.actualPort();
     }));
+  }
+
+  protected Future<HttpClientResponse> sendRequest(HttpMethod method, Buffer body) {
+    return sendRequest(method, body, null);
+  }
+
+  protected Future<HttpClientResponse> sendRequest(HttpMethod method, Buffer body, String session) {
+    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
+
+    return client.request(method, port, "localhost", "/mcp").compose(req -> {
+      req.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+      req.putHeader(HttpHeaders.ACCEPT, "application/json, text/event-stream");
+      if (session != null) {
+        req.putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, session);
+      }
+      return req.send(body);
+    });
   }
 }

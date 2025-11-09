@@ -2,18 +2,25 @@ package io.vertx.mcp.server.transport.http;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.internal.http.HttpServerRequestInternal;
+import io.vertx.mcp.common.rpc.JsonError;
+import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
-import io.vertx.mcp.server.ServerRequest;
-import io.vertx.mcp.server.ServerResponse;
 import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
+
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class HttpServerTransport implements Handler<HttpServerRequest> {
 
-  private static final String MCP_SESSION_ID_HEADER = "Mcp-Session-Id";
+  public static final String MCP_SESSION_ID_HEADER = "Mcp-Session-Id";
+  public static final Set<String> ACCEPTED_CONTENT_TYPES = Set.of("application/json", "text/event-stream");
 
   private final ModelContextProtocolServer server;
   private final ServerOptions options;
@@ -32,6 +39,32 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
 
   @Override
   public void handle(HttpServerRequest httpRequest) {
+    // Validate if request is MCP request
+    if (!httpRequest.path().startsWith("/mcp")) {
+      return;
+    }
+
+    // Validate if request is POST or GET
+    if (!httpRequest.method().equals(HttpMethod.POST) && !httpRequest.method().equals(HttpMethod.GET)) {
+      httpRequest.response().setStatusCode(405).end("Method not allowed");
+      return;
+    }
+
+    // Validate if request contains required headers
+    String accept = httpRequest.getHeader(HttpHeaders.ACCEPT);
+    if (accept == null) {
+      httpRequest.response().setStatusCode(400).end("Missing Accept header");
+      return;
+    }
+
+    // Parse and trim accept header values
+    Set<String> acceptTypes = Arrays.stream(accept.split(",")).map(String::trim).collect(Collectors.toUnmodifiableSet());
+
+    if (!acceptTypes.containsAll(ACCEPTED_CONTENT_TYPES)) {
+      httpRequest.response().setStatusCode(400).end("Invalid Accept header - must accept application/json or text/event-stream");
+      return;
+    }
+
     // Get the current Vert.x context
     ContextInternal context = ((HttpServerRequestInternal) httpRequest).context();
 
@@ -56,17 +89,13 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
         }
       } else {
         // Invalid session ID - reject request
-        httpRequest.response()
-          .setStatusCode(400)
-          .end("Invalid session ID");
+        httpRequest.response().setStatusCode(400).end("Invalid session ID");
         return;
       }
     }
 
     // Set handler to dispatch to server when request is fully parsed
-    serverRequest.handler(v -> {
-      context.dispatch(serverRequest, server);
-    });
+    serverRequest.handler(v -> context.dispatch(serverRequest, server));
 
     // Set exception handler to handle errors
     serverRequest.exceptionHandler(t -> {
@@ -74,7 +103,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
       httpRequest.response()
         .setStatusCode(400)
         .putHeader("Content-Type", "application/json")
-        .end("{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Invalid Request\"},\"id\":null}");
+        .end(JsonResponse.error(null, JsonError.invalidRequest()).toString());
     });
 
     // Initialize the request with the response (starts reading body)

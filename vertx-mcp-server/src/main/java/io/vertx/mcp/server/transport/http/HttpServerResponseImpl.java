@@ -38,8 +38,7 @@ public class HttpServerResponseImpl implements ServerResponse {
 
   @Override
   public void init() {
-    // Don't set Content-Type here - it will be set when sending the response
-    // based on whether SSE is enabled or not
+
   }
 
   @Override

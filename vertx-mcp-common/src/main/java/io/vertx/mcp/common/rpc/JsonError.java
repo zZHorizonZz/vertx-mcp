@@ -226,23 +226,6 @@ public class JsonError {
   }
 
   /**
-   * Converts this error to a JsonObject.
-   *
-   * @return the JsonObject representation of this error
-   */
-  public JsonObject toJson() {
-    JsonObject json = new JsonObject()
-      .put(CODE_FIELD, code)
-      .put(MESSAGE_FIELD, message);
-
-    if (data != null) {
-      json.put(DATA_FIELD, data);
-    }
-
-    return json;
-  }
-
-  /**
    * @return the error code
    */
   public int getCode() {
@@ -261,5 +244,27 @@ public class JsonError {
    */
   public Object getData() {
     return data;
+  }
+
+  /**
+   * Converts this error to a JsonObject.
+   *
+   * @return the JsonObject representation of this error
+   */
+  public JsonObject toJson() {
+    JsonObject json = new JsonObject()
+      .put(CODE_FIELD, code)
+      .put(MESSAGE_FIELD, message);
+
+    if (data != null) {
+      json.put(DATA_FIELD, data);
+    }
+
+    return json;
+  }
+
+  @Override
+  public String toString() {
+    return toJson().encode();
   }
 }

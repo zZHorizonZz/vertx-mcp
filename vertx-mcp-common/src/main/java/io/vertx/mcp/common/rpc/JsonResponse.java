@@ -127,25 +127,6 @@ public class JsonResponse {
   }
 
   /**
-   * Converts this response to a JsonObject.
-   *
-   * @return the JsonObject representation of this response
-   */
-  public JsonObject toJson() {
-    JsonObject json = new JsonObject()
-      .put(JSONRPC_FIELD, jsonrpc)
-      .put(ID_FIELD, id);
-
-    if (error != null) {
-      json.put(ERROR_FIELD, error.toJson());
-    } else {
-      json.put(RESULT_FIELD, result);
-    }
-
-    return json;
-  }
-
-  /**
    * @return the JSON-RPC version
    */
   public String getJsonrpc() {
@@ -178,5 +159,29 @@ public class JsonResponse {
    */
   public boolean isSuccess() {
     return error == null;
+  }
+
+  /**
+   * Converts this response to a JsonObject.
+   *
+   * @return the JsonObject representation of this response
+   */
+  public JsonObject toJson() {
+    JsonObject json = new JsonObject()
+      .put(JSONRPC_FIELD, jsonrpc)
+      .put(ID_FIELD, id);
+
+    if (error != null) {
+      json.put(ERROR_FIELD, error.toJson());
+    } else {
+      json.put(RESULT_FIELD, result);
+    }
+
+    return json;
+  }
+
+  @Override
+  public String toString() {
+    return toJson().encode();
   }
 }

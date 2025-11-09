@@ -119,31 +119,6 @@ public class JsonRequest {
   }
 
   /**
-   * Converts this request to a JsonObject.
-   *
-   * @return the JsonObject representation of this request
-   */
-  public JsonObject toJson() {
-    JsonObject json = new JsonObject()
-      .put(JSONRPC_FIELD, version)
-      .put(METHOD_FIELD, method);
-
-    if (unamedParams != null) {
-      json.put(PARAMS_FIELD, unamedParams);
-    }
-
-    if (namedParams != null) {
-      json.put(PARAMS_FIELD, namedParams);
-    }
-
-    if (id != null) {
-      json.put(ID_FIELD, id);
-    }
-
-    return json;
-  }
-
-  /**
    * @return the JSON-RPC version
    */
   public String getVersion() {
@@ -198,5 +173,35 @@ public class JsonRequest {
    */
   public boolean isNotification() {
     return id == null;
+  }
+
+  /**
+   * Converts this request to a JsonObject.
+   *
+   * @return the JsonObject representation of this request
+   */
+  public JsonObject toJson() {
+    JsonObject json = new JsonObject()
+      .put(JSONRPC_FIELD, version)
+      .put(METHOD_FIELD, method);
+
+    if (unamedParams != null) {
+      json.put(PARAMS_FIELD, unamedParams);
+    }
+
+    if (namedParams != null) {
+      json.put(PARAMS_FIELD, namedParams);
+    }
+
+    if (id != null) {
+      json.put(ID_FIELD, id);
+    }
+
+    return json;
+  }
+
+  @Override
+  public String toString() {
+    return toJson().encode();
   }
 }

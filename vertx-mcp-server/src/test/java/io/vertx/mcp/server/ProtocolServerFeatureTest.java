@@ -1,7 +1,5 @@
 package io.vertx.mcp.server;
 
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -24,35 +22,26 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
+    JsonRequest request = new InitializeRequest().toRequest(1);
 
-    InitializeRequest initRequest = new InitializeRequest();
-    JsonRequest jsonRequest = initRequest.toRequest(1);
+    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+      JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
-    client.request(HttpMethod.POST, port, "localhost", "/")
-      .compose(req -> {
-        req.putHeader("Content-Type", "application/json");
-        return req.send(jsonRequest.toJson().toBuffer())
-          .compose(resp -> resp.body());
-      })
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      context.assertNull(response.getError(), "Initialize should succeed");
+      JsonObject result = (JsonObject) response.getResult();
+      context.assertNotNull(result, "Should have result");
 
-        context.assertNull(response.getError(), "Initialize should succeed");
-        JsonObject result = (JsonObject) response.getResult();
-        context.assertNotNull(result, "Should have result");
+      JsonObject serverInfo = result.getJsonObject("serverInfo");
+      context.assertNotNull(serverInfo, "Should have serverInfo");
+      context.assertEquals("test-server", serverInfo.getString("name"));
+      context.assertEquals("1.0.0", serverInfo.getString("version"));
 
-        JsonObject serverInfo = result.getJsonObject("serverInfo");
-        context.assertNotNull(serverInfo, "Should have serverInfo");
-        context.assertEquals("test-server", serverInfo.getString("name"));
-        context.assertEquals("1.0.0", serverInfo.getString("version"));
+      JsonObject capabilities = result.getJsonObject("capabilities");
+      context.assertNotNull(capabilities, "Should have capabilities");
 
-        JsonObject capabilities = result.getJsonObject("capabilities");
-        context.assertNotNull(capabilities, "Should have capabilities");
-
-        async.complete();
-      }));
+      async.complete();
+    })));
 
     async.awaitSuccess(10_000);
   }
@@ -67,29 +56,20 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
+    JsonRequest request = new InitializeRequest().toRequest(1);
 
-    InitializeRequest initRequest = new InitializeRequest();
-    JsonRequest jsonRequest = initRequest.toRequest(1);
+    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+      JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      JsonObject capabilities = ((JsonObject) response.getResult()).getJsonObject("capabilities");
 
-    client.request(HttpMethod.POST, port, "localhost", "/")
-      .compose(req -> {
-        req.putHeader("Content-Type", "application/json");
-        return req.send(jsonRequest.toJson().toBuffer())
-          .compose(resp -> resp.body());
-      })
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
-        JsonObject capabilities = ((JsonObject) response.getResult()).getJsonObject("capabilities");
+      context.assertTrue(capabilities.containsKey("resources"), "Should have resources capability");
 
-        context.assertTrue(capabilities.containsKey("resources"), "Should have resources capability");
+      JsonObject resources = capabilities.getJsonObject("resources");
+      context.assertTrue(resources.getBoolean("subscribe"), "Should support subscribe when sessions enabled");
 
-        JsonObject resources = capabilities.getJsonObject("resources");
-        context.assertTrue(resources.getBoolean("subscribe"), "Should support subscribe when sessions enabled");
-
-        async.complete();
-      }));
+      async.complete();
+    })));
 
     async.awaitSuccess(10_000);
   }
@@ -105,30 +85,21 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
+    JsonRequest request = new InitializeRequest().toRequest(1);
 
-    InitializeRequest initRequest = new InitializeRequest();
-    JsonRequest jsonRequest = initRequest.toRequest(1);
+    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+      JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      JsonObject capabilities = ((JsonObject) response.getResult()).getJsonObject("capabilities");
 
-    client.request(HttpMethod.POST, port, "localhost", "/")
-      .compose(req -> {
-        req.putHeader("Content-Type", "application/json");
-        return req.send(jsonRequest.toJson().toBuffer())
-          .compose(resp -> resp.body());
-      })
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
-        JsonObject capabilities = ((JsonObject) response.getResult()).getJsonObject("capabilities");
+      if (capabilities.containsKey("resources")) {
+        JsonObject resources = capabilities.getJsonObject("resources");
+        context.assertFalse(resources.containsKey("subscribe") && resources.getBoolean("subscribe"),
+          "Should not support subscribe when sessions disabled");
+      }
 
-        if (capabilities.containsKey("resources")) {
-          JsonObject resources = capabilities.getJsonObject("resources");
-          context.assertFalse(resources.containsKey("subscribe") && resources.getBoolean("subscribe"),
-            "Should not support subscribe when sessions disabled");
-        }
-
-        async.complete();
-      }));
+      async.complete();
+    })));
 
     async.awaitSuccess(10_000);
   }
@@ -138,27 +109,18 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     startServer(context, server);
 
-    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
+    JsonRequest request = new PingRequest().toRequest(1);
 
-    PingRequest pingRequest = new PingRequest();
-    JsonRequest jsonRequest = pingRequest.toRequest(1);
+    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+      JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
-    client.request(HttpMethod.POST, port, "localhost", "/")
-      .compose(req -> {
-        req.putHeader("Content-Type", "application/json");
-        return req.send(jsonRequest.toJson().toBuffer())
-          .compose(resp -> resp.body());
-      })
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      context.assertNull(response.getError(), "Ping should succeed");
+      context.assertNotNull(response.getResult(), "Should have result");
+      context.assertTrue(((JsonObject) response.getResult()).isEmpty(), "Ping result should be empty");
 
-        context.assertNull(response.getError(), "Ping should succeed");
-        context.assertNotNull(response.getResult(), "Should have result");
-        context.assertTrue(((JsonObject) response.getResult()).isEmpty(), "Ping result should be empty");
-
-        async.complete();
-      }));
+      async.complete();
+    })));
 
     async.awaitSuccess(10_000);
   }
@@ -168,26 +130,19 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     startServer(context, server);
 
-    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
-    JsonRequest unknownRequest = JsonRequest.createRequest("unknown/method", new JsonObject(), 1);
+    JsonRequest request = JsonRequest.createRequest("unknown/method", new JsonObject(), 1);
 
-    client.request(HttpMethod.POST, port, "localhost", "/")
-      .compose(req -> {
-        req.putHeader("Content-Type", "application/json");
-        return req.send(unknownRequest.toJson().toBuffer())
-          .compose(resp -> resp.body());
-      })
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+      JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
-        context.assertNotNull(response.getError(), "Should have error");
-        context.assertEquals(-32601, response.getError().getCode(), "Should be method not found");
-        context.assertTrue(response.getError().getMessage().contains("unknown/method"));
+      context.assertNotNull(response.getError(), "Should have error");
+      context.assertEquals(-32601, response.getError().getCode(), "Should be method not found");
+      context.assertTrue(response.getError().getMessage().contains("unknown/method"));
 
-        async.complete();
-      }));
+      async.complete();
+    })));
 
     async.awaitSuccess(10_000);
   }
@@ -197,27 +152,19 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     startServer(context, server);
 
-    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
     Async async = context.async();
 
     // Invalid JSON-RPC (missing required fields)
-    JsonObject invalidRequest = new JsonObject()
-      .put("invalid", "request");
+    JsonObject request = new JsonObject().put("invalid", "request");
 
-    client.request(HttpMethod.POST, port, "localhost", "/")
-      .compose(req -> {
-        req.putHeader("Content-Type", "application/json");
-        return req.send(invalidRequest.toBuffer())
-          .compose(resp -> resp.body());
-      })
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+    sendRequest(HttpMethod.POST, request.toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+      JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
-        context.assertNotNull(response.getError(), "Should have error");
-        context.assertEquals(-32600, response.getError().getCode(), "Should be invalid request");
+      context.assertNotNull(response.getError(), "Should have error");
+      context.assertEquals(-32600, response.getError().getCode(), "Should be invalid request");
 
-        async.complete();
-      }));
+      async.complete();
+    })));
 
     async.awaitSuccess(10_000);
   }
