@@ -2,7 +2,6 @@ package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
 import io.vertx.mcp.common.resources.Resource;
-import io.vertx.uritemplate.UriTemplate;
 
 import java.util.function.Supplier;
 
@@ -11,10 +10,10 @@ import java.util.function.Supplier;
  */
 public interface DynamicResourceHandler extends Supplier<Future<Resource>> {
 
-  static DynamicResourceHandler create(UriTemplate template, Supplier<Future<Resource>> resourceSupplier) {
+  static DynamicResourceHandler create(String template, Supplier<Future<Resource>> resourceSupplier) {
     return new DynamicResourceHandler() {
       @Override
-      public UriTemplate getResourceTemplate() {
+      public String getResourceTemplate() {
         return template;
       }
 
@@ -25,6 +24,6 @@ public interface DynamicResourceHandler extends Supplier<Future<Resource>> {
     };
   }
 
-  UriTemplate getResourceTemplate();
+  String getResourceTemplate();
 
 }

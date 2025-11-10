@@ -15,7 +15,6 @@ import io.vertx.mcp.server.DynamicResourceHandler;
 import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StaticResourceHandler;
-import io.vertx.uritemplate.UriTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,10 +112,22 @@ public class ResourceServerFeature implements ServerFeature {
       }
     }
 
-    // Try dynamic resources
-    // Note: Dynamic resource matching requires custom logic since UriTemplate
-    // doesn't provide a match() method. This would need to be implemented
-    // based on the specific URI template patterns used.
+    // Try dynamic resources - match using template pattern
+    for (DynamicResourceHandler handler : dynamicHandlers) {
+      String template = handler.getResourceTemplate();
+
+      if (matchesTemplate(uri, template)) {
+        return handler.get()
+          .compose(resource -> {
+            JsonArray contents = new JsonArray().add(resource.toJson());
+            ReadResourceResult result = new ReadResourceResult().setContents(contents);
+            return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
+          })
+          .recover(err -> Future.succeededFuture(
+            JsonResponse.error(request, JsonError.internalError(err.getMessage()))
+          ));
+      }
+    }
 
     return Future.succeededFuture(
       JsonResponse.error(request, JsonError.invalidParams("Resource not found: " + uri))
@@ -127,12 +138,9 @@ public class ResourceServerFeature implements ServerFeature {
     List<ResourceTemplate> templates = new ArrayList<>();
 
     // Convert dynamic handlers to resource templates
-    // Note: We need to store the template string separately since UriTemplate
-    // doesn't provide access to the original template string
-    // For now, return empty list until proper template string storage is added
     for (DynamicResourceHandler handler : dynamicHandlers) {
       ResourceTemplate template = new ResourceTemplate()
-        .setUriTemplate(handler.getResourceTemplate().toString());
+        .setUriTemplate(handler.getResourceTemplate());
       templates.add(template);
     }
 
@@ -140,6 +148,45 @@ public class ResourceServerFeature implements ServerFeature {
       .setResourceTemplates(templates);
 
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
+  }
+
+  /**
+   * Utility method to check if a URI matches a URI template pattern.
+   * Template variables are denoted by curly braces, e.g., "resource://{id}/details"
+   *
+   * @param uri the URI to match
+   * @param template the URI template pattern
+   * @return true if the URI matches the template pattern
+   */
+  private boolean matchesTemplate(String uri, String template) {
+    String[] uriParts = uri.split("/");
+    String[] templateParts = template.split("/");
+
+    // Must have same number of segments
+    if (uriParts.length != templateParts.length) {
+      return false;
+    }
+
+    for (int i = 0; i < templateParts.length; i++) {
+      String templatePart = templateParts[i];
+      String uriPart = uriParts[i];
+
+      // Check if this is a template variable (e.g., {id})
+      if (templatePart.startsWith("{") && templatePart.endsWith("}")) {
+        // Variable segment - matches any non-empty value
+        if (uriPart.isEmpty()) {
+          return false;
+        }
+        continue;
+      }
+
+      // Literal segment - must match exactly
+      if (!templatePart.equals(uriPart)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @Override
@@ -155,7 +202,7 @@ public class ResourceServerFeature implements ServerFeature {
     staticHandlers.add(handler);
   }
 
-  public void addDynamicResource(UriTemplate template, Supplier<Future<Resource>> handler) {
+  public void addDynamicResource(String template, Supplier<Future<Resource>> handler) {
     dynamicHandlers.add(DynamicResourceHandler.create(template, handler));
   }
 
