@@ -1,12 +1,13 @@
 package io.vertx.mcp.server;
 
+import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.Future;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
 /**
- * Represents a session between the client and server.
- * Sessions are used to manage SSE (Server-Sent Events) connections and streaming state.
+ * Represents a session between the client and server. Sessions are used to manage SSE (Server-Sent Events) connections and streaming state.
  */
+@DataObject
 public interface Session {
 
   /**
@@ -17,17 +18,11 @@ public interface Session {
   String id();
 
   /**
-   * Check if this session is using SSE (Server-Sent Events).
+   * Checks if the session is currently in a streaming state.
    *
-   * @return true if SSE is enabled for this session
+   * @return true if the session is streaming, false otherwise
    */
-  boolean isSse();
-
-  /**
-   * Enable SSE mode for this session.
-   * Once enabled, the server can send multiple responses to the client.
-   */
-  void enableSse();
+  boolean isStreaming();
 
   /**
    * Check if the session is still active.
@@ -37,8 +32,7 @@ public interface Session {
   boolean isActive();
 
   /**
-   * Send a response through this session.
-   * For SSE sessions, this sends an event. For regular sessions, this is the final response.
+   * Send a response through this session. For streaming sessions, this sends an event. For regular sessions, this is the final response.
    *
    * @param response the JSON-RPC response to send
    * @return a future that completes when the response has been sent
@@ -46,8 +40,7 @@ public interface Session {
   Future<Void> send(JsonResponse response);
 
   /**
-   * Close the session.
-   * For SSE connections, this closes the event stream.
+   * Close the session. For SSE connections, this closes the event stream.
    *
    * @return a future that completes when the session is closed
    */

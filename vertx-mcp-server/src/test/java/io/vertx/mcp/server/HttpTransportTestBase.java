@@ -1,6 +1,7 @@
 package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
@@ -62,6 +63,50 @@ public abstract class HttpTransportTestBase {
         req.putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, session);
       }
       return req.send(body);
+    });
+  }
+
+  protected Future<Buffer> sendStreamingRequest(HttpMethod method, Buffer body, String session) {
+    HttpClient client = vertx.createHttpClient(new HttpClientOptions());
+
+    return client.request(method, port, "localhost", "/mcp").compose(req -> {
+      req.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+      req.putHeader(HttpHeaders.ACCEPT, "application/json, text/event-stream");
+      if (session != null) {
+        req.putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, session);
+      }
+      return req.send(body).compose(resp -> {
+        // For streaming responses, we need to read the SSE events
+        Promise<Buffer> promise = Promise.promise();
+        Buffer result = Buffer.buffer();
+
+        resp.handler(chunk -> {
+          result.appendBuffer(chunk);
+          // Check if we got a complete SSE message (ends with \n\n)
+          String data = result.toString();
+          if (data.contains("data: ")) {
+            // Extract JSON from SSE format: "data: {...}\n\n"
+            int dataStart = data.indexOf("data: ") + 6;
+            int dataEnd = data.indexOf("\n\n", dataStart);
+            if (dataEnd > dataStart) {
+              String json = data.substring(dataStart, dataEnd).trim();
+              promise.complete(Buffer.buffer(json));
+            }
+          }
+        });
+        resp.endHandler(v -> {
+          if (!promise.future().isComplete()) {
+            promise.complete(result);
+          }
+        });
+        resp.exceptionHandler(err -> {
+          if (!promise.future().isComplete()) {
+            promise.fail(err);
+          }
+        });
+
+        return promise.future();
+      });
     });
   }
 }

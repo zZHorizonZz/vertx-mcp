@@ -10,7 +10,7 @@ import io.vertx.core.json.JsonObject;
  */
 @DataObject
 @JsonGen(publicConverter = false)
-public class TextResourceContent extends Resource {
+public class TextResourceContent extends Resource<TextResourceContent> {
 
   private String text;
 

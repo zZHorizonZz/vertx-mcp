@@ -10,7 +10,7 @@ import io.vertx.core.json.JsonObject;
  */
 @DataObject
 @JsonGen(publicConverter = false)
-public class BinaryResourceContent extends Resource {
+public class BinaryResourceContent extends Resource<BinaryResourceContent> {
 
   private Buffer blob;
 

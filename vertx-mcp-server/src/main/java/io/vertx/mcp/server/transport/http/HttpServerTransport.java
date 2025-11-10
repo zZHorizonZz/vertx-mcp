@@ -11,7 +11,9 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
+import io.vertx.mcp.server.Session;
 import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
+import io.vertx.mcp.server.impl.SessionManagerImpl;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -24,7 +26,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
 
   private final ModelContextProtocolServer server;
   private final ServerOptions options;
-  private final SessionManager sessionManager;
+  private final SessionManagerImpl sessionManager;
 
   public HttpServerTransport(Vertx vertx, ModelContextProtocolServer server) {
     this.server = server;
@@ -34,7 +36,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
     } else {
       this.options = new ServerOptions();
     }
-    this.sessionManager = new SessionManager(vertx, options);
+    this.sessionManager = new SessionManagerImpl(vertx, options);
   }
 
   @Override
@@ -77,16 +79,10 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
 
     // If there's a session ID and sessions are enabled, retrieve existing session
     if (sessionId != null && options.getSessionsEnabled()) {
-      HttpSession session = sessionManager.getSession(sessionId);
+      Session session = sessionManager.getSession(sessionId);
       if (session != null) {
         serverRequest.setSession(session);
         serverResponse.setSession(session);
-
-        // Enable SSE immediately if streaming is enabled
-        // We'll decide later whether to actually use it based on if it's a notification
-        if (options.getStreamingEnabled()) {
-          session.enableSse();
-        }
       } else {
         // Invalid session ID - reject request
         httpRequest.response().setStatusCode(400).end("Invalid session ID");
@@ -110,7 +106,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
     serverRequest.init(serverResponse);
   }
 
-  public SessionManager getSessionManager() {
+  public SessionManagerImpl getSessionManager() {
     return sessionManager;
   }
 }

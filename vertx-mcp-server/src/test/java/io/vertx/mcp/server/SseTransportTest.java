@@ -31,20 +31,13 @@ public class SseTransportTest extends HttpTransportTestBase {
       .compose(sessionId -> {
         // Now make a request with the session ID (not a notification)
         JsonRequest pingRequest = new PingRequest().toRequest(2);
-        return sendRequest(HttpMethod.POST, pingRequest.toJson().toBuffer(), sessionId)
-          .compose(resp -> {
-            // Should enable SSE
-            String contentType = resp.getHeader("Content-Type");
-            context.assertEquals("text/event-stream", contentType, "Should use SSE");
-            context.assertEquals("no-cache", resp.getHeader("Cache-Control"));
-            context.assertEquals("keep-alive", resp.getHeader("Connection"));
-            return resp.body();
-          });
+        return sendStreamingRequest(HttpMethod.POST, pingRequest.toJson().toBuffer(), sessionId);
       })
       .onComplete(context.asyncAssertSuccess(body -> {
-        // SSE data should be prefixed with "data: "
-        String data = body.toString();
-        context.assertTrue(data.startsWith("data: "), "SSE response should start with 'data: '");
+        // Verify we got valid JSON response
+        JsonObject response = body.toJsonObject();
+        context.assertNotNull(response, "Should receive valid JSON response");
+        context.assertNotNull(response.getString("jsonrpc"), "Should have jsonrpc field");
         async.complete();
       }));
 

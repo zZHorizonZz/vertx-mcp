@@ -146,7 +146,7 @@ public class JsonError {
    * @return a new invalid params error
    */
   public static JsonError invalidParams(String details) {
-    return new JsonError(INVALID_PARAMS, "Invalid params", details);
+    return new JsonError(INVALID_PARAMS, details);
   }
 
   /**

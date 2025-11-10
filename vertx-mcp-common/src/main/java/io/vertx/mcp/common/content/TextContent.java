@@ -6,7 +6,7 @@ public class TextContent implements Content {
 
   private final String text;
 
-  protected TextContent(String text) {
+  public TextContent(String text) {
     this.text = text;
   }
 

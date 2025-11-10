@@ -2,8 +2,9 @@ package io.vertx.mcp.server.transport.http;
 
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
@@ -12,12 +13,13 @@ import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.ServerResponse;
 import io.vertx.mcp.server.Session;
+import io.vertx.mcp.server.impl.SessionManagerImpl;
 
 public class HttpServerRequestImpl implements ServerRequest {
 
   private final ContextInternal context;
   private final HttpServerRequest httpRequest;
-  private final SessionManager sessionManager;
+  private final SessionManagerImpl sessionManager;
   private final ServerOptions options;
 
   private ServerResponse response;
@@ -27,7 +29,7 @@ public class HttpServerRequestImpl implements ServerRequest {
   private JsonRequest jsonRequest;
   private Session session;
 
-  public HttpServerRequestImpl(Context context, HttpServerRequest httpRequest, SessionManager sessionManager, ServerOptions options) {
+  public HttpServerRequestImpl(Context context, HttpServerRequest httpRequest, SessionManagerImpl sessionManager, ServerOptions options) {
     this.context = (ContextInternal) context;
     this.httpRequest = httpRequest;
     this.sessionManager = sessionManager;
@@ -70,16 +72,19 @@ public class HttpServerRequestImpl implements ServerRequest {
         this.jsonRequest = tempRequest;
 
         // If this is an initialize request and sessions are enabled, create a new session
-        if ("initialize".equals(tempRequest.getMethod()) && options.getSessionsEnabled() && session == null) {
-          String sessionId = sessionManager.generateSessionId();
-          HttpSession newSession = sessionManager.createSession(sessionId, httpRequest.response());
-          session = newSession;
-          response.setSession(newSession);
+        if (tempRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
+          Session session = sessionManager.createSession();
+          httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, session.id());
+        }
 
-          // Mark the response to include the session ID header
-          if (response instanceof HttpServerResponseImpl) {
-            ((HttpServerResponseImpl) response).markNewSession();
-          }
+        if (this.session != null && options.getStreamingEnabled() && !this.jsonRequest.isNotification()) {
+          HttpServerResponse httpResponse = httpRequest.response();
+
+          httpResponse.setChunked(true);
+          httpResponse.putHeader(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8");
+          httpResponse.putHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
+          httpResponse.putHeader(HttpHeaders.CONNECTION, "keep-alive");
+          httpResponse.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         }
 
         // Notify that request is ready

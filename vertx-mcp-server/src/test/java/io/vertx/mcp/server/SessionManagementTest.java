@@ -93,13 +93,9 @@ public class SessionManagementTest extends HttpTransportTestBase {
     sendRequest(HttpMethod.POST, initRequest.toJson().toBuffer())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> {
-        // Now make another request with the session ID
+        // Now make another request with the session ID (using streaming since it's enabled by default)
         JsonRequest pingRequest = new PingRequest().toRequest(2);
-        return sendRequest(HttpMethod.POST, pingRequest.toJson().toBuffer(), sessionId)
-          .compose(resp -> {
-            context.assertEquals(200, resp.statusCode());
-            return resp.body();
-          });
+        return sendStreamingRequest(HttpMethod.POST, pingRequest.toJson().toBuffer(), sessionId);
       })
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());

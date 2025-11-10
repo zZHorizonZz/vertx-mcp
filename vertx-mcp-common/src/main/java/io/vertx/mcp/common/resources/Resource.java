@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Base class for resource content.
  */
-public abstract class Resource implements Meta {
+public abstract class Resource<SELF extends Resource<SELF>> implements Meta {
 
   private String uri;
   private String name;
@@ -40,54 +40,54 @@ public abstract class Resource implements Meta {
     return uri;
   }
 
-  public Resource setUri(String uri) {
+  public SELF setUri(String uri) {
     this.uri = uri;
-    return this;
+    return (SELF) this;
   }
 
   public String getName() {
     return name;
   }
 
-  public Resource setName(String name) {
+  public SELF setName(String name) {
     this.name = name;
-    return this;
+    return (SELF) this;
   }
 
   public String getTitle() {
     return title;
   }
 
-  public Resource setTitle(String title) {
+  public SELF setTitle(String title) {
     this.title = title;
-    return this;
+    return (SELF) this;
   }
 
   public String getDescription() {
     return description;
   }
 
-  public Resource setDescription(String description) {
+  public SELF setDescription(String description) {
     this.description = description;
-    return this;
+    return (SELF) this;
   }
 
   public String getMimeType() {
     return mimeType;
   }
 
-  public Resource setMimeType(String mimeType) {
+  public SELF setMimeType(String mimeType) {
     this.mimeType = mimeType;
-    return this;
+    return (SELF) this;
   }
 
   public ResourceAnnotations getAnnotations() {
     return annotations;
   }
 
-  public Resource setAnnotations(ResourceAnnotations annotations) {
+  public SELF setAnnotations(ResourceAnnotations annotations) {
     this.annotations = annotations;
-    return this;
+    return (SELF) this;
   }
 
   @Override

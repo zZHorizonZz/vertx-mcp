@@ -172,8 +172,6 @@ public class SessionServerFeature implements ServerFeature {
       );
     }
 
-    // Enable SSE mode for this session
-    session.enableSse();
     sessionCount.incrementAndGet();
 
     JsonObject result = new JsonObject()

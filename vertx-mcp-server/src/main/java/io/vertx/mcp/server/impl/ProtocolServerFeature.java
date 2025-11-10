@@ -62,7 +62,7 @@ public class ProtocolServerFeature implements ServerFeature {
 
     responseFuture.onComplete(ar -> {
       if (ar.succeeded()) {
-        serverRequest.response().end(ar.result());
+        serverRequest.response().write(ar.result());
       } else {
         serverRequest.response().end(
           JsonResponse.error(request, JsonError.internalError(ar.cause().getMessage()))
