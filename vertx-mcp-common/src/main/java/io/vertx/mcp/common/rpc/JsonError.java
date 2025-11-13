@@ -80,7 +80,7 @@ public class JsonError {
    * @return a new parse error
    */
   public static JsonError parseError(String details) {
-    return new JsonError(PARSE_ERROR, "Parse error", details);
+    return new JsonError(PARSE_ERROR, details);
   }
 
   /**
@@ -99,7 +99,7 @@ public class JsonError {
    * @return a new invalid request error
    */
   public static JsonError invalidRequest(String details) {
-    return new JsonError(INVALID_REQUEST, "Invalid Request", details);
+    return new JsonError(INVALID_REQUEST, details);
   }
 
   /**
@@ -165,7 +165,7 @@ public class JsonError {
    * @return a new internal error
    */
   public static JsonError internalError(String details) {
-    return new JsonError(INTERNAL_ERROR, "Internal error", details);
+    return new JsonError(INTERNAL_ERROR, details);
   }
 
   /**

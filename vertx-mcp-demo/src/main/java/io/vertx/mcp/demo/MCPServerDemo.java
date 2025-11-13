@@ -79,6 +79,8 @@ public class MCPServerDemo {
         System.out.println("\nAvailable Resources:");
         System.out.println("  - resource://sample-data/users");
         System.out.println("  - resource://sample-data/products");
+        System.out.println("  - resource://user/{id} (dynamic)");
+        System.out.println("  - resource://product/{id} (dynamic)");
         System.out.println("========================================");
       })
       .onFailure(err -> {
@@ -245,7 +247,45 @@ public class MCPServerDemo {
   private static void setupResources(ModelContextProtocolServer server) {
     ResourceServerFeature resourceFeature = new ResourceServerFeature();
 
-    // Resource: Sample Users Data
+    // Sample data storage
+    JsonArray users = new JsonArray()
+      .add(new JsonObject()
+        .put("id", 1)
+        .put("name", "Alice Johnson")
+        .put("email", "alice@example.com")
+        .put("role", "Developer"))
+      .add(new JsonObject()
+        .put("id", 2)
+        .put("name", "Bob Smith")
+        .put("email", "bob@example.com")
+        .put("role", "Designer"))
+      .add(new JsonObject()
+        .put("id", 3)
+        .put("name", "Carol Williams")
+        .put("email", "carol@example.com")
+        .put("role", "Manager"));
+
+    JsonArray products = new JsonArray()
+      .add(new JsonObject()
+        .put("id", 101)
+        .put("name", "Laptop")
+        .put("price", 999.99)
+        .put("category", "Electronics")
+        .put("inStock", true))
+      .add(new JsonObject()
+        .put("id", 102)
+        .put("name", "Desk Chair")
+        .put("price", 249.50)
+        .put("category", "Furniture")
+        .put("inStock", true))
+      .add(new JsonObject()
+        .put("id", 103)
+        .put("name", "Notebook")
+        .put("price", 12.99)
+        .put("category", "Stationery")
+        .put("inStock", false));
+
+    // Static Resource: Sample Users Data
     resourceFeature.addStaticResource("sample-data/users", () ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://sample-data/users")
@@ -253,26 +293,10 @@ public class MCPServerDemo {
         .setTitle("Sample Users Dataset")
         .setDescription("Example dataset containing user information")
         .setMimeType("application/json")
-        .setText(new JsonArray()
-          .add(new JsonObject()
-            .put("id", 1)
-            .put("name", "Alice Johnson")
-            .put("email", "alice@example.com")
-            .put("role", "Developer"))
-          .add(new JsonObject()
-            .put("id", 2)
-            .put("name", "Bob Smith")
-            .put("email", "bob@example.com")
-            .put("role", "Designer"))
-          .add(new JsonObject()
-            .put("id", 3)
-            .put("name", "Carol Williams")
-            .put("email", "carol@example.com")
-            .put("role", "Manager"))
-          .encodePrettily()))
+        .setText(users.encodePrettily()))
     );
 
-    // Resource: Sample Products Data
+    // Static Resource: Sample Products Data
     resourceFeature.addStaticResource("sample-data/products", () ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://sample-data/products")
@@ -280,27 +304,60 @@ public class MCPServerDemo {
         .setTitle("Sample Products Dataset")
         .setDescription("Example dataset containing product information")
         .setMimeType("application/json")
-        .setText(new JsonArray()
-          .add(new JsonObject()
-            .put("id", 101)
-            .put("name", "Laptop")
-            .put("price", 999.99)
-            .put("category", "Electronics")
-            .put("inStock", true))
-          .add(new JsonObject()
-            .put("id", 102)
-            .put("name", "Desk Chair")
-            .put("price", 249.50)
-            .put("category", "Furniture")
-            .put("inStock", true))
-          .add(new JsonObject()
-            .put("id", 103)
-            .put("name", "Notebook")
-            .put("price", 12.99)
-            .put("category", "Stationery")
-            .put("inStock", false))
-          .encodePrettily()))
+        .setText(products.encodePrettily()))
     );
+
+    // Dynamic Resource: Individual User by ID
+    resourceFeature.addDynamicResource("resource://user/{id}", params -> {
+      String idStr = params.get("id");
+      try {
+        int id = Integer.parseInt(idStr);
+
+        // Find user by ID
+        for (int i = 0; i < users.size(); i++) {
+          JsonObject user = users.getJsonObject(i);
+          if (user.getInteger("id") == id) {
+            return Future.succeededFuture(new TextResourceContent()
+              .setUri("resource://user/" + id)
+              .setName("user-" + id)
+              .setTitle("User: " + user.getString("name"))
+              .setDescription("Details for user ID " + id)
+              .setMimeType("application/json")
+              .setText(user.encodePrettily()));
+          }
+        }
+
+        return Future.failedFuture("User not found: " + id);
+      } catch (NumberFormatException e) {
+        return Future.failedFuture("Invalid user ID: " + idStr);
+      }
+    });
+
+    // Dynamic Resource: Individual Product by ID
+    resourceFeature.addDynamicResource("resource://product/{id}", params -> {
+      String idStr = params.get("id");
+      try {
+        int id = Integer.parseInt(idStr);
+
+        // Find product by ID
+        for (int i = 0; i < products.size(); i++) {
+          JsonObject product = products.getJsonObject(i);
+          if (product.getInteger("id") == id) {
+            return Future.succeededFuture(new TextResourceContent()
+              .setUri("resource://product/" + id)
+              .setName("product-" + id)
+              .setTitle("Product: " + product.getString("name"))
+              .setDescription("Details for product ID " + id)
+              .setMimeType("application/json")
+              .setText(product.encodePrettily()));
+          }
+        }
+
+        return Future.failedFuture("Product not found: " + id);
+      } catch (NumberFormatException e) {
+        return Future.failedFuture("Invalid product ID: " + idStr);
+      }
+    });
 
     server.serverFeatures(resourceFeature);
   }

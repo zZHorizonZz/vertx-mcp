@@ -117,7 +117,10 @@ public class ResourceServerFeature implements ServerFeature {
       String template = handler.getResourceTemplate();
 
       if (matchesTemplate(uri, template)) {
-        return handler.get()
+        // Extract template variables from the URI
+        java.util.Map<String, String> uriParams = extractTemplateVariables(uri, template);
+
+        return handler.apply(uriParams)
           .compose(resource -> {
             JsonArray contents = new JsonArray().add(resource.toJson());
             ReadResourceResult result = new ReadResourceResult().setContents(contents);
@@ -140,6 +143,7 @@ public class ResourceServerFeature implements ServerFeature {
     // Convert dynamic handlers to resource templates
     for (DynamicResourceHandler handler : dynamicHandlers) {
       ResourceTemplate template = new ResourceTemplate()
+        .setName(handler.getResourceTemplate())
         .setUriTemplate(handler.getResourceTemplate());
       templates.add(template);
     }
@@ -152,7 +156,7 @@ public class ResourceServerFeature implements ServerFeature {
 
   /**
    * Utility method to check if a URI matches a URI template pattern.
-   * Template variables are denoted by curly braces, e.g., "resource://{id}/details"
+   * Template variables are denoted by curly braces, e.g., "resource://{id}/details" or "{type}://resource/data"
    *
    * @param uri the URI to match
    * @param template the URI template pattern
@@ -171,10 +175,18 @@ public class ResourceServerFeature implements ServerFeature {
       String templatePart = templateParts[i];
       String uriPart = uriParts[i];
 
-      // Check if this is a template variable (e.g., {id})
+      // Check if this is a complete template variable (e.g., {id})
       if (templatePart.startsWith("{") && templatePart.endsWith("}")) {
         // Variable segment - matches any non-empty value
         if (uriPart.isEmpty()) {
+          return false;
+        }
+        continue;
+      }
+
+      // Check if this segment contains template variables (e.g., {type}:)
+      if (templatePart.contains("{") && templatePart.contains("}")) {
+        if (!matchesSegmentWithVariables(uriPart, templatePart)) {
           return false;
         }
         continue;
@@ -187,6 +199,146 @@ public class ResourceServerFeature implements ServerFeature {
     }
 
     return true;
+  }
+
+  /**
+   * Matches a URI segment against a template segment that contains variables.
+   * For example, matches "file:" against "{type}:"
+   *
+   * @param uriSegment the URI segment to match
+   * @param templateSegment the template segment with variables
+   * @return true if the URI segment matches the template
+   */
+  private boolean matchesSegmentWithVariables(String uriSegment, String templateSegment) {
+    int templatePos = 0;
+    int uriPos = 0;
+
+    while (templatePos < templateSegment.length()) {
+      if (templateSegment.charAt(templatePos) == '{') {
+        // Find the closing brace
+        int closeBrace = templateSegment.indexOf('}', templatePos);
+        if (closeBrace == -1) {
+          return false; // Malformed template
+        }
+
+        // Find what comes after the variable
+        int afterVar = closeBrace + 1;
+        if (afterVar < templateSegment.length()) {
+          // There's literal text after the variable - find it in the URI
+          char nextLiteral = templateSegment.charAt(afterVar);
+          int nextLiteralPos = uriSegment.indexOf(nextLiteral, uriPos);
+          if (nextLiteralPos == -1) {
+            return false; // Required literal not found
+          }
+          // Variable matches everything from uriPos to nextLiteralPos
+          if (nextLiteralPos == uriPos) {
+            return false; // Variable must match at least one character
+          }
+          uriPos = nextLiteralPos;
+        } else {
+          // Variable is at the end - matches rest of URI segment
+          if (uriPos >= uriSegment.length()) {
+            return false; // Variable must match at least one character
+          }
+          uriPos = uriSegment.length();
+        }
+        templatePos = afterVar;
+      } else {
+        // Literal character - must match
+        if (uriPos >= uriSegment.length() || uriSegment.charAt(uriPos) != templateSegment.charAt(templatePos)) {
+          return false;
+        }
+        templatePos++;
+        uriPos++;
+      }
+    }
+
+    // Both must be fully consumed
+    return uriPos == uriSegment.length();
+  }
+
+  /**
+   * Extracts template variables from a URI given a template pattern.
+   * For example, given URI "resource://user/123" and template "resource://user/{id}",
+   * returns {"id": "123"}
+   *
+   * @param uri the URI to extract variables from
+   * @param template the URI template pattern
+   * @return map of variable names to their values
+   */
+  private java.util.Map<String, String> extractTemplateVariables(String uri, String template) {
+    java.util.Map<String, String> variables = new java.util.HashMap<>();
+
+    String[] uriParts = uri.split("/");
+    String[] templateParts = template.split("/");
+
+    for (int i = 0; i < templateParts.length && i < uriParts.length; i++) {
+      String templatePart = templateParts[i];
+      String uriPart = uriParts[i];
+
+      // Check if this is a complete template variable (e.g., {id})
+      if (templatePart.startsWith("{") && templatePart.endsWith("}")) {
+        String varName = templatePart.substring(1, templatePart.length() - 1);
+        variables.put(varName, uriPart);
+        continue;
+      }
+
+      // Check if this segment contains template variables (e.g., {type}:)
+      if (templatePart.contains("{") && templatePart.contains("}")) {
+        extractSegmentVariables(uriPart, templatePart, variables);
+      }
+    }
+
+    return variables;
+  }
+
+  /**
+   * Extracts variables from a URI segment that matches a template segment with variables.
+   * For example, given "file:" and "{type}:", extracts {"type": "file"}
+   *
+   * @param uriSegment the URI segment
+   * @param templateSegment the template segment with variables
+   * @param variables map to add extracted variables to
+   */
+  private void extractSegmentVariables(String uriSegment, String templateSegment, java.util.Map<String, String> variables) {
+    int templatePos = 0;
+    int uriPos = 0;
+
+    while (templatePos < templateSegment.length()) {
+      if (templateSegment.charAt(templatePos) == '{') {
+        // Find the closing brace
+        int closeBrace = templateSegment.indexOf('}', templatePos);
+        if (closeBrace == -1) {
+          return; // Malformed template
+        }
+
+        String varName = templateSegment.substring(templatePos + 1, closeBrace);
+
+        // Find what comes after the variable
+        int afterVar = closeBrace + 1;
+        if (afterVar < templateSegment.length()) {
+          // There's literal text after the variable - find it in the URI
+          char nextLiteral = templateSegment.charAt(afterVar);
+          int nextLiteralPos = uriSegment.indexOf(nextLiteral, uriPos);
+          if (nextLiteralPos != -1) {
+            // Extract variable value
+            String value = uriSegment.substring(uriPos, nextLiteralPos);
+            variables.put(varName, value);
+            uriPos = nextLiteralPos;
+          }
+        } else {
+          // Variable is at the end - extract rest of URI segment
+          String value = uriSegment.substring(uriPos);
+          variables.put(varName, value);
+          uriPos = uriSegment.length();
+        }
+        templatePos = afterVar;
+      } else {
+        // Literal character - skip it
+        templatePos++;
+        uriPos++;
+      }
+    }
   }
 
   @Override
@@ -202,7 +354,7 @@ public class ResourceServerFeature implements ServerFeature {
     staticHandlers.add(handler);
   }
 
-  public void addDynamicResource(String template, Supplier<Future<Resource>> handler) {
+  public void addDynamicResource(String template, java.util.function.Function<java.util.Map<String, String>, Future<Resource>> handler) {
     dynamicHandlers.add(DynamicResourceHandler.create(template, handler));
   }
 

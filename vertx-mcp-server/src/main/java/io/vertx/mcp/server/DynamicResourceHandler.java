@@ -3,14 +3,16 @@ package io.vertx.mcp.server;
 import io.vertx.core.Future;
 import io.vertx.mcp.common.resources.Resource;
 
-import java.util.function.Supplier;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
- * Server feature for individual resource provision. Implements Supplier to provide the resource. Context is obtained from Vert.x context.
+ * Server feature for individual dynamic resource provision.
+ * The handler receives a map of extracted URI template variables.
  */
-public interface DynamicResourceHandler extends Supplier<Future<Resource>> {
+public interface DynamicResourceHandler extends Function<Map<String, String>, Future<Resource>> {
 
-  static DynamicResourceHandler create(String template, Supplier<Future<Resource>> resourceSupplier) {
+  static DynamicResourceHandler create(String template, Function<Map<String, String>, Future<Resource>> resourceFunction) {
     return new DynamicResourceHandler() {
       @Override
       public String getResourceTemplate() {
@@ -18,8 +20,8 @@ public interface DynamicResourceHandler extends Supplier<Future<Resource>> {
       }
 
       @Override
-      public Future<Resource> get() {
-        return resourceSupplier.get();
+      public Future<Resource> apply(Map<String, String> params) {
+        return resourceFunction.apply(params);
       }
     };
   }
