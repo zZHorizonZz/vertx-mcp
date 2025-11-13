@@ -71,7 +71,7 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
         List<PromptMessage> messages = new ArrayList<>();
         PromptMessage message = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent("Review this code: " + args.getString("code")).toJson()));
+          .setContent(new TextContent("Review this code: " + args.getString("code")).toJson());
         messages.add(message);
         return Future.succeededFuture(messages);
       })
@@ -91,7 +91,7 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
         List<PromptMessage> messages = new ArrayList<>();
         PromptMessage message = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent("Explain this code: " + args.getString("code")).toJson()));
+          .setContent(new TextContent("Explain this code: " + args.getString("code")).toJson());
         messages.add(message);
         return Future.succeededFuture(messages);
       })
@@ -148,7 +148,7 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
         PromptMessage message = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent("Please review this code:\n" + code).toJson()));
+          .setContent(new TextContent("Please review this code:\n" + code).toJson());
         messages.add(message);
 
         return Future.succeededFuture(messages);
@@ -184,13 +184,10 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
         JsonObject message = messages.getJsonObject(0);
         context.assertEquals("user", message.getString("role"));
 
-        JsonArray content = message.getJsonArray("content");
-        context.assertNotNull(content, "Should have content array");
-        context.assertEquals(1, content.size(), "Should have 1 content item");
-
-        JsonObject contentItem = content.getJsonObject(0);
-        context.assertEquals("text", contentItem.getString("type"));
-        context.assertTrue(contentItem.getString("text").contains("def hello()"));
+        JsonObject content = message.getJsonObject("content");
+        context.assertNotNull(content, "Should have content object");
+        context.assertEquals("text", content.getString("type"));
+        context.assertTrue(content.getString("text").contains("def hello()"));
 
         async.complete();
       }));
@@ -305,17 +302,17 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
         PromptMessage userMessage = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent("Hello!").toJson()));
+          .setContent(new TextContent("Hello!").toJson());
         messages.add(userMessage);
 
         PromptMessage assistantMessage = new PromptMessage()
           .setRole("assistant")
-          .setContent(new JsonArray().add(new TextContent("Hi! How can I help you?").toJson()));
+          .setContent(new TextContent("Hi! How can I help you?").toJson());
         messages.add(assistantMessage);
 
         PromptMessage userMessage2 = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent("Tell me about MCP").toJson()));
+          .setContent(new TextContent("Tell me about MCP").toJson());
         messages.add(userMessage2);
 
         return Future.succeededFuture(messages);

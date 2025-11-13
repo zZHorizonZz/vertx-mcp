@@ -4,6 +4,7 @@ import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.content.Content;
 
 /**
  * Describes a message returned as part of a prompt. This is similar to SamplingMessage, but also supports the embedding of resources from the MCP server.
@@ -13,7 +14,7 @@ import io.vertx.core.json.JsonObject;
 public class PromptMessage {
 
   private String role;
-  private JsonArray content;
+  private JsonObject content;
 
   public PromptMessage() {
   }
@@ -47,7 +48,7 @@ public class PromptMessage {
    *
    * @return message getContent
    */
-  public JsonArray getContent() {
+  public JsonObject getContent() {
     return content;
   }
 
@@ -57,7 +58,7 @@ public class PromptMessage {
    * @param content message getContent
    * @return this instance for method chaining
    */
-  public PromptMessage setContent(JsonArray content) {
+  public PromptMessage setContent(JsonObject content) {
     this.content = content;
     return this;
   }

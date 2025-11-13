@@ -400,21 +400,21 @@ public class MCPServerDemo {
 
         PromptMessage systemMessage = new PromptMessage()
           .setRole("assistant")
-          .setContent(new JsonArray().add(new TextContent(
+          .setContent(new TextContent(
             "I am a code review assistant. I will analyze the provided code and provide feedback on:\n" +
             "1. Code quality and readability\n" +
             "2. Potential bugs or issues\n" +
             "3. Security concerns\n" +
             "4. Performance improvements\n" +
             "5. Best practices and conventions"
-          ).toJson()));
+          ).toJson());
         messages.add(systemMessage);
 
         PromptMessage userMessage = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent(
+          .setContent(new TextContent(
             "Please review this " + language + " code:\n\n```" + language + "\n" + code + "\n```"
-          ).toJson()));
+          ).toJson());
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
@@ -441,14 +441,14 @@ public class MCPServerDemo {
 
         PromptMessage userMessage = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent(
+          .setContent(new TextContent(
             "Please explain this " + language + " code in detail:\n\n```" + language + "\n" + code + "\n```\n\n" +
             "Include:\n" +
             "- What the code does (high-level purpose)\n" +
             "- How it works (step-by-step explanation)\n" +
             "- Key concepts and patterns used\n" +
             "- Any important edge cases or considerations"
-          ).toJson()));
+          ).toJson());
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
@@ -479,7 +479,7 @@ public class MCPServerDemo {
 
         PromptMessage userMessage = new PromptMessage()
           .setRole("user")
-          .setContent(new JsonArray().add(new TextContent(
+          .setContent(new TextContent(
             "Please write " + style + " documentation for this " + language + " code:\n\n```" + language + "\n" + code + "\n```\n\n" +
             "The documentation should include:\n" +
             "- Description of what the code does\n" +
@@ -487,7 +487,7 @@ public class MCPServerDemo {
             "- Return values/outputs (if any)\n" +
             "- Usage examples\n" +
             "- Any important notes or warnings"
-          ).toJson()));
+          ).toJson());
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
