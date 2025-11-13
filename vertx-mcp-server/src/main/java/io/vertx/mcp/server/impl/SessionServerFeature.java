@@ -52,7 +52,7 @@ public class SessionServerFeature implements ServerFeature {
       case "resources/unsubscribe":
         responseFuture = handleUnsubscribe(serverRequest, request);
         break;
-      case "notifications/initialize":
+      case "notifications/initialized":
         responseFuture = handleInitializeNotifications(serverRequest, request);
         break;
       default:

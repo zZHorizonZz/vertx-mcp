@@ -54,36 +54,32 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     ToolServerFeature toolFeature = new ToolServerFeature();
 
     // Add structured tools
-    JsonObject inputSchema1 = Schemas.objectSchema()
-      .requiredProperty("name", Schemas.stringSchema())
-      .toJson();
-    JsonObject outputSchema1 = Schemas.objectSchema()
-      .property("greeting", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addStructuredTool(
       "greet",
       "Greeting Tool",
       "Greets a person by name",
-      StructuredToolHandler.create(inputSchema1, outputSchema1, args ->
-        Future.succeededFuture(new JsonObject().put("greeting", "Hello " + args.getString("name")))
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("name", Schemas.stringSchema()),
+        Schemas.objectSchema()
+          .property("greeting", Schemas.stringSchema()),
+        args ->
+          Future.succeededFuture(new JsonObject().put("greeting", "Hello " + args.getString("name")))
       )
     );
-
-    JsonObject inputSchema2 = Schemas.objectSchema()
-      .requiredProperty("a", Schemas.numberSchema())
-      .requiredProperty("b", Schemas.numberSchema())
-      .toJson();
-    JsonObject outputSchema2 = Schemas.objectSchema()
-      .property("result", Schemas.numberSchema())
-      .toJson();
 
     toolFeature.addStructuredTool(
       "add",
       "Addition Tool",
       "Adds two numbers",
-      StructuredToolHandler.create(inputSchema2, outputSchema2, args ->
-        Future.succeededFuture(new JsonObject().put("result", args.getInteger("a") + args.getInteger("b")))
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("a", Schemas.numberSchema())
+          .requiredProperty("b", Schemas.numberSchema()),
+        Schemas.objectSchema()
+          .property("result", Schemas.numberSchema()),
+        args ->
+          Future.succeededFuture(new JsonObject().put("result", args.getInteger("a") + args.getInteger("b")))
       )
     );
 
@@ -140,18 +136,17 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    JsonObject inputSchema = Schemas.objectSchema()
-      .requiredProperty("message", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addUnstructuredTool(
       "echo",
       "Echo Tool",
       "Echoes back the message",
-      UnstructuredToolHandler.create(inputSchema, args ->
-        Future.succeededFuture(new Content[] {
-          new TextContent(args.getString("message"))
-        })
+      UnstructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("message", Schemas.stringSchema()),
+        args ->
+          Future.succeededFuture(new Content[] {
+            new TextContent(args.getString("message"))
+          })
       )
     );
 
@@ -188,21 +183,19 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    JsonObject inputSchema = Schemas.objectSchema()
-      .requiredProperty("x", Schemas.numberSchema())
-      .requiredProperty("y", Schemas.numberSchema())
-      .toJson();
-    JsonObject outputSchema = Schemas.objectSchema()
-      .property("product", Schemas.numberSchema())
-      .toJson();
-
     toolFeature.addStructuredTool(
       "multiply",
-      StructuredToolHandler.create(inputSchema, outputSchema, args -> {
-        int x = args.getInteger("x");
-        int y = args.getInteger("y");
-        return Future.succeededFuture(new JsonObject().put("product", x * y));
-      })
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("x", Schemas.numberSchema())
+          .requiredProperty("y", Schemas.numberSchema()),
+        Schemas.objectSchema()
+          .property("product", Schemas.numberSchema()),
+        args -> {
+          int x = args.getInteger("x");
+          int y = args.getInteger("y");
+          return Future.succeededFuture(new JsonObject().put("product", x * y));
+        })
     );
 
     server.serverFeatures(toolFeature);
@@ -242,16 +235,15 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    JsonObject inputSchema = Schemas.objectSchema()
-      .requiredProperty("text", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addUnstructuredTool(
       "uppercase",
-      UnstructuredToolHandler.create(inputSchema, args ->
-        Future.succeededFuture(new Content[] {
-          new TextContent(args.getString("text").toUpperCase())
-        })
+      UnstructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("text", Schemas.stringSchema()),
+        args ->
+          Future.succeededFuture(new Content[] {
+            new TextContent(args.getString("text").toUpperCase())
+          })
       )
     );
 
@@ -353,17 +345,15 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    JsonObject inputSchema = Schemas.objectSchema()
-      .requiredProperty("value", Schemas.numberSchema())
-      .toJson();
-    JsonObject outputSchema = Schemas.objectSchema()
-      .property("result", Schemas.numberSchema())
-      .toJson();
-
     toolFeature.addStructuredTool(
       "failing-tool",
-      StructuredToolHandler.create(inputSchema, outputSchema, args ->
-        Future.failedFuture("Tool execution failed")
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("value", Schemas.numberSchema()),
+        Schemas.objectSchema()
+          .property("result", Schemas.numberSchema()),
+        args ->
+          Future.failedFuture("Tool execution failed")
       )
     );
 
@@ -401,14 +391,13 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    JsonObject inputSchema = Schemas.objectSchema()
-      .requiredProperty("value", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addUnstructuredTool(
       "failing-unstructured",
-      UnstructuredToolHandler.create(inputSchema, args ->
-        Future.failedFuture("Unstructured tool failed")
+      UnstructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("value", Schemas.stringSchema()),
+        args ->
+          Future.failedFuture("Unstructured tool failed")
       )
     );
 
@@ -471,15 +460,14 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    JsonObject inputSchema = Schemas.objectSchema().toJson();
-    JsonObject outputSchema = Schemas.objectSchema()
-      .property("message", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addStructuredTool(
       "no-args-tool",
-      StructuredToolHandler.create(inputSchema, outputSchema, args ->
-        Future.succeededFuture(new JsonObject().put("message", "No arguments needed"))
+      StructuredToolHandler.create(
+        Schemas.objectSchema(),
+        Schemas.objectSchema()
+          .property("message", Schemas.stringSchema()),
+        args ->
+          Future.succeededFuture(new JsonObject().put("message", "No arguments needed"))
       )
     );
 
@@ -516,15 +504,14 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     // Add multiple tools
     for (int i = 0; i < 5; i++) {
       final int index = i;
-      JsonObject inputSchema = Schemas.objectSchema().toJson();
-      JsonObject outputSchema = Schemas.objectSchema()
-        .property("index", Schemas.numberSchema())
-        .toJson();
-
       toolFeature.addStructuredTool(
         "tool-" + i,
-        StructuredToolHandler.create(inputSchema, outputSchema, args ->
-          Future.succeededFuture(new JsonObject().put("index", index))
+        StructuredToolHandler.create(
+          Schemas.objectSchema(),
+          Schemas.objectSchema()
+            .property("index", Schemas.numberSchema()),
+          args ->
+            Future.succeededFuture(new JsonObject().put("index", index))
         )
       );
     }

@@ -46,6 +46,17 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
       return;
     }
 
+    // If request is OPTIONS, return 200 OK with CORS headers
+    if (httpRequest.method().equals(HttpMethod.OPTIONS)) {
+      httpRequest.response()
+        .setStatusCode(200)
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT, DELETE, OPTIONS")
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version")
+        .end();
+      return;
+    }
+
     // Validate if request is POST or GET
     if (!httpRequest.method().equals(HttpMethod.POST) && !httpRequest.method().equals(HttpMethod.GET)) {
       httpRequest.response().setStatusCode(405).end("Method not allowed");

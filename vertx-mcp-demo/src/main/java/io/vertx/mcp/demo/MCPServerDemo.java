@@ -10,24 +10,32 @@ import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.resources.TextResourceContent;
+import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.server.ModelContextProtocolServer;
+import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
+import io.vertx.mcp.server.impl.PromptServerFeature;
 import io.vertx.mcp.server.impl.ResourceServerFeature;
 import io.vertx.mcp.server.impl.ToolServerFeature;
 import io.vertx.mcp.server.transport.http.HttpServerTransport;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Demo MCP Server with example tools and resources.
+ * Demo MCP Server with example tools, resources, and prompts.
  *
  * This demo shows:
  * - Structured tools (calculator operations, text manipulation)
  * - Unstructured tools (content generation)
  * - Static resources (documentation, API info)
+ * - Dynamic resources (user and product lookups)
+ * - Prompts (code review, documentation generation)
  */
 public class MCPServerDemo {
 
@@ -43,9 +51,10 @@ public class MCPServerDemo {
 
     ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(serverOptions);
 
-    // Setup tools and resources
+    // Setup tools, resources, and prompts
     setupTools(mcpServer);
     setupResources(mcpServer);
+    setupPrompts(mcpServer);
 
     // Create HTTP transport
     HttpServerTransport transport = new HttpServerTransport(vertx, mcpServer);
@@ -81,6 +90,10 @@ public class MCPServerDemo {
         System.out.println("  - resource://sample-data/products");
         System.out.println("  - resource://user/{id} (dynamic)");
         System.out.println("  - resource://product/{id} (dynamic)");
+        System.out.println("\nAvailable Prompts:");
+        System.out.println("  - code_review: Get AI code review suggestions");
+        System.out.println("  - explain_code: Get code explanation");
+        System.out.println("  - write_docs: Generate documentation");
         System.out.println("========================================");
       })
       .onFailure(err -> {
@@ -93,24 +106,21 @@ public class MCPServerDemo {
     ToolServerFeature toolFeature = new ToolServerFeature();
 
     // Structured Tool: Calculator
-    JsonObject calculatorInputSchema = Schemas.objectSchema()
-      .requiredProperty("operation", Schemas.stringSchema()
-        .withKeyword("enum", new JsonArray()
-          .add("add").add("subtract").add("multiply").add("divide")))
-      .requiredProperty("a", Schemas.numberSchema())
-      .requiredProperty("b", Schemas.numberSchema())
-      .toJson();
-
-    JsonObject calculatorOutputSchema = Schemas.objectSchema()
-      .property("result", Schemas.numberSchema())
-      .property("operation", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addStructuredTool(
       "calculator",
       "Calculator",
       "Performs arithmetic operations (add, subtract, multiply, divide)",
-      StructuredToolHandler.create(calculatorInputSchema, calculatorOutputSchema, args -> {
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("operation", Schemas.stringSchema()
+            .withKeyword("enum", new JsonArray()
+              .add("add").add("subtract").add("multiply").add("divide")))
+          .requiredProperty("a", Schemas.numberSchema())
+          .requiredProperty("b", Schemas.numberSchema()),
+        Schemas.objectSchema()
+          .property("result", Schemas.numberSchema())
+          .property("operation", Schemas.stringSchema()),
+        args -> {
         String operation = args.getString("operation");
         double a = args.getDouble("a");
         double b = args.getDouble("b");
@@ -143,61 +153,67 @@ public class MCPServerDemo {
     );
 
     // Structured Tool: Text Uppercase
-    JsonObject textInputSchema = Schemas.objectSchema()
-      .requiredProperty("text", Schemas.stringSchema())
-      .toJson();
-
-    JsonObject textOutputSchema = Schemas.objectSchema()
-      .property("result", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addStructuredTool(
       "uppercase",
       "Uppercase Text",
       "Converts text to uppercase",
-      StructuredToolHandler.create(textInputSchema, textOutputSchema, args -> {
-        String text = args.getString("text");
-        return Future.succeededFuture(new JsonObject()
-          .put("result", text.toUpperCase()));
-      })
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("text", Schemas.stringSchema()),
+        Schemas.objectSchema()
+          .property("result", Schemas.stringSchema()),
+        args -> {
+          String text = args.getString("text");
+          return Future.succeededFuture(new JsonObject()
+            .put("result", text.toUpperCase()));
+        })
     );
 
     toolFeature.addStructuredTool(
       "lowercase",
       "Lowercase Text",
       "Converts text to lowercase",
-      StructuredToolHandler.create(textInputSchema, textOutputSchema, args -> {
-        String text = args.getString("text");
-        return Future.succeededFuture(new JsonObject()
-          .put("result", text.toLowerCase()));
-      })
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("text", Schemas.stringSchema()),
+        Schemas.objectSchema()
+          .property("result", Schemas.stringSchema()),
+        args -> {
+          String text = args.getString("text");
+          return Future.succeededFuture(new JsonObject()
+            .put("result", text.toLowerCase()));
+        })
     );
 
     toolFeature.addStructuredTool(
       "reverse",
       "Reverse Text",
       "Reverses the input text",
-      StructuredToolHandler.create(textInputSchema, textOutputSchema, args -> {
-        String text = args.getString("text");
-        String reversed = new StringBuilder(text).reverse().toString();
-        return Future.succeededFuture(new JsonObject()
-          .put("result", reversed));
-      })
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("text", Schemas.stringSchema()),
+        Schemas.objectSchema()
+          .property("result", Schemas.stringSchema()),
+        args -> {
+          String text = args.getString("text");
+          String reversed = new StringBuilder(text).reverse().toString();
+          return Future.succeededFuture(new JsonObject()
+            .put("result", reversed));
+        })
     );
 
     // Unstructured Tool: Greeting Generator
-    JsonObject greetingInputSchema = Schemas.objectSchema()
-      .requiredProperty("name", Schemas.stringSchema())
-      .property("style", Schemas.stringSchema()
-        .withKeyword("enum", new JsonArray()
-          .add("formal").add("casual").add("enthusiastic")))
-      .toJson();
-
     toolFeature.addUnstructuredTool(
       "greeting",
       "Greeting Generator",
       "Generates personalized greetings in different styles",
-      UnstructuredToolHandler.create(greetingInputSchema, args -> {
+      UnstructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("name", Schemas.stringSchema())
+          .property("style", Schemas.stringSchema()
+            .withKeyword("enum", new JsonArray()
+              .add("formal").add("casual").add("enthusiastic"))),
+        args -> {
         String name = args.getString("name");
         String style = args.getString("style", "casual");
         String greeting;
@@ -221,15 +237,14 @@ public class MCPServerDemo {
     );
 
     // Unstructured Tool: Timestamp
-    JsonObject timestampInputSchema = Schemas.objectSchema()
-      .property("format", Schemas.stringSchema())
-      .toJson();
-
     toolFeature.addUnstructuredTool(
       "timestamp",
       "Timestamp Generator",
       "Returns the current timestamp in the specified format",
-      UnstructuredToolHandler.create(timestampInputSchema, args -> {
+      UnstructuredToolHandler.create(
+        Schemas.objectSchema()
+          .property("format", Schemas.stringSchema()),
+        args -> {
         String format = args.getString("format", "yyyy-MM-dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
@@ -360,5 +375,125 @@ public class MCPServerDemo {
     });
 
     server.serverFeatures(resourceFeature);
+  }
+
+  private static void setupPrompts(ModelContextProtocolServer server) {
+    PromptServerFeature promptFeature = new PromptServerFeature();
+
+    // Prompt: Code Review
+    promptFeature.addPrompt(
+      "code_review",
+      "Code Review",
+      "Provides comprehensive code review with suggestions for improvements, best practices, and potential issues",
+      PromptHandler.create(
+        Schemas.arraySchema()
+          .items(
+            Schemas.objectSchema()
+              .requiredProperty("code", Schemas.stringSchema())
+              .property("language", Schemas.stringSchema())
+          ),
+        args -> {
+        String code = args.getString("code");
+        String language = args.getString("language", "unknown");
+
+        List<PromptMessage> messages = new ArrayList<>();
+
+        PromptMessage systemMessage = new PromptMessage()
+          .setRole("assistant")
+          .setContent(new JsonArray().add(new TextContent(
+            "I am a code review assistant. I will analyze the provided code and provide feedback on:\n" +
+            "1. Code quality and readability\n" +
+            "2. Potential bugs or issues\n" +
+            "3. Security concerns\n" +
+            "4. Performance improvements\n" +
+            "5. Best practices and conventions"
+          ).toJson()));
+        messages.add(systemMessage);
+
+        PromptMessage userMessage = new PromptMessage()
+          .setRole("user")
+          .setContent(new JsonArray().add(new TextContent(
+            "Please review this " + language + " code:\n\n```" + language + "\n" + code + "\n```"
+          ).toJson()));
+        messages.add(userMessage);
+
+        return Future.succeededFuture(messages);
+      })
+    );
+
+    // Prompt: Explain Code
+    promptFeature.addPrompt(
+      "explain_code",
+      "Explain Code",
+      "Provides detailed explanation of what code does, how it works, and its key concepts",
+      PromptHandler.create(
+        Schemas.arraySchema()
+          .items(
+            Schemas.objectSchema()
+              .requiredProperty("code", Schemas.stringSchema())
+              .property("language", Schemas.stringSchema())
+          ),
+        args -> {
+        String code = args.getString("code");
+        String language = args.getString("language", "unknown");
+
+        List<PromptMessage> messages = new ArrayList<>();
+
+        PromptMessage userMessage = new PromptMessage()
+          .setRole("user")
+          .setContent(new JsonArray().add(new TextContent(
+            "Please explain this " + language + " code in detail:\n\n```" + language + "\n" + code + "\n```\n\n" +
+            "Include:\n" +
+            "- What the code does (high-level purpose)\n" +
+            "- How it works (step-by-step explanation)\n" +
+            "- Key concepts and patterns used\n" +
+            "- Any important edge cases or considerations"
+          ).toJson()));
+        messages.add(userMessage);
+
+        return Future.succeededFuture(messages);
+      })
+    );
+
+    // Prompt: Write Documentation
+    promptFeature.addPrompt(
+      "write_docs",
+      "Write Documentation",
+      "Generates comprehensive documentation for the provided code in the specified format",
+      PromptHandler.create(
+        Schemas.arraySchema()
+          .items(
+            Schemas.objectSchema()
+              .requiredProperty("code", Schemas.stringSchema())
+              .property("language", Schemas.stringSchema())
+              .property("style", Schemas.stringSchema()
+                .withKeyword("enum", new JsonArray()
+                  .add("javadoc").add("jsdoc").add("markdown")))
+          ),
+        args -> {
+        String code = args.getString("code");
+        String language = args.getString("language", "unknown");
+        String style = args.getString("style", "markdown");
+
+        List<PromptMessage> messages = new ArrayList<>();
+
+        PromptMessage userMessage = new PromptMessage()
+          .setRole("user")
+          .setContent(new JsonArray().add(new TextContent(
+            "Please write " + style + " documentation for this " + language + " code:\n\n```" + language + "\n" + code + "\n```\n\n" +
+            "The documentation should include:\n" +
+            "- Description of what the code does\n" +
+            "- Parameters/inputs (if any)\n" +
+            "- Return values/outputs (if any)\n" +
+            "- Usage examples\n" +
+            "- Any important notes or warnings"
+          ).toJson()));
+        messages.add(userMessage);
+
+        return Future.succeededFuture(messages);
+      })
+    );
+
+    server.serverFeatures(promptFeature);
   }
 }

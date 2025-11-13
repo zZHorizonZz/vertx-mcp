@@ -71,6 +71,10 @@ public class HttpServerRequestImpl implements ServerRequest {
         JsonRequest tempRequest = JsonRequest.fromJson(json);
         this.jsonRequest = tempRequest;
 
+        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT, DELETE, OPTIONS");
+        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version");
+
         // If this is an initialize request and sessions are enabled, create a new session
         if (tempRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
           Session session = sessionManager.createSession();
@@ -84,7 +88,6 @@ public class HttpServerRequestImpl implements ServerRequest {
           httpResponse.putHeader(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8");
           httpResponse.putHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
           httpResponse.putHeader(HttpHeaders.CONNECTION, "keep-alive");
-          httpResponse.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         }
 
         // Notify that request is ready

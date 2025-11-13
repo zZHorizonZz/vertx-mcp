@@ -2,6 +2,7 @@ package io.vertx.mcp.common.prompt;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Meta;
 

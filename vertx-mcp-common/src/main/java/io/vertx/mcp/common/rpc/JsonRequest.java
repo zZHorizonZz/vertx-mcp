@@ -65,6 +65,10 @@ public class JsonRequest {
    * @return a new JSON-RPC notification
    */
   public static JsonRequest createNotification(String method, Object params) {
+    if (params == null) {
+      return new JsonRequest(method, new JsonArray(), null);
+    }
+
     if (params instanceof JsonObject) {
       return new JsonRequest(method, (JsonObject) params, null);
     } else if (params instanceof JsonArray) {
@@ -75,6 +79,10 @@ public class JsonRequest {
   }
 
   public static JsonRequest createRequest(String method, Object params, Integer id) {
+    if (params == null) {
+      return new JsonRequest(method, new JsonArray(), id);
+    }
+
     if (params instanceof JsonObject) {
       return new JsonRequest(method, (JsonObject) params, id);
     } else if (params instanceof JsonArray) {
@@ -113,6 +121,10 @@ public class JsonRequest {
     Integer id = null;
     if (json.containsKey(ID_FIELD)) {
       id = json.getInteger(ID_FIELD);
+    }
+
+    if (id == null) {
+      return createNotification(method, params);
     }
 
     return createRequest(method, params, id);

@@ -2,20 +2,21 @@ package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.json.schema.common.dsl.SchemaBuilder;
 import io.vertx.mcp.common.content.Content;
 
 import java.util.function.Function;
 
 public interface UnstructuredToolHandler extends Function<JsonObject, Future<Content[]>> {
 
-  static UnstructuredToolHandler create(JsonObject inputSchema, Function<JsonObject, Future<Content[]>> function) {
+  static UnstructuredToolHandler create(SchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> function) {
     if (inputSchema == null) {
       throw new IllegalArgumentException("Input schema must not be null");
     }
 
     return new UnstructuredToolHandler() {
       @Override
-      public JsonObject inputSchema() {
+      public SchemaBuilder inputSchema() {
         return inputSchema;
       }
 
@@ -26,5 +27,5 @@ public interface UnstructuredToolHandler extends Function<JsonObject, Future<Con
     };
   }
 
-  JsonObject inputSchema();
+  SchemaBuilder inputSchema();
 }

@@ -76,7 +76,7 @@ public class ToolServerFeature implements ServerFeature {
       ToolRegistration registration = entry.getValue();
       Tool tool = new Tool()
         .setName(entry.getKey())
-        .setInputSchema(registration.inputSchemaJson);
+        .setInputSchema(registration.inputSchema.toJson());
 
       // Add optional fields if present
       if (registration.description != null) {
@@ -85,8 +85,8 @@ public class ToolServerFeature implements ServerFeature {
       if (registration.title != null) {
         tool.setTitle(registration.title);
       }
-      if (registration.outputSchemaJson != null) {
-        tool.setOutputSchema(registration.outputSchemaJson);
+      if (registration.outputSchema != null) {
+        tool.setOutputSchema(registration.outputSchema.toJson());
       }
 
       toolsList.add(tool);
@@ -211,8 +211,8 @@ public class ToolServerFeature implements ServerFeature {
     }
 
     ToolRegistration registration = new ToolRegistration();
-    registration.inputSchemaJson = handler.inputSchema();
-    registration.outputSchemaJson = handler.outputSchema();
+    registration.inputSchema = handler.inputSchema();
+    registration.outputSchema = handler.outputSchema();
     registration.structuredHandler = handler;
 
     tools.put(name, registration);
@@ -248,7 +248,7 @@ public class ToolServerFeature implements ServerFeature {
     }
 
     ToolRegistration registration = new ToolRegistration();
-    registration.inputSchemaJson = handler.inputSchema();
+    registration.inputSchema = handler.inputSchema();
     registration.unstructuredHandler = handler;
 
     tools.put(name, registration);
@@ -302,9 +302,8 @@ public class ToolServerFeature implements ServerFeature {
    * Internal class to hold tool registration information.
    */
   private static class ToolRegistration {
-    // JsonObject schema representations (from DSL's toJson())
-    JsonObject inputSchemaJson;
-    JsonObject outputSchemaJson;
+    io.vertx.json.schema.common.dsl.SchemaBuilder inputSchema;
+    io.vertx.json.schema.common.dsl.SchemaBuilder outputSchema;
 
     String title;
     String description;

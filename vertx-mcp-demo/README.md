@@ -225,7 +225,7 @@ vertx-mcp-demo/
 
 ```java
 // In setupTools() method
-JsonObject inputSchema = Schemas.objectSchema()
+JsonObject arguments = Schemas.objectSchema()
   .requiredProperty("input", Schemas.stringSchema())
   .toJson();
 
@@ -237,7 +237,7 @@ toolFeature.addStructuredTool(
   "my-tool",
   "My Tool",
   "Description of my tool",
-  StructuredToolHandler.create(inputSchema, outputSchema, args -> {
+  StructuredToolHandler.create(arguments, outputSchema, args -> {
     // Your tool logic here
     return Future.succeededFuture(new JsonObject()
       .put("output", "result"));
