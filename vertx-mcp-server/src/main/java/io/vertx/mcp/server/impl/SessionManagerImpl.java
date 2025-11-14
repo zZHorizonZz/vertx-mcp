@@ -14,13 +14,21 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SessionManagerImpl implements SessionManager {
 
-  private final Map<String, SessionImpl> sessions = new ConcurrentHashMap<>();
+  private final Map<String, Session> sessions = new ConcurrentHashMap<>();
   private final ServerOptions options;
   private final Vertx vertx;
 
   public SessionManagerImpl(Vertx vertx, ServerOptions options) {
     this.vertx = vertx;
     this.options = options;
+
+    this.vertx.eventBus().consumer("io.vertx.mcp.server.notification", message -> {
+      String sessionId = message.body().toString();
+      Session session = sessions.get(sessionId);
+      if (session != null) {
+        //session.notify(message.body());
+      }
+    });
   }
 
   @Override
@@ -30,14 +38,15 @@ public class SessionManagerImpl implements SessionManager {
     }
 
     String sessionId = UUID.randomUUID().toString();
-    SessionImpl session = new SessionImpl(sessionId, options.getStreamingEnabled());
+    Session session = new SessionImpl(sessionId, options.getStreamingEnabled());
+
     sessions.put(sessionId, session);
 
     // Set up timeout to clean up inactive sessions
     long timeoutMs = options.getSessionTimeoutMs();
     if (timeoutMs > 0) {
       vertx.setTimer(timeoutMs, timerId -> {
-        SessionImpl existingSession = sessions.get(sessionId);
+        Session existingSession = sessions.get(sessionId);
         if (existingSession != null && !existingSession.isActive()) {
           sessions.remove(sessionId);
         }

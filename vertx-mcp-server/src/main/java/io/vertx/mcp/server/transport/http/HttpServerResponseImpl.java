@@ -27,8 +27,8 @@ public class HttpServerResponseImpl implements ServerResponse {
   }
 
   @Override
-  public void init() {
-
+  public void init(Session session) {
+    this.session = session;
   }
 
   @Override
@@ -133,10 +133,5 @@ public class HttpServerResponseImpl implements ServerResponse {
   @Override
   public Session session() {
     return session;
-  }
-
-  @Override
-  public void setSession(Session session) {
-    this.session = session;
   }
 }

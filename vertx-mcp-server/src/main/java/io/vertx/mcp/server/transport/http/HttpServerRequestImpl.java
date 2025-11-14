@@ -10,6 +10,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.server.*;
+import io.vertx.mcp.server.impl.SessionImpl;
 
 public class HttpServerRequestImpl implements ServerRequest {
 
@@ -51,9 +52,15 @@ public class HttpServerRequestImpl implements ServerRequest {
   }
 
   @Override
-  public void init(ServerResponse response) {
+  public void init(Session session, ServerResponse response) {
+    this.session = session;
     this.response = response;
-    response.init();
+
+    if (session != null) {
+      ((SessionImpl) session).init(this.response);
+    }
+
+    response.init(session);
 
     // Directly read the body and parse as a single JsonRequest
     // MCP always sends a single JSON-RPC request per HTTP request
@@ -73,8 +80,7 @@ public class HttpServerRequestImpl implements ServerRequest {
 
         // If this is an initialize request and sessions are enabled, create a new session
         if (tempRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
-          Session session = sessionManager.createSession();
-          httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, session.id());
+          httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, sessionManager.createSession().id());
         }
 
         if (this.session != null && options.getStreamingEnabled() && !this.jsonRequest.isNotification()) {
@@ -107,7 +113,6 @@ public class HttpServerRequestImpl implements ServerRequest {
 
   @Override
   public String path() {
-    // In MCP, the path is the JSON-RPC method field, not the HTTP path
     return jsonRequest != null ? jsonRequest.getMethod() : null;
   }
 
@@ -127,17 +132,7 @@ public class HttpServerRequestImpl implements ServerRequest {
   }
 
   @Override
-  public void setJsonRequest(JsonRequest request) {
-    this.jsonRequest = request;
-  }
-
-  @Override
   public Session session() {
     return session;
-  }
-
-  @Override
-  public void setSession(Session session) {
-    this.session = session;
   }
 }

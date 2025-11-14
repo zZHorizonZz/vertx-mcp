@@ -9,7 +9,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 
 public interface ServerResponse extends WriteStream<JsonObject> {
 
-  void init();
+  void init(Session session);
 
   ContextInternal context();
 
@@ -36,13 +36,5 @@ public interface ServerResponse extends WriteStream<JsonObject> {
    * @return the session, or null if no session exists
    */
   Session session();
-
-  /**
-   * Set the session for this response.
-   *
-   * @param session the session
-   */
-  void setSession(Session session);
-
 }
 

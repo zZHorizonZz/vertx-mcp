@@ -1,21 +1,31 @@
 package io.vertx.mcp.server.impl;
 
+import io.vertx.core.Closeable;
+import io.vertx.core.Completable;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.Session;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SessionImpl implements Session {
+public class SessionImpl implements Session, Closeable {
 
   private final String id;
   private final boolean streaming;
   private final AtomicBoolean active = new AtomicBoolean(true);
 
+  private WriteStream<JsonObject> stream;
+
   public SessionImpl(String id, boolean streaming) {
     this.id = id;
     this.streaming = streaming;
+  }
+
+  public void init(WriteStream<JsonObject> stream) {
+    this.stream = stream;
   }
 
   @Override
@@ -43,19 +53,17 @@ public class SessionImpl implements Session {
       return Future.failedFuture("Session is not streaming");
     }
 
-    Vertx.vertx().eventBus().send("vertx.mcp.server.session.response", response.toJson());
-
-    return Future.succeededFuture();
+    return this.stream.write(response.toJson());
   }
 
   @Override
-  public Future<Void> close() {
+  public void close(Completable<Void> completable) {
     if (active.compareAndSet(true, false)) {
       if (streaming) {
         Vertx.vertx().eventBus().send("vertx.mcp.server.session.close", id);
       }
     }
 
-    return Future.succeededFuture();
+    this.stream.end().onComplete(completable);
   }
 }

@@ -83,13 +83,12 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
     HttpServerRequestImpl serverRequest = new HttpServerRequestImpl(context, httpRequest, sessionManager, options);
     HttpServerResponseImpl serverResponse = new HttpServerResponseImpl(context, httpRequest.response());
 
+    Session session = null;
+
     // If there's a session ID and sessions are enabled, retrieve existing session
     if (sessionId != null && options.getSessionsEnabled()) {
-      Session session = sessionManager.getSession(sessionId);
-      if (session != null) {
-        serverRequest.setSession(session);
-        serverResponse.setSession(session);
-      } else {
+      session = sessionManager.getSession(sessionId);
+      if (session == null) {
         httpRequest.response().setStatusCode(400).end("Invalid session ID");
         return;
       }
@@ -102,7 +101,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
       .end(JsonResponse.error(null, JsonError.invalidRequest()).toString())
     );
 
-    serverRequest.init(serverResponse);
+    serverRequest.init(session, serverResponse);
   }
 
   public SessionManager getSessionManager() {

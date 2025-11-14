@@ -38,12 +38,4 @@ public interface Session {
    * @return a future that completes when the response has been sent
    */
   Future<Void> send(JsonResponse response);
-
-  /**
-   * Close the session. For SSE connections, this closes the event stream.
-   *
-   * @return a future that completes when the session is closed
-   */
-  Future<Void> close();
-
 }
