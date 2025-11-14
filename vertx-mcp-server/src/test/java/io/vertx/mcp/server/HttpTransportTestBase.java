@@ -71,6 +71,14 @@ public abstract class HttpTransportTestBase {
     return sendRequest(method, body, null);
   }
 
+  protected Future<HttpClientResponse> sendRequest(HttpMethod method, Request request, String session) {
+    return sendRequest(method, request.toRequest(1), session);
+  }
+
+  protected Future<HttpClientResponse> sendRequest(HttpMethod method, JsonRequest request, String session) {
+    return sendRequest(method, request.toJson().toBuffer(), session);
+  }
+
   protected Future<HttpClientResponse> sendRequest(HttpMethod method, Buffer body, String session) {
     HttpClient client = vertx.createHttpClient(new HttpClientOptions());
 

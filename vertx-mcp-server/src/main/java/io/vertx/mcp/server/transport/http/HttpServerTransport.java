@@ -24,6 +24,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
 
   public static final String MCP_SESSION_ID_HEADER = "Mcp-Session-Id";
   public static final String MCP_PROTOCOL_VERSION_HEADER = "Mcp-Protocol-Version";
+  public static final String MCP_SESSION_CONTEXT_KEY = "mcp.session";
 
   public static final Set<String> ACCEPTED_CONTENT_TYPES = Set.of("application/json", "text/event-stream");
   public static final Set<CharSequence> ACCEPTED_HEADERS = Set.of(HttpHeaders.CONTENT_TYPE, HttpHeaders.ACCEPT, MCP_SESSION_ID_HEADER, MCP_PROTOCOL_VERSION_HEADER);
@@ -92,6 +93,10 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
         httpRequest.response().setStatusCode(400).end("Invalid session ID");
         return;
       }
+    }
+
+    if (session != null) {
+      context.put(MCP_SESSION_CONTEXT_KEY, session);
     }
 
     serverRequest.handler(v -> context.dispatch(serverRequest, server));
