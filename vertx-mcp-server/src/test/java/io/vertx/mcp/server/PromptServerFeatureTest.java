@@ -1,11 +1,13 @@
 package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.prompt.PromptMessage;
@@ -19,21 +21,23 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PromptServerFeatureTest extends HttpTransportTestBase {
+public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerFeature> {
+
+  // Common schemas used across tests
+  private static final ArraySchemaBuilder CODE_ARGUMENT_SCHEMA = Schemas.arraySchema()
+    .items(Schemas.objectSchema().requiredProperty("code", Schemas.stringSchema()));
+
+  @Override
+  protected PromptServerFeature createFeature() {
+    return new PromptServerFeature();
+  }
 
   @Test
   public void testListPromptsEmpty(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
-    server.serverFeatures(promptFeature);
-
-    startServer(context, server);
-
     Async async = context.async();
-    JsonRequest request = new ListPromptsRequest().toRequest(1);
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListPromptsRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -53,52 +57,37 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testListPromptsWithPrompts(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
-
-    // Add prompts
-    promptFeature.addPrompt(
+    feature.addPrompt(
       "code_review",
       "Code Review",
       "Reviews code and suggests improvements",
       PromptHandler.create(
-        Schemas.arraySchema()
-          .items(
-            Schemas.objectSchema()
-              .requiredProperty("code", Schemas.stringSchema())
-          ),
+        CODE_ARGUMENT_SCHEMA,
         args -> {
-        List<PromptMessage> messages = new ArrayList<>();
-        PromptMessage message = new PromptMessage()
-          .setRole("user")
-          .setContent(new TextContent("Review this code: " + args.getString("code")).toJson());
-        messages.add(message);
-        return Future.succeededFuture(messages);
-      })
+          List<PromptMessage> messages = new ArrayList<>();
+          PromptMessage message = new PromptMessage()
+            .setRole("user")
+            .setContent(new TextContent("Review this code: " + args.getString("code")).toJson());
+          messages.add(message);
+          return Future.succeededFuture(messages);
+        })
     );
 
-    promptFeature.addPrompt(
+    feature.addPrompt(
       "explain_code",
       "Explain Code",
       "Explains what code does",
       PromptHandler.create(
-        Schemas.arraySchema()
-          .items(
-            Schemas.objectSchema()
-              .requiredProperty("code", Schemas.stringSchema())
-          ),
+        CODE_ARGUMENT_SCHEMA,
         args -> {
-        List<PromptMessage> messages = new ArrayList<>();
-        PromptMessage message = new PromptMessage()
-          .setRole("user")
-          .setContent(new TextContent("Explain this code: " + args.getString("code")).toJson());
-        messages.add(message);
-        return Future.succeededFuture(messages);
-      })
+          List<PromptMessage> messages = new ArrayList<>();
+          PromptMessage message = new PromptMessage()
+            .setRole("user")
+            .setContent(new TextContent("Explain this code: " + args.getString("code")).toJson());
+          messages.add(message);
+          return Future.succeededFuture(messages);
+        })
     );
-
-    server.serverFeatures(promptFeature);
-    startServer(context, server);
 
     Async async = context.async();
     JsonRequest request = new ListPromptsRequest().toRequest(1);
@@ -129,10 +118,8 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testGetPrompt(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
 
-    promptFeature.addPrompt(
+    feature.addPrompt(
       "code_review",
       "Code Review",
       "Reviews code and suggests improvements",
@@ -143,20 +130,17 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
               .requiredProperty("code", Schemas.stringSchema())
           ),
         args -> {
-        String code = args.getString("code");
-        List<PromptMessage> messages = new ArrayList<>();
+          String code = args.getString("code");
+          List<PromptMessage> messages = new ArrayList<>();
 
-        PromptMessage message = new PromptMessage()
-          .setRole("user")
-          .setContent(new TextContent("Please review this code:\n" + code).toJson());
-        messages.add(message);
+          PromptMessage message = new PromptMessage()
+            .setRole("user")
+            .setContent(new TextContent("Please review this code:\n" + code).toJson());
+          messages.add(message);
 
-        return Future.succeededFuture(messages);
-      })
+          return Future.succeededFuture(messages);
+        })
     );
-
-    server.serverFeatures(promptFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -197,11 +181,6 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testGetPromptNotFound(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
-    server.serverFeatures(promptFeature);
-
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -226,11 +205,6 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testGetPromptMissingName(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
-    server.serverFeatures(promptFeature);
-
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -254,18 +228,13 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testPromptHandlerFailure(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
 
-    promptFeature.addPrompt(
+    feature.addPrompt(
       "failing_prompt",
       "Failing Prompt",
       "A prompt that fails",
       PromptHandler.create(null, args -> Future.failedFuture("Prompt generation failed"))
     );
-
-    server.serverFeatures(promptFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -290,10 +259,8 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testGetPromptWithMultipleMessages(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
 
-    promptFeature.addPrompt(
+    feature.addPrompt(
       "conversation",
       "Conversation",
       "A multi-turn conversation prompt",
@@ -318,9 +285,6 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
         return Future.succeededFuture(messages);
       })
     );
-
-    server.serverFeatures(promptFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -353,11 +317,6 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testUnsupportedPromptMethod(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    PromptServerFeature promptFeature = new PromptServerFeature();
-    server.serverFeatures(promptFeature);
-
-    startServer(context, server);
 
     Async async = context.async();
 

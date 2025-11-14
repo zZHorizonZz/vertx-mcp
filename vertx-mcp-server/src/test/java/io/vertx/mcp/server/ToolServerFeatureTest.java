@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.json.schema.common.dsl.SchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
@@ -16,15 +17,32 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.impl.ToolServerFeature;
 import org.junit.Test;
 
-public class ToolServerFeatureTest extends HttpTransportTestBase {
+public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeature> {
+
+  // Common input schemas used across tests
+  private static final SchemaBuilder EMPTY_SCHEMA = Schemas.objectSchema();
+  private static final SchemaBuilder TEXT_INPUT_SCHEMA = Schemas.objectSchema()
+    .requiredProperty("text", Schemas.stringSchema());
+  private static final SchemaBuilder MESSAGE_INPUT_SCHEMA = Schemas.objectSchema()
+    .requiredProperty("message", Schemas.stringSchema());
+  private static final SchemaBuilder NUMBER_VALUE_SCHEMA = Schemas.objectSchema()
+    .requiredProperty("value", Schemas.numberSchema());
+  private static final SchemaBuilder STRING_VALUE_SCHEMA = Schemas.objectSchema()
+    .requiredProperty("value", Schemas.stringSchema());
+
+  // Common output schemas
+  private static final SchemaBuilder MESSAGE_OUTPUT_SCHEMA = Schemas.objectSchema()
+    .property("message", Schemas.stringSchema());
+  private static final SchemaBuilder NUMBER_OUTPUT_SCHEMA = Schemas.objectSchema()
+    .property("result", Schemas.numberSchema());
+
+  @Override
+  protected ToolServerFeature createFeature() {
+    return new ToolServerFeature();
+  }
 
   @Test
   public void testListToolsEmpty(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
-    server.serverFeatures(toolFeature);
-
-    startServer(context, server);
 
     Async async = context.async();
     JsonRequest request = new ListToolsRequest().toRequest(1);
@@ -50,11 +68,9 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testListToolsWithStructuredTools(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
     // Add structured tools
-    toolFeature.addStructuredTool(
+    feature.addStructuredTool(
       "greet",
       "Greeting Tool",
       "Greets a person by name",
@@ -68,7 +84,7 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
       )
     );
 
-    toolFeature.addStructuredTool(
+    feature.addStructuredTool(
       "add",
       "Addition Tool",
       "Adds two numbers",
@@ -83,8 +99,6 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
       )
     );
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
     JsonRequest request = new ListToolsRequest().toRequest(1);
@@ -133,16 +147,13 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testListToolsWithUnstructuredTools(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addUnstructuredTool(
+    feature.addUnstructuredTool(
       "echo",
       "Echo Tool",
       "Echoes back the message",
       UnstructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("message", Schemas.stringSchema()),
+        MESSAGE_INPUT_SCHEMA,
         args ->
           Future.succeededFuture(new Content[] {
             new TextContent(args.getString("message"))
@@ -150,8 +161,6 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
       )
     );
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
     JsonRequest request = new ListToolsRequest().toRequest(1);
@@ -180,10 +189,8 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testCallStructuredTool(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addStructuredTool(
+    feature.addStructuredTool(
       "multiply",
       StructuredToolHandler.create(
         Schemas.objectSchema()
@@ -198,8 +205,6 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
         })
     );
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -232,14 +237,11 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testCallUnstructuredTool(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addUnstructuredTool(
+    feature.addUnstructuredTool(
       "uppercase",
       UnstructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("text", Schemas.stringSchema()),
+        TEXT_INPUT_SCHEMA,
         args ->
           Future.succeededFuture(new Content[] {
             new TextContent(args.getString("text").toUpperCase())
@@ -247,8 +249,6 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
       )
     );
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -283,11 +283,7 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testCallToolNotFound(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
-    server.serverFeatures(toolFeature);
 
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -313,11 +309,7 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testCallToolMissingName(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
-    server.serverFeatures(toolFeature);
 
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -342,23 +334,17 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testStructuredToolExecutionFailure(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addStructuredTool(
+    feature.addStructuredTool(
       "failing-tool",
       StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("value", Schemas.numberSchema()),
-        Schemas.objectSchema()
-          .property("result", Schemas.numberSchema()),
+        NUMBER_VALUE_SCHEMA,
+        NUMBER_OUTPUT_SCHEMA,
         args ->
           Future.failedFuture("Tool execution failed")
       )
     );
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -388,21 +374,16 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testUnstructuredToolExecutionFailure(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addUnstructuredTool(
+    feature.addUnstructuredTool(
       "failing-unstructured",
       UnstructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("value", Schemas.stringSchema()),
+        STRING_VALUE_SCHEMA,
         args ->
           Future.failedFuture("Unstructured tool failed")
       )
     );
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -431,11 +412,7 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testUnsupportedToolMethod(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
-    server.serverFeatures(toolFeature);
 
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -457,22 +434,17 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testCallToolWithNullArguments(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addStructuredTool(
+    feature.addStructuredTool(
       "no-args-tool",
       StructuredToolHandler.create(
-        Schemas.objectSchema(),
-        Schemas.objectSchema()
-          .property("message", Schemas.stringSchema()),
+        EMPTY_SCHEMA,
+        MESSAGE_OUTPUT_SCHEMA,
         args ->
           Future.succeededFuture(new JsonObject().put("message", "No arguments needed"))
       )
     );
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
 
@@ -498,26 +470,21 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testMultipleTools(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ToolServerFeature toolFeature = new ToolServerFeature();
 
     // Add multiple tools
     for (int i = 0; i < 5; i++) {
       final int index = i;
-      toolFeature.addStructuredTool(
+      feature.addStructuredTool(
         "tool-" + i,
         StructuredToolHandler.create(
-          Schemas.objectSchema(),
-          Schemas.objectSchema()
-            .property("index", Schemas.numberSchema()),
+          EMPTY_SCHEMA,
+          Schemas.objectSchema().property("index", Schemas.numberSchema()),
           args ->
             Future.succeededFuture(new JsonObject().put("index", index))
         )
       );
     }
 
-    server.serverFeatures(toolFeature);
-    startServer(context, server);
 
     Async async = context.async();
     JsonRequest request = new ListToolsRequest().toRequest(1);

@@ -361,4 +361,13 @@ public class ResourceServerFeature implements ServerFeature {
   public void addDynamicResource(DynamicResourceHandler handler) {
     dynamicHandlers.add(handler);
   }
+
+  /**
+   * Clears all registered resource handlers.
+   * Useful for test isolation when reusing feature instances.
+   */
+  public void clear() {
+    staticHandlers.clear();
+    dynamicHandlers.clear();
+  }
 }

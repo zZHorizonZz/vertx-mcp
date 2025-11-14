@@ -1,6 +1,7 @@
 package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -15,21 +16,19 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.impl.ResourceServerFeature;
 import org.junit.Test;
 
-public class ResourceServerFeatureTest extends HttpTransportTestBase {
+public class ResourceServerFeatureTest extends ServerFeatureTestBase<ResourceServerFeature> {
+
+  @Override
+  protected ResourceServerFeature createFeature() {
+    return new ResourceServerFeature();
+  }
 
   @Test
   public void testListResourcesEmpty(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
-    server.serverFeatures(resourceFeature);
-
-    startServer(context, server);
-
     Async async = context.async();
-    JsonRequest request = new ListResourcesRequest().toRequest(1);
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListResourcesRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -49,32 +48,24 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testListResourcesWithStaticResources(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
-
-    // Add static resources
-    resourceFeature.addStaticResource("test-resource-1", () ->
+    feature.addStaticResource("test-resource-1", () ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://test-resource-1")
         .setName("test-resource-1")
         .setText("Test content 1"))
     );
 
-    resourceFeature.addStaticResource("test-resource-2", () ->
+    feature.addStaticResource("test-resource-2", () ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://test-resource-2")
         .setName("test-resource-2")
         .setText("Test content 2"))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
     Async async = context.async();
-    JsonRequest request = new ListResourcesRequest().toRequest(1);
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListResourcesRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -98,11 +89,10 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testReadStaticResource(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
-
+    Async async = context.async();
     String testContent = "This is test content";
-    resourceFeature.addStaticResource("test-resource", () ->
+
+    feature.addStaticResource("test-resource", () ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://test-resource")
         .setName("test-resource")
@@ -112,17 +102,8 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
         .setText(testContent))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://test-resource");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://test-resource")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -149,20 +130,10 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testReadResourceNotFound(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
-    server.serverFeatures(resourceFeature);
-
-    startServer(context, server);
-
     Async async = context.async();
 
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://nonexistent");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://nonexistent")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -178,19 +149,10 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testReadResourceMissingUri(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
-    server.serverFeatures(resourceFeature);
-
-    startServer(context, server);
-
     Async async = context.async();
 
-    JsonObject params = new JsonObject(); // Missing uri parameter
-    JsonRequest request = JsonRequest.createRequest("resources/read", params, 1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, JsonRequest.createRequest("resources/read", new JsonObject(), 1))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -206,17 +168,10 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testListResourceTemplates(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
-    server.serverFeatures(resourceFeature);
-
-    startServer(context, server);
-
     Async async = context.async();
-    JsonRequest request = new ListResourceTemplatesRequest().toRequest(1);
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListResourceTemplatesRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -235,25 +190,15 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testResourceHandlerFailure(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add a resource that fails
-    resourceFeature.addStaticResource("failing-resource", () ->
+    feature.addStaticResource("failing-resource", () ->
       Future.failedFuture("Resource generation failed")
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://failing-resource");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://failing-resource")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -268,18 +213,10 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testUnsupportedResourceMethod(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
-    server.serverFeatures(resourceFeature);
-
-    startServer(context, server);
-
     Async async = context.async();
 
-    JsonRequest request = JsonRequest.createRequest("resources/unsupported", new JsonObject(), 1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, JsonRequest.createRequest("resources/unsupported", new JsonObject(), 1))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -294,13 +231,12 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testMultipleStaticResources(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add multiple resources
     for (int i = 0; i < 5; i++) {
       final int index = i;
-      resourceFeature.addStaticResource("resource-" + i, () ->
+      feature.addStaticResource("resource-" + i, () ->
         Future.succeededFuture(new TextResourceContent()
           .setUri("resource://resource-" + index)
           .setName("resource-" + index)
@@ -308,14 +244,8 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
       );
     }
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-    JsonRequest request = new ListResourcesRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListResourcesRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -333,32 +263,25 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testListResourceTemplatesWithDynamicResources(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add dynamic resources with templates
-    resourceFeature.addDynamicResource("resource://user/{id}", params ->
+    feature.addDynamicResource("resource://user/{id}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://user/" + params.get("id"))
         .setName("user-" + params.get("id"))
         .setText("User data"))
     );
 
-    resourceFeature.addDynamicResource("resource://file/{path}/content", params ->
+    feature.addDynamicResource("resource://file/{path}/content", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://file/" + params.get("path") + "/content")
         .setName("file-content")
         .setText("File content"))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-    JsonRequest request = new ListResourceTemplatesRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListResourceTemplatesRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -384,11 +307,10 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testReadDynamicResourceWithSingleVariable(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add dynamic resource with single variable
-    resourceFeature.addDynamicResource("resource://user/{id}", params ->
+    feature.addDynamicResource("resource://user/{id}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://user/" + params.get("id"))
         .setName("user-" + params.get("id"))
@@ -397,17 +319,8 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
         .setText("User data for " + params.get("id")))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://user/123");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://user/123")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -431,28 +344,18 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testReadDynamicResourceWithMultipleVariables(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add dynamic resource with multiple variables
-    resourceFeature.addDynamicResource("resource://project/{projectId}/file/{fileId}", params ->
+    feature.addDynamicResource("resource://project/{projectId}/file/{fileId}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://project/" + params.get("projectId") + "/file/" + params.get("fileId"))
         .setName("project-file")
         .setText("File content for project " + params.get("projectId") + " file " + params.get("fileId")))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://project/proj-1/file/file-2");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://project/proj-1/file/file-2")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -471,29 +374,19 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testDynamicResourceNotFoundWrongPattern(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add dynamic resource
-    resourceFeature.addDynamicResource("resource://user/{id}", params ->
+    feature.addDynamicResource("resource://user/{id}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://user/" + params.get("id"))
         .setName("user-" + params.get("id"))
         .setText("User data"))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
     // Try to read with wrong pattern (too many segments)
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://user/123/extra");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://user/123/extra")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -509,32 +402,25 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testDynamicResourcesNotInListResources(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add static and dynamic resources
-    resourceFeature.addStaticResource("static-resource", () ->
+    feature.addStaticResource("static-resource", () ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://static-resource")
         .setName("static-resource")
         .setText("Static content"))
     );
 
-    resourceFeature.addDynamicResource("resource://user/{id}", params ->
+    feature.addDynamicResource("resource://user/{id}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://user/" + params.get("id"))
         .setName("user-" + params.get("id"))
         .setText("User data"))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-    JsonRequest request = new ListResourcesRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListResourcesRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -557,25 +443,15 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testDynamicResourceHandlerFailure(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add dynamic resource that fails
-    resourceFeature.addDynamicResource("resource://failing/{id}", params ->
+    feature.addDynamicResource("resource://failing/{id}", params ->
       Future.failedFuture("Dynamic resource generation failed")
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://failing/123");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://failing/123")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -591,28 +467,18 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testDynamicResourceVariableAtStart(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add dynamic resource with variable at start
-    resourceFeature.addDynamicResource("{type}://resource/data", params ->
+    feature.addDynamicResource("{type}://resource/data", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri(params.get("type") + "://resource/data")
         .setName("typed-resource")
         .setText("Resource with variable at start: " + params.get("type")))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("uri", "file://resource/data");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "file://resource/data")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -630,28 +496,18 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testDynamicResourceVariableAtEnd(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add dynamic resource with variable at end
-    resourceFeature.addDynamicResource("resource://api/user/{userId}", params ->
+    feature.addDynamicResource("resource://api/user/{userId}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://api/user/" + params.get("userId"))
         .setName("api-user")
         .setText("API user data for user " + params.get("userId")))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("uri", "resource://api/user/456");
-    JsonRequest request = new ReadResourceRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ReadResourceRequest(new JsonObject().put("uri", "resource://api/user/456")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -669,39 +525,32 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testMultipleDynamicResourceTemplates(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
-    ResourceServerFeature resourceFeature = new ResourceServerFeature();
+    Async async = context.async();
 
     // Add multiple dynamic resources
-    resourceFeature.addDynamicResource("resource://user/{id}", params ->
+    feature.addDynamicResource("resource://user/{id}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://user/" + params.get("id"))
         .setName("user")
         .setText("User " + params.get("id")))
     );
 
-    resourceFeature.addDynamicResource("resource://post/{postId}", params ->
+    feature.addDynamicResource("resource://post/{postId}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://post/" + params.get("postId"))
         .setName("post")
         .setText("Post " + params.get("postId")))
     );
 
-    resourceFeature.addDynamicResource("resource://comment/{commentId}", params ->
+    feature.addDynamicResource("resource://comment/{commentId}", params ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("resource://comment/" + params.get("commentId"))
         .setName("comment")
         .setText("Comment " + params.get("commentId")))
     );
 
-    server.serverFeatures(resourceFeature);
-    startServer(context, server);
-
-    Async async = context.async();
-    JsonRequest request = new ListResourceTemplatesRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListResourceTemplatesRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 

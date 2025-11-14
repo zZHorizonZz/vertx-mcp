@@ -299,6 +299,14 @@ public class ToolServerFeature implements ServerFeature {
   }
 
   /**
+   * Clears all registered tools.
+   * Useful for test isolation when reusing feature instances.
+   */
+  public void clear() {
+    tools.clear();
+  }
+
+  /**
    * Internal class to hold tool registration information.
    */
   private static class ToolRegistration {

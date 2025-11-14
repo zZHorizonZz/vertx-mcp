@@ -283,6 +283,14 @@ public class PromptServerFeature implements ServerFeature {
   }
 
   /**
+   * Clears all registered prompts.
+   * Useful for test isolation when reusing feature instances.
+   */
+  public void clear() {
+    prompts.clear();
+  }
+
+  /**
    * Internal class to hold prompt registration information.
    */
   private static class PromptRegistration {

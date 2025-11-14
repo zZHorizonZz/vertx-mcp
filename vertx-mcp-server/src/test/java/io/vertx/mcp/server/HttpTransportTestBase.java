@@ -5,13 +5,18 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
-import io.vertx.core.MultiMap;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.mcp.common.request.Request;
+import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.server.transport.http.HttpServerTransport;
+import junit.framework.AssertionFailedError;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(VertxUnitRunner.class)
 public abstract class HttpTransportTestBase {
@@ -44,9 +49,22 @@ public abstract class HttpTransportTestBase {
 
     server = vertx.createHttpServer(options);
     server.requestHandler(transport);
-    server.listen().onComplete(context.asyncAssertSuccess(s -> {
-      port = s.actualPort();
-    }));
+
+    try {
+      server.listen().onComplete(context.asyncAssertSuccess(s -> port = s.actualPort())).await(20, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      AssertionFailedError afe = new AssertionFailedError();
+      afe.initCause(e);
+      throw afe;
+    }
+  }
+
+  protected Future<HttpClientResponse> sendRequest(HttpMethod method, Request request) {
+    return sendRequest(method, request.toRequest(1));
+  }
+
+  protected Future<HttpClientResponse> sendRequest(HttpMethod method, JsonRequest request) {
+    return sendRequest(method, request.toJson().toBuffer());
   }
 
   protected Future<HttpClientResponse> sendRequest(HttpMethod method, Buffer body) {
