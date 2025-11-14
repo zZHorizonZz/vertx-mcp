@@ -14,17 +14,15 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
   @Test
   public void testInitializeGeneratesSessionId(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
-    JsonRequest initRequest = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, initRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> {
         // Verify session ID header is present
         String sessionId = resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER);
@@ -47,6 +45,8 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
   @Test
   public void testInitializeWithoutSessionsDoesNotGenerateSessionId(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setStreamingEnabled(false)
       .setSessionsEnabled(false);
@@ -54,11 +54,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
-    JsonRequest initRequest = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, initRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> {
         // Verify no session ID header
         String sessionId = resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER);
@@ -79,18 +75,16 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
   @Test
   public void testSubsequentRequestWithSessionId(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
     // First, initialize to get a session ID
-    JsonRequest initRequest = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, initRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> {
         // Now make another request with the session ID (using streaming since it's enabled by default)
@@ -108,13 +102,14 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
   @Test
   public void testInvalidSessionIdReturns400(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
     JsonRequest pingRequest = new PingRequest().toRequest(1);
 
     sendRequest(HttpMethod.POST, pingRequest.toJson().toBuffer(), "invalid-session-id")
@@ -128,18 +123,16 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
   @Test
   public void testRequestWithoutSessionIdWorks(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
     // Ping without session ID should still work
-    JsonRequest pingRequest = new PingRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, pingRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new PingRequest())
       .compose(resp -> {
         context.assertEquals(200, resp.statusCode());
         return resp.body();

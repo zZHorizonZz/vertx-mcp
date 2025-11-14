@@ -1,5 +1,6 @@
 package io.vertx.mcp.server;
 
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -15,6 +16,8 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testInitializeReturnsServerInfo(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setServerName("test-server")
       .setServerVersion("1.0.0");
@@ -22,10 +25,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-    JsonRequest request = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+    sendRequest(HttpMethod.POST, new InitializeRequest()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
       JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
       context.assertNull(response.getError(), "Initialize should succeed");
@@ -41,13 +41,15 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       context.assertNotNull(capabilities, "Should have capabilities");
 
       async.complete();
-    })));
+    }));
 
     async.awaitSuccess(10_000);
   }
 
   @Test
   public void testInitializeWithResourcesCapability(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true);
 
@@ -56,10 +58,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    Async async = context.async();
-    JsonRequest request = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+    sendRequest(HttpMethod.POST, new InitializeRequest()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
       JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
       JsonObject capabilities = ((JsonObject) response.getResult()).getJsonObject("capabilities");
 
@@ -69,13 +68,15 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       context.assertTrue(resources.getBoolean("subscribe"), "Should support subscribe when sessions enabled");
 
       async.complete();
-    })));
+    }));
 
     async.awaitSuccess(10_000);
   }
 
   @Test
   public void testInitializeWithoutSessionsNoSubscribe(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setStreamingEnabled(false)
       .setSessionsEnabled(false);
@@ -85,10 +86,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    Async async = context.async();
-    JsonRequest request = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+    sendRequest(HttpMethod.POST, new InitializeRequest()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
       JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
       JsonObject capabilities = ((JsonObject) response.getResult()).getJsonObject("capabilities");
 
@@ -99,20 +97,19 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       }
 
       async.complete();
-    })));
+    }));
 
     async.awaitSuccess(10_000);
   }
 
   @Test
   public void testPing(TestContext context) {
+    Async async = context.async();
+
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     startServer(context, server);
 
-    Async async = context.async();
-    JsonRequest request = new PingRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+    sendRequest(HttpMethod.POST, new PingRequest()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
       JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
       context.assertNull(response.getError(), "Ping should succeed");
@@ -120,21 +117,19 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       context.assertTrue(((JsonObject) response.getResult()).isEmpty(), "Ping result should be empty");
 
       async.complete();
-    })));
+    }));
 
     async.awaitSuccess(10_000);
   }
 
   @Test
   public void testUnknownMethod(TestContext context) {
+    Async async = context.async();
+
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     startServer(context, server);
 
-    Async async = context.async();
-
-    JsonRequest request = JsonRequest.createRequest("unknown/method", new JsonObject(), 1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+    sendRequest(HttpMethod.POST, JsonRequest.createRequest("unknown/method", new JsonObject(), 1)).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
       JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
       context.assertNotNull(response.getError(), "Should have error");
@@ -142,29 +137,29 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       context.assertTrue(response.getError().getMessage().contains("unknown/method"));
 
       async.complete();
-    })));
+    }));
 
     async.awaitSuccess(10_000);
   }
 
   @Test
   public void testInvalidJsonRpcRequest(TestContext context) {
+    Async async = context.async();
+
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     startServer(context, server);
-
-    Async async = context.async();
 
     // Invalid JSON-RPC (missing required fields)
     JsonObject request = new JsonObject().put("invalid", "request");
 
-    sendRequest(HttpMethod.POST, request.toBuffer()).compose(resp -> resp.body().onComplete(context.asyncAssertSuccess(body -> {
+    sendRequest(HttpMethod.POST, request.toBuffer()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
       JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
       context.assertNotNull(response.getError(), "Should have error");
       context.assertEquals(-32600, response.getError().getCode(), "Should be invalid request");
 
       async.complete();
-    })));
+    }));
 
     async.awaitSuccess(10_000);
   }

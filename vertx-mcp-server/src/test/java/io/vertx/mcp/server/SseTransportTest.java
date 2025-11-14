@@ -14,6 +14,8 @@ public class SseTransportTest extends HttpTransportTestBase {
 
   @Test
   public void testRequestWithSessionIdEnablesSse(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true)
       .setStreamingEnabled(true);
@@ -21,12 +23,8 @@ public class SseTransportTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
     // First, initialize to get a session ID
-    JsonRequest initRequest = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, initRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> {
         // Now make a request with the session ID (not a notification)
@@ -46,6 +44,8 @@ public class SseTransportTest extends HttpTransportTestBase {
 
   @Test
   public void testNotificationWithSessionIdDoesNotEnableSse(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true)
       .setStreamingEnabled(true)
@@ -54,12 +54,8 @@ public class SseTransportTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
     // First, initialize to get a session ID
-    JsonRequest initRequest = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, initRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> {
         // Now send a notification with the session ID
@@ -83,6 +79,8 @@ public class SseTransportTest extends HttpTransportTestBase {
 
   @Test
   public void testRequestWithoutSessionIdDoesNotEnableSse(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true)
       .setStreamingEnabled(true);
@@ -90,12 +88,8 @@ public class SseTransportTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
     // Ping without session ID
-    JsonRequest pingRequest = new PingRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, pingRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new PingRequest())
       .onComplete(context.asyncAssertSuccess(resp -> {
         String contentType = resp.getHeader("Content-Type");
         context.assertEquals("application/json", contentType, "Should use regular JSON without session");
@@ -108,6 +102,8 @@ public class SseTransportTest extends HttpTransportTestBase {
 
   @Test
   public void testStreamingDisabledUsesRegularJson(TestContext context) {
+    Async async = context.async();
+
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true)
       .setStreamingEnabled(false);
@@ -115,12 +111,8 @@ public class SseTransportTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    Async async = context.async();
-
     // Initialize to get session
-    JsonRequest initRequest = new InitializeRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, initRequest.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> {
         // Request with session ID but streaming disabled
