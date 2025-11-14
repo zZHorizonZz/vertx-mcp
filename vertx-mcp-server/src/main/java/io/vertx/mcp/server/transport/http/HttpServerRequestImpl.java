@@ -9,17 +9,13 @@ import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonRequest;
-import io.vertx.mcp.server.ServerOptions;
-import io.vertx.mcp.server.ServerRequest;
-import io.vertx.mcp.server.ServerResponse;
-import io.vertx.mcp.server.Session;
-import io.vertx.mcp.server.impl.SessionManagerImpl;
+import io.vertx.mcp.server.*;
 
 public class HttpServerRequestImpl implements ServerRequest {
 
   private final ContextInternal context;
   private final HttpServerRequest httpRequest;
-  private final SessionManagerImpl sessionManager;
+  private final SessionManager sessionManager;
   private final ServerOptions options;
 
   private ServerResponse response;
@@ -29,7 +25,7 @@ public class HttpServerRequestImpl implements ServerRequest {
   private JsonRequest jsonRequest;
   private Session session;
 
-  public HttpServerRequestImpl(Context context, HttpServerRequest httpRequest, SessionManagerImpl sessionManager, ServerOptions options) {
+  public HttpServerRequestImpl(Context context, HttpServerRequest httpRequest, SessionManager sessionManager, ServerOptions options) {
     this.context = (ContextInternal) context;
     this.httpRequest = httpRequest;
     this.sessionManager = sessionManager;
@@ -72,8 +68,8 @@ public class HttpServerRequestImpl implements ServerRequest {
         this.jsonRequest = tempRequest;
 
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT, DELETE, OPTIONS");
-        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version");
+        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS");
+        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
 
         // If this is an initialize request and sessions are enabled, create a new session
         if (tempRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {

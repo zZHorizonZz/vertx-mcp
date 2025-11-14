@@ -23,9 +23,7 @@ import java.util.List;
 
 public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerFeature> {
 
-  // Common schemas used across tests
-  private static final ArraySchemaBuilder CODE_ARGUMENT_SCHEMA = Schemas.arraySchema()
-    .items(Schemas.objectSchema().requiredProperty("code", Schemas.stringSchema()));
+  private static final ArraySchemaBuilder CODE_ARGUMENT_SCHEMA = Schemas.arraySchema().items(Schemas.objectSchema().requiredProperty("code", Schemas.stringSchema()));
 
   @Override
   protected PromptServerFeature createFeature() {
@@ -57,6 +55,8 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testListPromptsWithPrompts(TestContext context) {
+    Async async = context.async();
+
     feature.addPrompt(
       "code_review",
       "Code Review",
@@ -89,11 +89,8 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
         })
     );
 
-    Async async = context.async();
-    JsonRequest request = new ListPromptsRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new ListPromptsRequest())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -118,17 +115,14 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testGetPrompt(TestContext context) {
+    Async async = context.async();
 
     feature.addPrompt(
       "code_review",
       "Code Review",
       "Reviews code and suggests improvements",
       PromptHandler.create(
-        Schemas.arraySchema()
-          .items(
-            Schemas.objectSchema()
-              .requiredProperty("code", Schemas.stringSchema())
-          ),
+        CODE_ARGUMENT_SCHEMA,
         args -> {
           String code = args.getString("code");
           List<PromptMessage> messages = new ArrayList<>();
@@ -142,17 +136,10 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
         })
     );
 
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("name", "code_review")
-      .put("arguments", new JsonObject()
-        .put("code", "def hello():\n    print('world')"));
-
-    JsonRequest request = new GetPromptRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new GetPromptRequest(
+      new JsonObject().put("name", "code_review").put("arguments", new JsonObject().put("code", "def hello():\n    print('world')")))
+    )
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -181,15 +168,10 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testGetPromptNotFound(TestContext context) {
-
     Async async = context.async();
 
-    JsonObject params = new JsonObject()
-      .put("name", "nonexistent");
-    JsonRequest request = new GetPromptRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "nonexistent")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -205,13 +187,9 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testGetPromptMissingName(TestContext context) {
-
     Async async = context.async();
 
-    JsonObject params = new JsonObject(); // Missing name parameter
-    JsonRequest request = JsonRequest.createRequest("prompts/get", params, 1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/get", new JsonObject(), 1))
       .compose(resp -> resp.body())
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -228,6 +206,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testPromptHandlerFailure(TestContext context) {
+    Async async = context.async();
 
     feature.addPrompt(
       "failing_prompt",
@@ -236,14 +215,8 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       PromptHandler.create(null, args -> Future.failedFuture("Prompt generation failed"))
     );
 
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("name", "failing_prompt");
-    JsonRequest request = new GetPromptRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "failing_prompt")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -259,6 +232,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testGetPromptWithMultipleMessages(TestContext context) {
+    Async async = context.async();
 
     feature.addPrompt(
       "conversation",
@@ -286,14 +260,8 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       })
     );
 
-    Async async = context.async();
-
-    JsonObject params = new JsonObject()
-      .put("name", "conversation");
-    JsonRequest request = new GetPromptRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "conversation")))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -317,13 +285,10 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testUnsupportedPromptMethod(TestContext context) {
-
     Async async = context.async();
 
-    JsonRequest request = JsonRequest.createRequest("prompts/unsupported", new JsonObject(), 1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+    sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/unsupported", new JsonObject(), 1))
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 

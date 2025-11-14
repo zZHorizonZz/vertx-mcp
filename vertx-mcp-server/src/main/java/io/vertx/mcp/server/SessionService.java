@@ -7,7 +7,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.server.impl.SessionServiceImpl;
 
-@VertxGen
 @ProxyGen
 public interface SessionService {
 

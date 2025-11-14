@@ -12,6 +12,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.Session;
+import io.vertx.mcp.server.SessionManager;
 import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
 import io.vertx.mcp.server.impl.SessionManagerImpl;
 
@@ -22,11 +23,14 @@ import java.util.stream.Collectors;
 public class HttpServerTransport implements Handler<HttpServerRequest> {
 
   public static final String MCP_SESSION_ID_HEADER = "Mcp-Session-Id";
+  public static final String MCP_PROTOCOL_VERSION_HEADER = "Mcp-Protocol-Version";
+
   public static final Set<String> ACCEPTED_CONTENT_TYPES = Set.of("application/json", "text/event-stream");
+  public static final Set<CharSequence> ACCEPTED_HEADERS = Set.of(HttpHeaders.CONTENT_TYPE, HttpHeaders.ACCEPT, MCP_SESSION_ID_HEADER, MCP_PROTOCOL_VERSION_HEADER);
 
   private final ModelContextProtocolServer server;
   private final ServerOptions options;
-  private final SessionManagerImpl sessionManager;
+  private final SessionManager sessionManager;
 
   public HttpServerTransport(Vertx vertx, ModelContextProtocolServer server) {
     this.server = server;
@@ -41,36 +45,31 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
 
   @Override
   public void handle(HttpServerRequest httpRequest) {
-    // Validate if request is MCP request
     if (!httpRequest.path().startsWith("/mcp")) {
       return;
     }
 
-    // If request is OPTIONS, return 200 OK with CORS headers
     if (httpRequest.method().equals(HttpMethod.OPTIONS)) {
       httpRequest.response()
         .setStatusCode(200)
         .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT, DELETE, OPTIONS")
-        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version")
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS")
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", ACCEPTED_HEADERS))
         .end();
       return;
     }
 
-    // Validate if request is POST or GET
     if (!httpRequest.method().equals(HttpMethod.POST) && !httpRequest.method().equals(HttpMethod.GET)) {
       httpRequest.response().setStatusCode(405).end("Method not allowed");
       return;
     }
 
-    // Validate if request contains required headers
     String accept = httpRequest.getHeader(HttpHeaders.ACCEPT);
     if (accept == null) {
       httpRequest.response().setStatusCode(400).end("Missing Accept header");
       return;
     }
 
-    // Parse and trim accept header values
     Set<String> acceptTypes = Arrays.stream(accept.split(",")).map(String::trim).collect(Collectors.toUnmodifiableSet());
 
     if (!acceptTypes.containsAll(ACCEPTED_CONTENT_TYPES)) {
@@ -78,13 +77,9 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
       return;
     }
 
-    // Get the current Vert.x context
     ContextInternal context = ((HttpServerRequestInternal) httpRequest).context();
-
-    // Check for existing session ID in header
     String sessionId = httpRequest.getHeader(MCP_SESSION_ID_HEADER);
 
-    // Create the server request and response wrappers
     HttpServerRequestImpl serverRequest = new HttpServerRequestImpl(context, httpRequest, sessionManager, options);
     HttpServerResponseImpl serverResponse = new HttpServerResponseImpl(context, httpRequest.response());
 
@@ -95,29 +90,22 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
         serverRequest.setSession(session);
         serverResponse.setSession(session);
       } else {
-        // Invalid session ID - reject request
         httpRequest.response().setStatusCode(400).end("Invalid session ID");
         return;
       }
     }
 
-    // Set handler to dispatch to server when request is fully parsed
     serverRequest.handler(v -> context.dispatch(serverRequest, server));
+    serverRequest.exceptionHandler(t -> httpRequest.response()
+      .setStatusCode(400)
+      .putHeader("Content-Type", "application/json")
+      .end(JsonResponse.error(null, JsonError.invalidRequest()).toString())
+    );
 
-    // Set exception handler to handle errors
-    serverRequest.exceptionHandler(t -> {
-      // Handle parsing errors by returning invalid request error
-      httpRequest.response()
-        .setStatusCode(400)
-        .putHeader("Content-Type", "application/json")
-        .end(JsonResponse.error(null, JsonError.invalidRequest()).toString());
-    });
-
-    // Initialize the request with the response (starts reading body)
     serverRequest.init(serverResponse);
   }
 
-  public SessionManagerImpl getSessionManager() {
+  public SessionManager getSessionManager() {
     return sessionManager;
   }
 }
