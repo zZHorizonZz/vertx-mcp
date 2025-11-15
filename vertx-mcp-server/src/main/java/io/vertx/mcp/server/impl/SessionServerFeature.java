@@ -224,6 +224,6 @@ public class SessionServerFeature implements ServerFeature {
 
   @Override
   public Set<String> getCapabilities() {
-    return Set.of("resources/subscribe", "resources/unsubscribe", "notifications/initialize");
+    return Set.of("resources/subscribe", "resources/unsubscribe", "notifications/initialized");
   }
 }
