@@ -3,8 +3,6 @@ package io.vertx.mcp.server.impl;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.json.schema.JsonSchema;
-import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.request.CallToolRequest;
 import io.vertx.mcp.common.result.CallToolResult;
@@ -13,8 +11,6 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.common.tool.Tool;
-import io.vertx.mcp.server.ServerFeature;
-import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
 
@@ -23,49 +19,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
-public class ToolServerFeature implements ServerFeature {
+/**
+ * The ToolServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to tool management. This includes listing
+ * available tools, calling tools, and managing structured and unstructured tool handlers.
+ *
+ * @version 2025-06-18
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/tools">Server Features - Tools</a>
+ */
+public class ToolServerFeature extends ServerFeatureBase {
 
   private final Map<String, ToolRegistration> tools = new HashMap<>();
 
   @Override
-  public void handle(ServerRequest serverRequest) {
-    // Retrieve the parsed JSON-RPC request from the ServerRequest
-    JsonRequest request = serverRequest.getJsonRequest();
-
-    if (request == null) {
-      serverRequest.response().end(
-        new JsonResponse(JsonError.internalError("No JSON-RPC request found"), null)
-      );
-      return;
-    }
-
-    String method = request.getMethod();
-
-    Future<JsonResponse> responseFuture;
-    switch (method) {
-      case "tools/list":
-        responseFuture = handleListTools(request);
-        break;
-      case "tools/call":
-        responseFuture = handleCallTool(request);
-        break;
-      default:
-        responseFuture = Future.succeededFuture(
-          JsonResponse.error(request, JsonError.methodNotFound(method))
-        );
-        break;
-    }
-
-    responseFuture.onComplete(ar -> {
-      if (ar.succeeded()) {
-        serverRequest.response().end(ar.result());
-      } else {
-        serverRequest.response().end(
-          JsonResponse.error(request, JsonError.internalError(ar.cause().getMessage()))
-        );
-      }
-    });
+  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
+    return Map.of(
+      "tools/list", this::handleListTools,
+      "tools/call", this::handleCallTool
+    );
   }
 
   private Future<JsonResponse> handleListTools(JsonRequest request) {
@@ -191,10 +163,7 @@ public class ToolServerFeature implements ServerFeature {
       });
   }
 
-  @Override
-  public Set<String> getCapabilities() {
-    return Set.of("tools/list", "tools/call");
-  }
+
 
   /**
    * Adds a structured tool handler.

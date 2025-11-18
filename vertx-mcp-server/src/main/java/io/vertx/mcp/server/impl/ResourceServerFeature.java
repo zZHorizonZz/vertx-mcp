@@ -8,65 +8,36 @@ import io.vertx.mcp.common.resources.ResourceTemplate;
 import io.vertx.mcp.common.result.ListResourceTemplatesResult;
 import io.vertx.mcp.common.result.ListResourcesResult;
 import io.vertx.mcp.common.result.ReadResourceResult;
-import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.DynamicResourceHandler;
-import io.vertx.mcp.server.ServerFeature;
-import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StaticResourceHandler;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class ResourceServerFeature implements ServerFeature {
+/**
+ * The ResourceServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to resource management. This includes listing
+ * available resources, reading resource content, and managing static and dynamic resource handlers.
+ *
+ * @version 2025-06-18
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources">Server Features - Resources</a>
+ */
+public class ResourceServerFeature extends ServerFeatureBase {
 
   private final List<StaticResourceHandler> staticHandlers = new ArrayList<>();
   private final List<DynamicResourceHandler> dynamicHandlers = new ArrayList<>();
 
   @Override
-  public void handle(ServerRequest serverRequest) {
-    // Retrieve the parsed JSON-RPC request from the ServerRequest
-    JsonRequest request = serverRequest.getJsonRequest();
-
-    if (request == null) {
-      serverRequest.response().end(
-        new JsonResponse(JsonError.internalError("No JSON-RPC request found"), null)
-      );
-      return;
-    }
-
-    String method = request.getMethod();
-
-    Future<JsonResponse> responseFuture;
-    switch (method) {
-      case "resources/list":
-        responseFuture = handleListResources(request);
-        break;
-      case "resources/read":
-        responseFuture = handleReadResource(request);
-        break;
-      case "resources/templates/list":
-        responseFuture = handleListResourceTemplates(request);
-        break;
-      default:
-        responseFuture = Future.succeededFuture(
-          JsonResponse.error(request, JsonError.methodNotFound(method))
-        );
-        break;
-    }
-
-    responseFuture.onComplete(ar -> {
-      if (ar.succeeded()) {
-        serverRequest.response().end(ar.result());
-      } else {
-        serverRequest.response().end(
-          JsonResponse.error(request, JsonError.internalError(ar.cause().getMessage()))
-        );
-      }
-    });
+  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
+    return Map.of(
+      "resources/list", this::handleListResources,
+      "resources/read", this::handleReadResource,
+      "resources/templates/list", this::handleListResourceTemplates
+    );
   }
 
   private Future<JsonResponse> handleListResources(JsonRequest request) {
@@ -341,10 +312,7 @@ public class ResourceServerFeature implements ServerFeature {
     }
   }
 
-  @Override
-  public Set<String> getCapabilities() {
-    return Set.of("resources/list", "resources/read", "resources/templates/list");
-  }
+
 
   public void addStaticResource(String name, Supplier<Future<Resource>> resourceSupplier) {
     staticHandlers.add(StaticResourceHandler.create(name, resourceSupplier));

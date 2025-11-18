@@ -7,6 +7,13 @@ import io.vertx.mcp.common.content.Content;
 
 import java.util.function.Function;
 
+/**
+ * Represents a handler responsible for processing unstructured tools. An unstructured tool handler defines an input schema and processes tool requests
+ * with JSON input, returning unstructured content as output.
+ *
+ * @version 2025-06-18
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool">Server Features - Tools - Tool</a>
+ */
 public interface UnstructuredToolHandler extends Function<JsonObject, Future<Content[]>> {
 
   static UnstructuredToolHandler create(SchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> function) {
