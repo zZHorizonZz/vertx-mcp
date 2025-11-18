@@ -15,7 +15,7 @@ import io.vertx.mcp.common.request.GetPromptRequest;
 import io.vertx.mcp.common.request.ListPromptsRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.server.impl.PromptServerFeature;
+import io.vertx.mcp.server.feature.PromptServerFeature;
 import org.junit.Test;
 
 import java.util.ArrayList;

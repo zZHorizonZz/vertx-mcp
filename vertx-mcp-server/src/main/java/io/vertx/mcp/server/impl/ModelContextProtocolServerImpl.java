@@ -56,7 +56,7 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
       // Check if notifications are enabled
       if (isNotification && !options.getNotificationsEnabled()) {
         // Notifications are disabled, ignore silently but still acknowledge with 202
-        request.response().endWithAccepted();
+        request.response().endNotification();
         return;
       }
 
@@ -70,7 +70,7 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
         if (isNotification) {
           // Notifications don't get error responses, just log and return 202 Accepted
           System.err.println("No handler for notification: " + method);
-          request.response().endWithAccepted();
+          request.response().endNotification();
           return;
         }
 
@@ -85,7 +85,7 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
 
       // For notifications, send 202 Accepted immediately and handle in background
       if (isNotification) {
-        request.response().endWithAccepted();
+        request.response().endNotification();
         // Process the notification asynchronously (fire and forget)
         Handler<ServerRequest> handler = feature.get();
         handler.handle(request);
@@ -94,7 +94,6 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
         Handler<ServerRequest> handler = feature.get();
         handler.handle(request);
       }
-
     } catch (Exception e) {
       // Failed to parse the request - return invalid request error
       JsonResponse errorResponse = new JsonResponse(

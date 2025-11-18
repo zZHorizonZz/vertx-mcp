@@ -15,9 +15,9 @@ import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
-import io.vertx.mcp.server.impl.PromptServerFeature;
-import io.vertx.mcp.server.impl.ResourceServerFeature;
-import io.vertx.mcp.server.impl.ToolServerFeature;
+import io.vertx.mcp.server.feature.PromptServerFeature;
+import io.vertx.mcp.server.feature.ResourceServerFeature;
+import io.vertx.mcp.server.feature.ToolServerFeature;
 import io.vertx.mcp.server.transport.http.HttpServerTransport;
 
 import java.time.LocalDateTime;

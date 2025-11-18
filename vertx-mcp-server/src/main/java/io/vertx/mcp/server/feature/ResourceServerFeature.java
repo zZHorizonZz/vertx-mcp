@@ -1,4 +1,4 @@
-package io.vertx.mcp.server.impl;
+package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
@@ -14,6 +14,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.DynamicResourceHandler;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StaticResourceHandler;
+import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.ArrayList;
 import java.util.List;

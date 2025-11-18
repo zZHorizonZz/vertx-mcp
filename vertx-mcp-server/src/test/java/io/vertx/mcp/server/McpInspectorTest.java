@@ -19,9 +19,9 @@ import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.resources.TextResourceContent;
-import io.vertx.mcp.server.impl.PromptServerFeature;
-import io.vertx.mcp.server.impl.ResourceServerFeature;
-import io.vertx.mcp.server.impl.ToolServerFeature;
+import io.vertx.mcp.server.feature.PromptServerFeature;
+import io.vertx.mcp.server.feature.ResourceServerFeature;
+import io.vertx.mcp.server.feature.ToolServerFeature;
 import org.junit.Test;
 
 import java.time.Duration;

@@ -1,4 +1,4 @@
-package io.vertx.mcp.server.impl;
+package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
@@ -14,6 +14,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerRequest;
+import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.ArrayList;
 import java.util.HashMap;

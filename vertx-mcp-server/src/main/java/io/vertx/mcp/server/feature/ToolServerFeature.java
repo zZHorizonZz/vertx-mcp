@@ -1,4 +1,4 @@
-package io.vertx.mcp.server.impl;
+package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
@@ -14,6 +14,7 @@ import io.vertx.mcp.common.tool.Tool;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
+import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.*;
 import java.util.function.BiFunction;

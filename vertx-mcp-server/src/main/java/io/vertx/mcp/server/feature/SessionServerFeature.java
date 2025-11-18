@@ -1,4 +1,4 @@
-package io.vertx.mcp.server.impl;
+package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
@@ -8,6 +8,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.Session;
+import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.Map;
 import java.util.Set;
@@ -126,8 +127,6 @@ public class SessionServerFeature extends ServerFeatureBase {
     Session session = serverRequest.session();
 
     if (session == null) {
-      // Create a new session for this request
-      // The transport layer should handle this, but we can enable SSE here
       return Future.succeededFuture(
         JsonResponse.error(request, JsonError.internalError("Session management not available in transport"))
       );

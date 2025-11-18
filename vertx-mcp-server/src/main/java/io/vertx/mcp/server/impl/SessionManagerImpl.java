@@ -9,14 +9,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Manages HTTP sessions for MCP streamable HTTP transport. Sessions are created during initialize and tracked for subsequent requests.
- */
 public class SessionManagerImpl implements SessionManager {
 
-  private final Map<String, Session> sessions = new ConcurrentHashMap<>();
-  private final ServerOptions options;
   private final Vertx vertx;
+  private final ServerOptions options;
+  private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
   public SessionManagerImpl(Vertx vertx, ServerOptions options) {
     this.vertx = vertx;

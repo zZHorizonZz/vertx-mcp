@@ -3,32 +3,53 @@ package io.vertx.mcp.server;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
+/**
+ * The {@code ServerRequest} interface defines the structure and behavior of a server request in the JSON-RPC framework. It provides methods to manage and access the request's
+ * context, session, response, and other associated information required to handle client-server interactions.
+ */
 public interface ServerRequest {
 
+  /**
+   * Initializes the server request with the specified session and server response. This method associates the request with a session and response object, enabling subsequent
+   * operations to link client-server communication through the session.
+   *
+   * @param session the session representing the client-server connection context
+   * @param response the server response object to manage outgoing responses
+   */
   void init(Session session, ServerResponse response);
 
   /**
-   * Get the request path for routing. This returns the JSON-RPC method field from the parsed request.
+   * Retrieves the path associated with this server request. The path typically represents the requested resource or endpoint.
    *
-   * @return the method/path, or null if request not yet parsed
+   * @return the path of the server request
    */
   String path();
 
+  /**
+   * Provides access to the internal context associated with the server request.
+   *
+   * @return the internal context linked to this server request
+   */
   ContextInternal context();
 
+  /**
+   * Provides access to the server response associated with this request. The server response allows writing and managing JSON-RPC responses or notifications.
+   *
+   * @return the {@code ServerResponse} instance associated with this request
+   */
   ServerResponse response();
 
   /**
-   * Get the parsed JSON-RPC request. This is only available after the request has been fully read and parsed.
+   * Retrieves the JSON-RPC request associated with the current server request.
    *
-   * @return the JSON-RPC request, or null if not yet parsed
+   * @return the associated {@link JsonRequest} object
    */
   JsonRequest getJsonRequest();
 
   /**
-   * Get the session associated with this request. Sessions are used to track SSE connections and streaming state.
+   * Retrieves the current session associated with the server request.
    *
-   * @return the session, or null if no session exists
+   * @return the current session, or null if no session is associated with the request
    */
   Session session();
 }

@@ -9,7 +9,7 @@ import io.vertx.mcp.common.request.InitializeRequest;
 import io.vertx.mcp.common.request.PingRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.server.impl.ResourceServerFeature;
+import io.vertx.mcp.server.feature.ResourceServerFeature;
 import org.junit.Test;
 
 public class ProtocolServerFeatureTest extends HttpTransportTestBase {

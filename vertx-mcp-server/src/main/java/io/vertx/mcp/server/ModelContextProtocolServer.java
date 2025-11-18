@@ -2,8 +2,8 @@ package io.vertx.mcp.server;
 
 import io.vertx.core.Handler;
 import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
-import io.vertx.mcp.server.impl.ProtocolServerFeature;
-import io.vertx.mcp.server.impl.SessionServerFeature;
+import io.vertx.mcp.server.feature.ProtocolServerFeature;
+import io.vertx.mcp.server.feature.SessionServerFeature;
 
 import java.util.List;
 

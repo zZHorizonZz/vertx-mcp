@@ -14,7 +14,7 @@ import io.vertx.mcp.common.request.CallToolRequest;
 import io.vertx.mcp.common.request.ListToolsRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.server.impl.ToolServerFeature;
+import io.vertx.mcp.server.feature.ToolServerFeature;
 import org.junit.Test;
 
 public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeature> {

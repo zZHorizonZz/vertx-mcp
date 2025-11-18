@@ -2,6 +2,10 @@ package io.vertx.mcp.server;
 
 import io.vertx.codegen.annotations.VertxGen;
 
+/**
+ * This interface defines a manager for handling sessions in the server. It provides methods for creating, retrieving, removing, and counting sessions. A session represents a
+ * connection between a client and the server and can be used to manage communication, such as Server-Sent Events (SSE) or other types of streaming.
+ */
 @VertxGen
 public interface SessionManager {
   /**

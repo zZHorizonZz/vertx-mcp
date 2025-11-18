@@ -66,20 +66,14 @@ public class HttpServerRequestImpl implements ServerRequest {
     // MCP always sends a single JSON-RPC request per HTTP request
     httpRequest.bodyHandler(body -> {
       try {
-        // Parse the complete body as JSON-RPC request
-        String bodyStr = body.toString();
-        JsonObject json = new JsonObject(bodyStr);
-
-        // Parse JSON-RPC request
-        JsonRequest tempRequest = JsonRequest.fromJson(json);
-        this.jsonRequest = tempRequest;
+        this.jsonRequest = JsonRequest.fromJson(new JsonObject(body.toString()));
 
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS");
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
 
         // If this is an initialize request and sessions are enabled, create a new session
-        if (tempRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
+        if (this.jsonRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
           httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, sessionManager.createSession().id());
         }
 
@@ -103,7 +97,6 @@ public class HttpServerRequestImpl implements ServerRequest {
       }
     });
 
-    // Set exception handler for body reading errors
     httpRequest.exceptionHandler(t -> {
       if (exceptionHandler != null) {
         exceptionHandler.handle(t);

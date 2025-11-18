@@ -88,7 +88,7 @@ public class HttpServerResponseImpl implements ServerResponse {
   }
 
   @Override
-  public Future<Void> endWithAccepted() {
+  public Future<Void> endNotification() {
     if (ended) {
       return Future.failedFuture("Response already ended");
     }

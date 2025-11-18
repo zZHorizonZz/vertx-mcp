@@ -13,7 +13,7 @@ import io.vertx.mcp.common.request.ReadResourceRequest;
 import io.vertx.mcp.common.resources.TextResourceContent;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.server.impl.ResourceServerFeature;
+import io.vertx.mcp.server.feature.ResourceServerFeature;
 import org.junit.Test;
 
 public class ResourceServerFeatureTest extends ServerFeatureTestBase<ResourceServerFeature> {
