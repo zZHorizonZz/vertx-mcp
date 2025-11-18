@@ -35,15 +35,6 @@ public class SessionServerFeature extends ServerFeatureBase {
   }
 
   @Override
-  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
-    return Map.of(
-      "resources/subscribe", request -> handleSubscribe(null, request),
-      "resources/unsubscribe", request -> handleUnsubscribe(null, request),
-      "notifications/initialized", request -> handleInitializeNotifications(null, request)
-    );
-  }
-
-  @Override
   public void handle(ServerRequest serverRequest) {
     JsonRequest request = serverRequest.getJsonRequest();
 
@@ -234,5 +225,8 @@ public class SessionServerFeature extends ServerFeatureBase {
     return sessionCount.get();
   }
 
-
+  @Override
+  public Set<String> getCapabilities() {
+    return Set.of("resources/subscribe", "resources/unsubscribe", "notifications/initialized");
+  }
 }

@@ -37,14 +37,6 @@ public class ProtocolServerFeature extends ServerFeatureBase {
   }
 
   @Override
-  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
-    return Map.of(
-      "initialize", request -> handleInitialize(request, null),
-      "ping", this::handlePing
-    );
-  }
-
-  @Override
   public void handle(ServerRequest serverRequest) {
     JsonRequest request = serverRequest.getJsonRequest();
 
@@ -81,6 +73,11 @@ public class ProtocolServerFeature extends ServerFeatureBase {
         );
       }
     });
+  }
+
+  @Override
+  public Set<String> getCapabilities() {
+    return Set.of("initialize", "ping");
   }
 
   private Future<JsonResponse> handleInitialize(JsonRequest request, ServerRequest serverRequest) {
