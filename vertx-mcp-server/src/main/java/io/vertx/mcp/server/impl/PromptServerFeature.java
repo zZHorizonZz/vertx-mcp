@@ -3,8 +3,10 @@ package io.vertx.mcp.server.impl;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
 import io.vertx.mcp.common.prompt.Prompt;
 import io.vertx.mcp.common.prompt.PromptArgument;
+import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.GetPromptRequest;
 import io.vertx.mcp.common.result.GetPromptResult;
 import io.vertx.mcp.common.result.ListPromptsResult;
@@ -15,15 +17,12 @@ import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerRequest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 
 public class PromptServerFeature implements ServerFeature {
 
-  private final Map<String, PromptRegistration> prompts = new HashMap<>();
+  private final Map<String, PromptHandler> prompts = new HashMap<>();
 
   @Override
   public void handle(ServerRequest serverRequest) {
@@ -69,21 +68,20 @@ public class PromptServerFeature implements ServerFeature {
     List<Prompt> promptsList = new ArrayList<>();
 
     // Build Prompt objects from registered prompts
-    for (Map.Entry<String, PromptRegistration> entry : prompts.entrySet()) {
-      PromptRegistration registration = entry.getValue();
-      Prompt prompt = new Prompt()
-        .setName(entry.getKey());
+    for (Map.Entry<String, PromptHandler> entry : prompts.entrySet()) {
+      PromptHandler handler = entry.getValue();
+      Prompt prompt = new Prompt().setName(entry.getKey());
 
       // Add optional fields if present
-      if (registration.title != null) {
-        prompt.setTitle(registration.title);
+      if (handler.title() != null) {
+        prompt.setTitle(handler.title());
       }
-      if (registration.description != null) {
-        prompt.setDescription(registration.description);
+      if (handler.description() != null) {
+        prompt.setDescription(handler.description());
       }
 
-      if (registration.handler.arguments() != null) {
-        List<PromptArgument> arguments = convertSchemaToArguments(registration.handler.arguments());
+      if (handler.arguments() != null) {
+        List<PromptArgument> arguments = convertSchemaToArguments(handler.arguments());
         prompt.setArguments(arguments);
       }
 
@@ -117,7 +115,7 @@ public class PromptServerFeature implements ServerFeature {
     }
 
     // Find the prompt registration
-    PromptRegistration registration = prompts.get(promptName);
+    PromptHandler registration = prompts.get(promptName);
     if (registration == null) {
       return Future.succeededFuture(
         JsonResponse.error(request, JsonError.invalidParams("Prompt not found: " + promptName))
@@ -133,21 +131,18 @@ public class PromptServerFeature implements ServerFeature {
     return executePrompt(request, registration, arguments);
   }
 
-  private Future<JsonResponse> executePrompt(JsonRequest request, PromptRegistration registration, JsonObject arguments) {
-    return registration.handler.apply(arguments)
-      .compose(messages -> {
-        GetPromptResult result = new GetPromptResult()
-          .setMessages(messages);
+  private Future<JsonResponse> executePrompt(JsonRequest request, PromptHandler handler, JsonObject arguments) {
+    return handler.apply(arguments).compose(messages -> {
+      GetPromptResult result = new GetPromptResult().setMessages(messages);
 
-        if (registration.description != null) {
-          result.setDescription(registration.description);
-        }
+      if (handler.description() != null) {
+        result.setDescription(handler.description());
+      }
 
-        return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
-      })
-      .recover(err -> Future.succeededFuture(
-        JsonResponse.error(request, JsonError.internalError(err.getMessage()))
-      ));
+      return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
+    }).recover(err -> Future.succeededFuture(
+      JsonResponse.error(request, JsonError.internalError(err.getMessage()))
+    ));
   }
 
   @Override
@@ -155,39 +150,33 @@ public class PromptServerFeature implements ServerFeature {
     return Set.of("prompts/list", "prompts/get");
   }
 
+  public void addPrompt(String name, ArraySchemaBuilder arguments, Function<JsonObject, Future<List<PromptMessage>>> handler) {
+    this.addPrompt(name, null, null, arguments, handler);
+  }
+
+  public void addPrompt(String name, String title, ArraySchemaBuilder arguments, Function<JsonObject, Future<List<PromptMessage>>> handler) {
+    this.addPrompt(name, title, null, arguments, handler);
+  }
+
+  public void addPrompt(String name, String title, String description, ArraySchemaBuilder arguments, Function<JsonObject, Future<List<PromptMessage>>> handler) {
+    this.addPrompt(PromptHandler.create(name, title, description, arguments, handler));
+  }
+
   /**
    * Adds a prompt handler.
    *
-   * @param name the prompt name
    * @param handler the prompt handler
    */
-  public void addPrompt(String name, PromptHandler handler) {
-    if (name == null || name.isEmpty()) {
-      throw new IllegalArgumentException("Prompt name must not be null or empty");
-    }
+  public void addPrompt(PromptHandler handler) {
     if (handler == null) {
       throw new IllegalArgumentException("Handler must not be null");
     }
 
-    PromptRegistration registration = new PromptRegistration();
-    registration.handler = handler;
+    if (handler.name() == null || handler.name().isEmpty()) {
+      throw new IllegalArgumentException("Prompt name must not be null or empty");
+    }
 
-    prompts.put(name, registration);
-  }
-
-  /**
-   * Adds a prompt handler with additional metadata.
-   *
-   * @param name the prompt name
-   * @param title the prompt title (optional)
-   * @param description the prompt description (optional)
-   * @param handler the prompt handler
-   */
-  public void addPrompt(String name, String title, String description, PromptHandler handler) {
-    addPrompt(name, handler);
-    PromptRegistration registration = prompts.get(name);
-    registration.title = title;
-    registration.description = description;
+    prompts.put(handler.name(), handler);
   }
 
   /**
@@ -220,8 +209,7 @@ public class PromptServerFeature implements ServerFeature {
   }
 
   /**
-   * Converts an array schema to a list of PromptArgument objects.
-   * The schema should be an array schema with object items containing properties.
+   * Converts an array schema to a list of PromptArgument objects. The schema should be an array schema with object items containing properties.
    *
    * @param schemaBuilder the schema builder (array schema)
    * @return List of PromptArgument objects
@@ -283,19 +271,9 @@ public class PromptServerFeature implements ServerFeature {
   }
 
   /**
-   * Clears all registered prompts.
-   * Useful for test isolation when reusing feature instances.
+   * Clears all registered prompts. Useful for test isolation when reusing feature instances.
    */
   public void clear() {
     prompts.clear();
-  }
-
-  /**
-   * Internal class to hold prompt registration information.
-   */
-  private static class PromptRegistration {
-    String title;
-    String description;
-    PromptHandler handler;
   }
 }

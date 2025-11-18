@@ -12,7 +12,6 @@ package io.vertx.mcp.server;
 
 import dev.jbang.jash.Jash;
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -34,8 +33,7 @@ import java.util.stream.Collectors;
 import static dev.jbang.jash.Jash.$;
 
 /**
- * This test requires Node.js and npx to be installed on the system.
- * It is excluded from the default test run and can be enabled by activating the "mcp-inspector" profile.
+ * This test requires Node.js and npx to be installed on the system. It is excluded from the default test run and can be enabled by activating the "mcp-inspector" profile.
  * <p>
  * Maven profile: mvn test -Pmcp-inspector
  */
@@ -96,17 +94,15 @@ public class McpInspectorTest extends HttpTransportTestBase {
       "greeting",
       "Greeting Prompt",
       "A simple greeting prompt",
-      PromptHandler.create(
-        Schemas.arraySchema(), // Array schema for prompt arguments
-        args -> {
-          List<PromptMessage> messages = new ArrayList<>();
-          PromptMessage message = new PromptMessage()
-            .setRole("user")
-            .setContent(new TextContent("Hello! How can I help you today?").toJson());
-          messages.add(message);
-          return Future.succeededFuture(messages);
-        }
-      )
+      Schemas.arraySchema(),
+      args -> {
+        List<PromptMessage> messages = new ArrayList<>();
+        PromptMessage message = new PromptMessage()
+          .setRole("user")
+          .setContent(new TextContent("Hello! How can I help you today?").toJson());
+        messages.add(message);
+        return Future.succeededFuture(messages);
+      }
     );
 
     mcpServer.serverFeatures(toolFeature);
@@ -228,7 +224,7 @@ public class McpInspectorTest extends HttpTransportTestBase {
       try {
         String serverUrl = "http://localhost:" + port + "/mcp";
         String command = "npx @modelcontextprotocol/inspector --cli " + serverUrl +
-                        " --transport http " + args;
+          " --transport http " + args;
 
         System.out.println("[mcp-inspector] Executing: " + command);
 

@@ -9,10 +9,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
-import io.vertx.mcp.common.resources.TextResourceContent;
 import io.vertx.mcp.common.prompt.PromptMessage;
+import io.vertx.mcp.common.resources.TextResourceContent;
 import io.vertx.mcp.server.ModelContextProtocolServer;
-import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
@@ -21,21 +20,16 @@ import io.vertx.mcp.server.impl.ResourceServerFeature;
 import io.vertx.mcp.server.impl.ToolServerFeature;
 import io.vertx.mcp.server.transport.http.HttpServerTransport;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Demo MCP Server with example tools, resources, and prompts.
  *
- * This demo shows:
- * - Structured tools (calculator operations, text manipulation)
- * - Unstructured tools (content generation)
- * - Static resources (documentation, API info)
- * - Dynamic resources (user and product lookups)
- * - Prompts (code review, documentation generation)
+ * This demo shows: - Structured tools (calculator operations, text manipulation) - Unstructured tools (content generation) - Static resources (documentation, API info) - Dynamic
+ * resources (user and product lookups) - Prompts (code review, documentation generation)
  */
 public class MCPServerDemo {
 
@@ -121,35 +115,35 @@ public class MCPServerDemo {
           .property("result", Schemas.numberSchema())
           .property("operation", Schemas.stringSchema()),
         args -> {
-        String operation = args.getString("operation");
-        double a = args.getDouble("a");
-        double b = args.getDouble("b");
-        double result;
+          String operation = args.getString("operation");
+          double a = args.getDouble("a");
+          double b = args.getDouble("b");
+          double result;
 
-        switch (operation) {
-          case "add":
-            result = a + b;
-            break;
-          case "subtract":
-            result = a - b;
-            break;
-          case "multiply":
-            result = a * b;
-            break;
-          case "divide":
-            if (b == 0) {
-              return Future.failedFuture("Division by zero");
-            }
-            result = a / b;
-            break;
-          default:
-            return Future.failedFuture("Unknown operation: " + operation);
-        }
+          switch (operation) {
+            case "add":
+              result = a + b;
+              break;
+            case "subtract":
+              result = a - b;
+              break;
+            case "multiply":
+              result = a * b;
+              break;
+            case "divide":
+              if (b == 0) {
+                return Future.failedFuture("Division by zero");
+              }
+              result = a / b;
+              break;
+            default:
+              return Future.failedFuture("Unknown operation: " + operation);
+          }
 
-        return Future.succeededFuture(new JsonObject()
-          .put("result", result)
-          .put("operation", operation));
-      })
+          return Future.succeededFuture(new JsonObject()
+            .put("result", result)
+            .put("operation", operation));
+        })
     );
 
     // Structured Tool: Text Uppercase
@@ -214,26 +208,26 @@ public class MCPServerDemo {
             .withKeyword("enum", new JsonArray()
               .add("formal").add("casual").add("enthusiastic"))),
         args -> {
-        String name = args.getString("name");
-        String style = args.getString("style", "casual");
-        String greeting;
+          String name = args.getString("name");
+          String style = args.getString("style", "casual");
+          String greeting;
 
-        switch (style) {
-          case "formal":
-            greeting = "Good day, " + name + ". It is a pleasure to make your acquaintance.";
-            break;
-          case "enthusiastic":
-            greeting = "Hey " + name + "!!! So awesome to meet you! Let's do great things together!";
-            break;
-          default: // casual
-            greeting = "Hi " + name + "! Nice to meet you.";
-            break;
-        }
+          switch (style) {
+            case "formal":
+              greeting = "Good day, " + name + ". It is a pleasure to make your acquaintance.";
+              break;
+            case "enthusiastic":
+              greeting = "Hey " + name + "!!! So awesome to meet you! Let's do great things together!";
+              break;
+            default: // casual
+              greeting = "Hi " + name + "! Nice to meet you.";
+              break;
+          }
 
-        return Future.succeededFuture(new Content[] {
-          new TextContent(greeting)
-        });
-      })
+          return Future.succeededFuture(new Content[] {
+            new TextContent(greeting)
+          });
+        })
     );
 
     // Unstructured Tool: Timestamp
@@ -245,15 +239,15 @@ public class MCPServerDemo {
         Schemas.objectSchema()
           .property("format", Schemas.stringSchema()),
         args -> {
-        String format = args.getString("format", "yyyy-MM-dd HH:mm:ss");
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
-        String timestamp = now.format(formatter);
+          String format = args.getString("format", "yyyy-MM-dd HH:mm:ss");
+          LocalDateTime now = LocalDateTime.now();
+          DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+          String timestamp = now.format(formatter);
 
-        return Future.succeededFuture(new Content[] {
-          new TextContent("Current timestamp: " + timestamp)
-        });
-      })
+          return Future.succeededFuture(new Content[] {
+            new TextContent("Current timestamp: " + timestamp)
+          });
+        })
     );
 
     server.serverFeatures(toolFeature);
@@ -385,14 +379,14 @@ public class MCPServerDemo {
       "code_review",
       "Code Review",
       "Provides comprehensive code review with suggestions for improvements, best practices, and potential issues",
-      PromptHandler.create(
-        Schemas.arraySchema()
-          .items(
-            Schemas.objectSchema()
-              .requiredProperty("code", Schemas.stringSchema())
-              .property("language", Schemas.stringSchema())
-          ),
-        args -> {
+
+      Schemas.arraySchema()
+        .items(
+          Schemas.objectSchema()
+            .requiredProperty("code", Schemas.stringSchema())
+            .property("language", Schemas.stringSchema())
+        ),
+      args -> {
         String code = args.getString("code");
         String language = args.getString("language", "unknown");
 
@@ -402,11 +396,11 @@ public class MCPServerDemo {
           .setRole("assistant")
           .setContent(new TextContent(
             "I am a code review assistant. I will analyze the provided code and provide feedback on:\n" +
-            "1. Code quality and readability\n" +
-            "2. Potential bugs or issues\n" +
-            "3. Security concerns\n" +
-            "4. Performance improvements\n" +
-            "5. Best practices and conventions"
+              "1. Code quality and readability\n" +
+              "2. Potential bugs or issues\n" +
+              "3. Security concerns\n" +
+              "4. Performance improvements\n" +
+              "5. Best practices and conventions"
           ).toJson());
         messages.add(systemMessage);
 
@@ -418,7 +412,7 @@ public class MCPServerDemo {
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
-      })
+      }
     );
 
     // Prompt: Explain Code
@@ -426,14 +420,12 @@ public class MCPServerDemo {
       "explain_code",
       "Explain Code",
       "Provides detailed explanation of what code does, how it works, and its key concepts",
-      PromptHandler.create(
-        Schemas.arraySchema()
-          .items(
-            Schemas.objectSchema()
-              .requiredProperty("code", Schemas.stringSchema())
-              .property("language", Schemas.stringSchema())
-          ),
-        args -> {
+      Schemas.arraySchema()
+        .items(Schemas.objectSchema()
+          .requiredProperty("code", Schemas.stringSchema())
+          .property("language", Schemas.stringSchema())
+        ),
+      args -> {
         String code = args.getString("code");
         String language = args.getString("language", "unknown");
 
@@ -443,16 +435,17 @@ public class MCPServerDemo {
           .setRole("user")
           .setContent(new TextContent(
             "Please explain this " + language + " code in detail:\n\n```" + language + "\n" + code + "\n```\n\n" +
-            "Include:\n" +
-            "- What the code does (high-level purpose)\n" +
-            "- How it works (step-by-step explanation)\n" +
-            "- Key concepts and patterns used\n" +
-            "- Any important edge cases or considerations"
+              "Include:\n" +
+              "- What the code does (high-level purpose)\n" +
+              "- How it works (step-by-step explanation)\n" +
+              "- Key concepts and patterns used\n" +
+              "- Any important edge cases or considerations"
           ).toJson());
+
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
-      })
+      }
     );
 
     // Prompt: Write Documentation
@@ -460,17 +453,13 @@ public class MCPServerDemo {
       "write_docs",
       "Write Documentation",
       "Generates comprehensive documentation for the provided code in the specified format",
-      PromptHandler.create(
-        Schemas.arraySchema()
-          .items(
-            Schemas.objectSchema()
-              .requiredProperty("code", Schemas.stringSchema())
-              .property("language", Schemas.stringSchema())
-              .property("style", Schemas.stringSchema()
-                .withKeyword("enum", new JsonArray()
-                  .add("javadoc").add("jsdoc").add("markdown")))
-          ),
-        args -> {
+      Schemas.arraySchema().items(
+        Schemas.objectSchema()
+          .requiredProperty("code", Schemas.stringSchema())
+          .property("language", Schemas.stringSchema())
+          .property("style", Schemas.stringSchema().withKeyword("enum", new JsonArray().add("javadoc").add("jsdoc").add("markdown")))
+      ),
+      args -> {
         String code = args.getString("code");
         String language = args.getString("language", "unknown");
         String style = args.getString("style", "markdown");
@@ -481,17 +470,17 @@ public class MCPServerDemo {
           .setRole("user")
           .setContent(new TextContent(
             "Please write " + style + " documentation for this " + language + " code:\n\n```" + language + "\n" + code + "\n```\n\n" +
-            "The documentation should include:\n" +
-            "- Description of what the code does\n" +
-            "- Parameters/inputs (if any)\n" +
-            "- Return values/outputs (if any)\n" +
-            "- Usage examples\n" +
-            "- Any important notes or warnings"
+              "The documentation should include:\n" +
+              "- Description of what the code does\n" +
+              "- Parameters/inputs (if any)\n" +
+              "- Return values/outputs (if any)\n" +
+              "- Usage examples\n" +
+              "- Any important notes or warnings"
           ).toJson());
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
-      })
+      }
     );
 
     server.serverFeatures(promptFeature);

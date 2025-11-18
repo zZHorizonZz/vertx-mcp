@@ -61,32 +61,30 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       "code_review",
       "Code Review",
       "Reviews code and suggests improvements",
-      PromptHandler.create(
-        CODE_ARGUMENT_SCHEMA,
-        args -> {
-          List<PromptMessage> messages = new ArrayList<>();
-          PromptMessage message = new PromptMessage()
-            .setRole("user")
-            .setContent(new TextContent("Review this code: " + args.getString("code")).toJson());
-          messages.add(message);
-          return Future.succeededFuture(messages);
-        })
+      CODE_ARGUMENT_SCHEMA,
+      args -> {
+        List<PromptMessage> messages = new ArrayList<>();
+        PromptMessage message = new PromptMessage()
+          .setRole("user")
+          .setContent(new TextContent("Review this code: " + args.getString("code")).toJson());
+        messages.add(message);
+        return Future.succeededFuture(messages);
+      }
     );
 
     feature.addPrompt(
       "explain_code",
       "Explain Code",
       "Explains what code does",
-      PromptHandler.create(
-        CODE_ARGUMENT_SCHEMA,
-        args -> {
-          List<PromptMessage> messages = new ArrayList<>();
-          PromptMessage message = new PromptMessage()
-            .setRole("user")
-            .setContent(new TextContent("Explain this code: " + args.getString("code")).toJson());
-          messages.add(message);
-          return Future.succeededFuture(messages);
-        })
+      CODE_ARGUMENT_SCHEMA,
+      args -> {
+        List<PromptMessage> messages = new ArrayList<>();
+        PromptMessage message = new PromptMessage()
+          .setRole("user")
+          .setContent(new TextContent("Explain this code: " + args.getString("code")).toJson());
+        messages.add(message);
+        return Future.succeededFuture(messages);
+      }
     );
 
     sendRequest(HttpMethod.POST, new ListPromptsRequest())
@@ -121,19 +119,18 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       "code_review",
       "Code Review",
       "Reviews code and suggests improvements",
-      PromptHandler.create(
-        CODE_ARGUMENT_SCHEMA,
-        args -> {
-          String code = args.getString("code");
-          List<PromptMessage> messages = new ArrayList<>();
+      CODE_ARGUMENT_SCHEMA,
+      args -> {
+        String code = args.getString("code");
+        List<PromptMessage> messages = new ArrayList<>();
 
-          PromptMessage message = new PromptMessage()
-            .setRole("user")
-            .setContent(new TextContent("Please review this code:\n" + code).toJson());
-          messages.add(message);
+        PromptMessage message = new PromptMessage()
+          .setRole("user")
+          .setContent(new TextContent("Please review this code:\n" + code).toJson());
+        messages.add(message);
 
-          return Future.succeededFuture(messages);
-        })
+        return Future.succeededFuture(messages);
+      }
     );
 
     sendRequest(HttpMethod.POST, new GetPromptRequest(
@@ -212,7 +209,8 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       "failing_prompt",
       "Failing Prompt",
       "A prompt that fails",
-      PromptHandler.create(null, args -> Future.failedFuture("Prompt generation failed"))
+      null,
+      args -> Future.failedFuture("Prompt generation failed")
     );
 
     sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "failing_prompt")))
@@ -238,7 +236,8 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       "conversation",
       "Conversation",
       "A multi-turn conversation prompt",
-      PromptHandler.create(null, args -> {
+      null,
+      args -> {
         List<PromptMessage> messages = new ArrayList<>();
 
         PromptMessage userMessage = new PromptMessage()
@@ -257,7 +256,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
         messages.add(userMessage2);
 
         return Future.succeededFuture(messages);
-      })
+      }
     );
 
     sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "conversation")))
