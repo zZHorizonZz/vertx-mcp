@@ -5,7 +5,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.Session;
@@ -14,12 +13,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 /**
- * Handles session management for SSE connections, including subscribe/unsubscribe operations.
- * This feature enables clients to subscribe to server notifications and events.
+ * The SessionServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to session management. This includes handling
+ * subscriptions, unsubscriptions, and session notifications for SSE connections.
+ *
+ * @version 2025-06-18
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/sessions">Server Features - Sessions</a>
  */
-public class SessionServerFeature implements ServerFeature {
+public class SessionServerFeature extends ServerFeatureBase {
 
   private final ServerOptions options;
   // Map of session ID to subscribed resource URIs
@@ -29,6 +32,15 @@ public class SessionServerFeature implements ServerFeature {
 
   public SessionServerFeature(ServerOptions options) {
     this.options = options;
+  }
+
+  @Override
+  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
+    return Map.of(
+      "resources/subscribe", request -> handleSubscribe(null, request),
+      "resources/unsubscribe", request -> handleUnsubscribe(null, request),
+      "notifications/initialized", request -> handleInitializeNotifications(null, request)
+    );
   }
 
   @Override
@@ -222,8 +234,5 @@ public class SessionServerFeature implements ServerFeature {
     return sessionCount.get();
   }
 
-  @Override
-  public Set<String> getCapabilities() {
-    return Set.of("resources/subscribe", "resources/unsubscribe", "notifications/initialized");
-  }
+
 }

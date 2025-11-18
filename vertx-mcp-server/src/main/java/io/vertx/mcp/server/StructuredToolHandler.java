@@ -6,6 +6,13 @@ import io.vertx.json.schema.common.dsl.SchemaBuilder;
 
 import java.util.function.Function;
 
+/**
+ * Represents a handler responsible for processing structured tools. A structured tool handler defines both input and output schemas and processes tool requests
+ * with structured JSON input and output.
+ *
+ * @version 2025-06-18
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool">Server Features - Tools - Tool</a>
+ */
 public interface StructuredToolHandler extends Function<JsonObject, Future<JsonObject>> {
 
   static StructuredToolHandler create(SchemaBuilder inputSchema, SchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> function) {

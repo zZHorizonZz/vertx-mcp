@@ -12,17 +12,21 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.common.result.InitializeResult;
 import io.vertx.mcp.server.ModelContextProtocolServer;
-import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
- * Handles core MCP protocol operations like initialize and ping.
+ * The ProtocolServerFeature class implements the ServerFeatureBase and provides functionality to handle core MCP protocol operations like initialize and ping.
  * This is a required feature that manages protocol-level communication.
+ *
+ * @version 2025-06-18
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/protocol">Server Features - Protocol</a>
  */
-public class ProtocolServerFeature implements ServerFeature {
+public class ProtocolServerFeature extends ServerFeatureBase {
 
   private final ModelContextProtocolServer server;
   private final ServerOptions options;
@@ -30,6 +34,14 @@ public class ProtocolServerFeature implements ServerFeature {
   public ProtocolServerFeature(ModelContextProtocolServer server, ServerOptions options) {
     this.server = server;
     this.options = options;
+  }
+
+  @Override
+  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
+    return Map.of(
+      "initialize", request -> handleInitialize(request, null),
+      "ping", this::handlePing
+    );
   }
 
   @Override
@@ -116,8 +128,5 @@ public class ProtocolServerFeature implements ServerFeature {
     return Future.succeededFuture(JsonResponse.success(request, result));
   }
 
-  @Override
-  public Set<String> getCapabilities() {
-    return Set.of("initialize", "ping");
-  }
+
 }
