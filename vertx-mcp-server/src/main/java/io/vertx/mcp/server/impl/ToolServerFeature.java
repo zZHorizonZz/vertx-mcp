@@ -11,19 +11,16 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.common.tool.Tool;
+import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
+import java.util.*;
+import java.util.function.BiFunction;
 
 /**
- * The ToolServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to tool management. This includes listing
- * available tools, calling tools, and managing structured and unstructured tool handlers.
+ * The ToolServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to tool management. This includes listing available
+ * tools, calling tools, and managing structured and unstructured tool handlers.
  *
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/tools">Server Features - Tools</a>
@@ -33,14 +30,14 @@ public class ToolServerFeature extends ServerFeatureBase {
   private final Map<String, ToolRegistration> tools = new HashMap<>();
 
   @Override
-  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
+  public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
     return Map.of(
       "tools/list", this::handleListTools,
       "tools/call", this::handleCallTool
     );
   }
 
-  private Future<JsonResponse> handleListTools(JsonRequest request) {
+  private Future<JsonResponse> handleListTools(ServerRequest serverRequest, JsonRequest request) {
     List<Tool> toolsList = new ArrayList<>();
 
     // Build Tool objects from registered tools
@@ -68,7 +65,7 @@ public class ToolServerFeature extends ServerFeatureBase {
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
   }
 
-  private Future<JsonResponse> handleCallTool(JsonRequest request) {
+  private Future<JsonResponse> handleCallTool(ServerRequest serverRequest, JsonRequest request) {
     // Parse the request parameters
     JsonObject params = request.getNamedParams();
     if (params == null) {
@@ -162,8 +159,6 @@ public class ToolServerFeature extends ServerFeatureBase {
         return Future.succeededFuture(JsonResponse.success(request, callResult.toJson()));
       });
   }
-
-
 
   /**
    * Adds a structured tool handler.
@@ -268,8 +263,7 @@ public class ToolServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Clears all registered tools.
-   * Useful for test isolation when reusing feature instances.
+   * Clears all registered tools. Useful for test isolation when reusing feature instances.
    */
   public void clear() {
     tools.clear();

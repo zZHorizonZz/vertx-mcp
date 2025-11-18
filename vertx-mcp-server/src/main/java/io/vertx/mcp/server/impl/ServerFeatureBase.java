@@ -9,11 +9,11 @@ import io.vertx.mcp.server.ServerRequest;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public abstract class ServerFeatureBase implements ServerFeature {
 
-  public abstract Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers();
+  public abstract Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers();
 
   @Override
   public void handle(ServerRequest serverRequest) {
@@ -27,7 +27,7 @@ public abstract class ServerFeatureBase implements ServerFeature {
     }
 
     String method = request.getMethod();
-    Function<JsonRequest, Future<JsonResponse>> handler = getHandlers().get(method);
+    BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>> handler = getHandlers().get(method);
 
     if (handler == null) {
       serverRequest.response().end(
@@ -36,7 +36,7 @@ public abstract class ServerFeatureBase implements ServerFeature {
       return;
     }
 
-    handler.apply(request).onComplete(ar -> {
+    handler.apply(serverRequest, request).onComplete(ar -> {
       if (ar.succeeded()) {
         serverRequest.response().end(ar.result());
       } else {

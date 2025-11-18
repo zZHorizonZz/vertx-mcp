@@ -13,11 +13,13 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.PromptHandler;
+import io.vertx.mcp.server.ServerRequest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -32,14 +34,14 @@ public class PromptServerFeature extends ServerFeatureBase {
   private final Map<String, PromptHandler> prompts = new HashMap<>();
 
   @Override
-  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
+  public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
     return Map.of(
       "prompts/list", this::handleListPrompts,
       "prompts/get", this::handleGetPrompt
     );
   }
 
-  private Future<JsonResponse> handleListPrompts(JsonRequest request) {
+  private Future<JsonResponse> handleListPrompts(ServerRequest serverRequest, JsonRequest request) {
     List<Prompt> promptsList = new ArrayList<>();
 
     // Build Prompt objects from registered prompts
@@ -70,7 +72,7 @@ public class PromptServerFeature extends ServerFeatureBase {
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
   }
 
-  private Future<JsonResponse> handleGetPrompt(JsonRequest request) {
+  private Future<JsonResponse> handleGetPrompt(ServerRequest serverRequest, JsonRequest request) {
     // Parse the request parameters
     JsonObject params = request.getNamedParams();
     if (params == null) {

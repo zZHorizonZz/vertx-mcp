@@ -8,15 +8,17 @@ import io.vertx.mcp.common.resources.ResourceTemplate;
 import io.vertx.mcp.common.result.ListResourceTemplatesResult;
 import io.vertx.mcp.common.result.ListResourcesResult;
 import io.vertx.mcp.common.result.ReadResourceResult;
+import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.DynamicResourceHandler;
+import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StaticResourceHandler;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
@@ -32,7 +34,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
   private final List<DynamicResourceHandler> dynamicHandlers = new ArrayList<>();
 
   @Override
-  public Map<String, Function<JsonRequest, Future<JsonResponse>>> getHandlers() {
+  public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
     return Map.of(
       "resources/list", this::handleListResources,
       "resources/read", this::handleReadResource,
@@ -40,7 +42,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
     );
   }
 
-  private Future<JsonResponse> handleListResources(JsonRequest request) {
+  private Future<JsonResponse> handleListResources(ServerRequest serverRequest, JsonRequest request) {
     JsonArray resourcesArray = new JsonArray();
 
     // Add all static resources
@@ -57,7 +59,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
   }
 
-  private Future<JsonResponse> handleReadResource(JsonRequest request) {
+  private Future<JsonResponse> handleReadResource(ServerRequest serverRequest, JsonRequest request) {
     JsonObject params = request.getNamedParams();
     if (params == null || !params.containsKey("uri")) {
       return Future.succeededFuture(
@@ -108,7 +110,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
     );
   }
 
-  private Future<JsonResponse> handleListResourceTemplates(JsonRequest request) {
+  private Future<JsonResponse> handleListResourceTemplates(ServerRequest serverRequest, JsonRequest request) {
     List<ResourceTemplate> templates = new ArrayList<>();
 
     // Convert dynamic handlers to resource templates
@@ -126,8 +128,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Utility method to check if a URI matches a URI template pattern.
-   * Template variables are denoted by curly braces, e.g., "resource://{id}/details" or "{type}://resource/data"
+   * Utility method to check if a URI matches a URI template pattern. Template variables are denoted by curly braces, e.g., "resource://{id}/details" or "{type}://resource/data"
    *
    * @param uri the URI to match
    * @param template the URI template pattern
@@ -173,8 +174,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Matches a URI segment against a template segment that contains variables.
-   * For example, matches "file:" against "{type}:"
+   * Matches a URI segment against a template segment that contains variables. For example, matches "file:" against "{type}:"
    *
    * @param uriSegment the URI segment to match
    * @param templateSegment the template segment with variables
@@ -229,9 +229,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Extracts template variables from a URI given a template pattern.
-   * For example, given URI "resource://user/123" and template "resource://user/{id}",
-   * returns {"id": "123"}
+   * Extracts template variables from a URI given a template pattern. For example, given URI "resource://user/123" and template "resource://user/{id}", returns {"id": "123"}
    *
    * @param uri the URI to extract variables from
    * @param template the URI template pattern
@@ -264,8 +262,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Extracts variables from a URI segment that matches a template segment with variables.
-   * For example, given "file:" and "{type}:", extracts {"type": "file"}
+   * Extracts variables from a URI segment that matches a template segment with variables. For example, given "file:" and "{type}:", extracts {"type": "file"}
    *
    * @param uriSegment the URI segment
    * @param templateSegment the template segment with variables
@@ -312,8 +309,6 @@ public class ResourceServerFeature extends ServerFeatureBase {
     }
   }
 
-
-
   public void addStaticResource(String name, Supplier<Future<Resource>> resourceSupplier) {
     staticHandlers.add(StaticResourceHandler.create(name, resourceSupplier));
   }
@@ -328,14 +323,5 @@ public class ResourceServerFeature extends ServerFeatureBase {
 
   public void addDynamicResource(DynamicResourceHandler handler) {
     dynamicHandlers.add(handler);
-  }
-
-  /**
-   * Clears all registered resource handlers.
-   * Useful for test isolation when reusing feature instances.
-   */
-  public void clear() {
-    staticHandlers.clear();
-    dynamicHandlers.clear();
   }
 }

@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * The SessionServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to session management. This includes handling
@@ -25,55 +25,20 @@ import java.util.function.Function;
 public class SessionServerFeature extends ServerFeatureBase {
 
   private final ServerOptions options;
-  // Map of session ID to subscribed resource URIs
-  private final Map<String, Set<String>> subscriptions = new ConcurrentHashMap<>();
-  // Track active session count
   private final AtomicInteger sessionCount = new AtomicInteger(0);
+  private final Map<String, Set<String>> subscriptions = new ConcurrentHashMap<>();
 
   public SessionServerFeature(ServerOptions options) {
     this.options = options;
   }
 
   @Override
-  public void handle(ServerRequest serverRequest) {
-    JsonRequest request = serverRequest.getJsonRequest();
-
-    if (request == null) {
-      serverRequest.response().end(
-        new JsonResponse(JsonError.internalError("No JSON-RPC request found"), null)
-      );
-      return;
-    }
-
-    String method = request.getMethod();
-
-    Future<JsonResponse> responseFuture;
-    switch (method) {
-      case "resources/subscribe":
-        responseFuture = handleSubscribe(serverRequest, request);
-        break;
-      case "resources/unsubscribe":
-        responseFuture = handleUnsubscribe(serverRequest, request);
-        break;
-      case "notifications/initialized":
-        responseFuture = handleInitializeNotifications(serverRequest, request);
-        break;
-      default:
-        responseFuture = Future.succeededFuture(
-          JsonResponse.error(request, JsonError.methodNotFound(method))
-        );
-        break;
-    }
-
-    responseFuture.onComplete(ar -> {
-      if (ar.succeeded()) {
-        serverRequest.response().end(ar.result());
-      } else {
-        serverRequest.response().end(
-          JsonResponse.error(request, JsonError.internalError(ar.cause().getMessage()))
-        );
-      }
-    });
+  public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
+    return Map.of(
+      "resources/subscribe", this::handleSubscribe,
+      "resources/unsubscribe", this::handleUnsubscribe,
+      "notifications/initialized", this::handleInitializeNotifications
+    );
   }
 
   private Future<JsonResponse> handleSubscribe(ServerRequest serverRequest, JsonRequest request) {
@@ -223,10 +188,5 @@ public class SessionServerFeature extends ServerFeatureBase {
    */
   public int getSessionCount() {
     return sessionCount.get();
-  }
-
-  @Override
-  public Set<String> getCapabilities() {
-    return Set.of("resources/subscribe", "resources/unsubscribe", "notifications/initialized");
   }
 }

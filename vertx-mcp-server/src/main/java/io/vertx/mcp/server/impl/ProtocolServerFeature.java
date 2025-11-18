@@ -7,21 +7,21 @@ import io.vertx.mcp.common.capabilities.PromptsCapability;
 import io.vertx.mcp.common.capabilities.ResourcesCapability;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.capabilities.ToolsCapability;
-import io.vertx.mcp.common.rpc.JsonError;
+import io.vertx.mcp.common.result.InitializeResult;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.common.result.InitializeResult;
 import io.vertx.mcp.server.ModelContextProtocolServer;
+import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
- * The ProtocolServerFeature class implements the ServerFeatureBase and provides functionality to handle core MCP protocol operations like initialize and ping.
- * This is a required feature that manages protocol-level communication.
+ * The ProtocolServerFeature class implements the ServerFeatureBase and provides functionality to handle core MCP protocol operations like initialize and ping. This is a required
+ * feature that manages protocol-level communication.
  *
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/protocol">Server Features - Protocol</a>
@@ -37,50 +37,14 @@ public class ProtocolServerFeature extends ServerFeatureBase {
   }
 
   @Override
-  public void handle(ServerRequest serverRequest) {
-    JsonRequest request = serverRequest.getJsonRequest();
-
-    if (request == null) {
-      serverRequest.response().end(
-        new JsonResponse(JsonError.internalError("No JSON-RPC request found"), null)
-      );
-      return;
-    }
-
-    String method = request.getMethod();
-
-    Future<JsonResponse> responseFuture;
-    switch (method) {
-      case "initialize":
-        responseFuture = handleInitialize(request, serverRequest);
-        break;
-      case "ping":
-        responseFuture = handlePing(request);
-        break;
-      default:
-        responseFuture = Future.succeededFuture(
-          JsonResponse.error(request, JsonError.methodNotFound(method))
-        );
-        break;
-    }
-
-    responseFuture.onComplete(ar -> {
-      if (ar.succeeded()) {
-        serverRequest.response().write(ar.result());
-      } else {
-        serverRequest.response().end(
-          JsonResponse.error(request, JsonError.internalError(ar.cause().getMessage()))
-        );
-      }
-    });
+  public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
+    return Map.of(
+      "initialize", this::handleInitialize,
+      "ping", this::handlePing
+    );
   }
 
-  @Override
-  public Set<String> getCapabilities() {
-    return Set.of("initialize", "ping");
-  }
-
-  private Future<JsonResponse> handleInitialize(JsonRequest request, ServerRequest serverRequest) {
+  private Future<JsonResponse> handleInitialize(ServerRequest serverRequest, JsonRequest request) {
     // Build server capabilities from registered features
     ServerCapabilities capabilities = new ServerCapabilities();
 
@@ -119,11 +83,7 @@ public class ProtocolServerFeature extends ServerFeatureBase {
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
   }
 
-  private Future<JsonResponse> handlePing(JsonRequest request) {
-    // Ping just returns an empty success response
-    JsonObject result = new JsonObject();
-    return Future.succeededFuture(JsonResponse.success(request, result));
+  private Future<JsonResponse> handlePing(ServerRequest serverRequest, JsonRequest request) {
+    return Future.succeededFuture(JsonResponse.success(request, new JsonObject()));
   }
-
-
 }
