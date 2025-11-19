@@ -21,7 +21,7 @@ public interface ServerResponse extends WriteStream<JsonObject> {
    *
    * @param session the session to associate with the server response
    */
-  void init(Session session);
+  void init(ServerSession session);
 
   /**
    * Retrieves the internal Vert.x context associated with the current server response.
@@ -70,8 +70,8 @@ public interface ServerResponse extends WriteStream<JsonObject> {
   /**
    * Retrieve the current session associated with the server response.
    *
-   * @return the current {@code Session} object
+   * @return the current {@code ServerSession} object
    */
-  Session session();
+  ServerSession session();
 }
 

@@ -20,7 +20,7 @@ public interface ServerRequest {
    * @param session the session representing the client-server connection context
    * @param response the server response object to manage outgoing responses
    */
-  void init(Session session, ServerResponse response);
+  void init(ServerSession session, ServerResponse response);
 
   /**
    * Retrieves the path associated with this server request. The path typically represents the requested resource or endpoint.
@@ -59,5 +59,5 @@ public interface ServerRequest {
    *
    * @return the current session, or null if no session is associated with the request
    */
-  Session session();
+  ServerSession session();
 }

@@ -10,7 +10,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.mcp.common.rpc.JsonBatch;
 import io.vertx.mcp.server.ServerResponse;
-import io.vertx.mcp.server.Session;
+import io.vertx.mcp.server.ServerSession;
 
 public class HttpServerResponseImpl implements ServerResponse {
 
@@ -19,7 +19,7 @@ public class HttpServerResponseImpl implements ServerResponse {
   private Handler<Throwable> exceptionHandler;
 
   private boolean ended = false;
-  private Session session;
+  private ServerSession session;
 
   public HttpServerResponseImpl(ContextInternal context, HttpServerResponse httpResponse) {
     this.context = context;
@@ -27,7 +27,7 @@ public class HttpServerResponseImpl implements ServerResponse {
   }
 
   @Override
-  public void init(Session session) {
+  public void init(ServerSession session) {
     this.session = session;
   }
 
@@ -131,7 +131,7 @@ public class HttpServerResponseImpl implements ServerResponse {
   }
 
   @Override
-  public Session session() {
+  public ServerSession session() {
     return session;
   }
 }

@@ -8,9 +8,10 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.request.InitializeRequest;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.server.*;
-import io.vertx.mcp.server.impl.SessionImpl;
+import io.vertx.mcp.server.impl.ServerSessionImpl;
 
 public class HttpServerRequestImpl implements ServerRequest {
 
@@ -24,7 +25,7 @@ public class HttpServerRequestImpl implements ServerRequest {
   private Handler<Throwable> exceptionHandler;
 
   private JsonRequest jsonRequest;
-  private Session session;
+  private ServerSession session;
 
   public HttpServerRequestImpl(Context context, HttpServerRequest httpRequest, SessionManager sessionManager, ServerOptions options) {
     this.context = (ContextInternal) context;
@@ -52,12 +53,12 @@ public class HttpServerRequestImpl implements ServerRequest {
   }
 
   @Override
-  public void init(Session session, ServerResponse response) {
+  public void init(ServerSession session, ServerResponse response) {
     this.session = session;
     this.response = response;
 
     if (session != null) {
-      ((SessionImpl) session).init(this.response);
+      ((ServerSessionImpl) session).init(this.response);
     }
 
     response.init(session);
@@ -74,7 +75,8 @@ public class HttpServerRequestImpl implements ServerRequest {
 
         // If this is an initialize request and sessions are enabled, create a new session
         if (this.jsonRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
-          httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, sessionManager.createSession().id());
+          InitializeRequest initialize = new InitializeRequest(new JsonObject(body.toString()));
+          httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, sessionManager.createSession(initialize.getCapabilities()).id());
         }
 
         if (this.session != null && options.getStreamingEnabled() && !this.jsonRequest.isNotification()) {
@@ -125,7 +127,7 @@ public class HttpServerRequestImpl implements ServerRequest {
   }
 
   @Override
-  public Session session() {
+  public ServerSession session() {
     return session;
   }
 }

@@ -1,19 +1,37 @@
 package io.vertx.mcp.server;
 
+import io.vertx.codegen.annotations.VertxGen;
+import io.vertx.core.Closeable;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
-import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.Result;
-import io.vertx.mcp.common.transport.Session;
+import io.vertx.mcp.server.transport.http.HttpServerTransport;
 
 /**
- * Represents a server-side MCP session.
- * Extends the base Session interface with server-specific functionality for handling
- * client requests and sending notifications.
+ * Represents a session between the client and server. Sessions are used to manage SSE (Server-Sent Events) connections and streaming state.
  */
-public interface ServerSession extends Session {
+@VertxGen
+public interface ServerSession extends Closeable {
+
+  /**
+   * Retrieve the current session from the Vert.x context.
+   *
+   * @param context the Vert.x context
+   * @return the session, or null if no session is stored in the context
+   */
+  static ServerSession fromContext(Context context) {
+    return context.get(HttpServerTransport.MCP_SESSION_CONTEXT_KEY);
+  }
+
+  /**
+   * Get the unique session ID.
+   *
+   * @return the session ID
+   */
+  String id();
 
   /**
    * Gets the client capabilities negotiated during initialization.
@@ -21,13 +39,6 @@ public interface ServerSession extends Session {
    * @return client capabilities
    */
   ClientCapabilities clientCapabilities();
-
-  /**
-   * Gets the server capabilities advertised during initialization.
-   *
-   * @return server capabilities
-   */
-  ServerCapabilities serverCapabilities();
 
   /**
    * Sends a request to the client.
@@ -46,9 +57,16 @@ public interface ServerSession extends Session {
   Future<Void> sendNotification(Notification notification);
 
   /**
-   * Gets the transport used by this session.
+   * Checks if the session is currently in a streaming state.
    *
-   * @return server transport
+   * @return true if the session is streaming, false otherwise
    */
-  ServerTransport transport();
+  boolean isStreaming();
+
+  /**
+   * Check if the session is still active.
+   *
+   * @return true if the session is active
+   */
+  boolean isActive();
 }

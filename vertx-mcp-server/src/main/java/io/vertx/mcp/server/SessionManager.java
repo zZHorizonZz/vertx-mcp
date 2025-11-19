@@ -1,6 +1,7 @@
 package io.vertx.mcp.server;
 
 import io.vertx.codegen.annotations.VertxGen;
+import io.vertx.mcp.common.capabilities.ClientCapabilities;
 
 /**
  * This interface defines a manager for handling sessions in the server. It provides methods for creating, retrieving, removing, and counting sessions. A session represents a
@@ -13,7 +14,7 @@ public interface SessionManager {
    *
    * @return the created session
    */
-  Session createSession();
+  ServerSession createSession(ClientCapabilities capabilities);
 
   /**
    * Get an existing session by ID.
@@ -21,7 +22,7 @@ public interface SessionManager {
    * @param sessionId the session ID
    * @return the session, or null if not found
    */
-  Session getSession(String sessionId);
+  ServerSession getSession(String sessionId);
 
   /**
    * Remove a session.

@@ -1,5 +1,6 @@
 package io.vertx.mcp.common.notification;
 
+import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Meta;
@@ -7,6 +8,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.Map;
 
+@DataObject
 public abstract class Notification implements Meta {
 
   private final String method;

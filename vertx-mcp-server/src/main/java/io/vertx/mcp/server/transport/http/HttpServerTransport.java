@@ -11,7 +11,7 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
-import io.vertx.mcp.server.Session;
+import io.vertx.mcp.server.ServerSession;
 import io.vertx.mcp.server.SessionManager;
 import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
 import io.vertx.mcp.server.impl.SessionManagerImpl;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 public class HttpServerTransport implements Handler<HttpServerRequest> {
 
-  public static final String MCP_SESSION_ID_HEADER = "Mcp-Session-Id";
+  public static final String MCP_SESSION_ID_HEADER = "Mcp-ServerSession-Id";
   public static final String MCP_PROTOCOL_VERSION_HEADER = "Mcp-Protocol-Version";
   public static final String MCP_SESSION_CONTEXT_KEY = "mcp.session";
 
@@ -84,7 +84,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
     HttpServerRequestImpl serverRequest = new HttpServerRequestImpl(context, httpRequest, sessionManager, options);
     HttpServerResponseImpl serverResponse = new HttpServerResponseImpl(context, httpRequest.response());
 
-    Session session = null;
+    ServerSession session = null;
 
     // If there's a session ID and sessions are enabled, retrieve existing session
     if (sessionId != null && options.getSessionsEnabled()) {

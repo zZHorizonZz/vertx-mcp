@@ -1,8 +1,9 @@
 package io.vertx.mcp.server.impl;
 
 import io.vertx.core.Vertx;
+import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.server.ServerOptions;
-import io.vertx.mcp.server.Session;
+import io.vertx.mcp.server.ServerSession;
 import io.vertx.mcp.server.SessionManager;
 
 import java.util.Map;
@@ -13,7 +14,7 @@ public class SessionManagerImpl implements SessionManager {
 
   private final Vertx vertx;
   private final ServerOptions options;
-  private final Map<String, Session> sessions = new ConcurrentHashMap<>();
+  private final Map<String, ServerSession> sessions = new ConcurrentHashMap<>();
 
   public SessionManagerImpl(Vertx vertx, ServerOptions options) {
     this.vertx = vertx;
@@ -21,7 +22,7 @@ public class SessionManagerImpl implements SessionManager {
 
     this.vertx.eventBus().consumer("io.vertx.mcp.server.notification", message -> {
       String sessionId = message.body().toString();
-      Session session = sessions.get(sessionId);
+      ServerSession session = sessions.get(sessionId);
       if (session != null) {
         //session.notify(message.body());
       }
@@ -29,13 +30,13 @@ public class SessionManagerImpl implements SessionManager {
   }
 
   @Override
-  public Session createSession() {
+  public ServerSession createSession(ClientCapabilities capabilities) {
     if (sessions.size() >= options.getMaxSessions()) {
       throw new IllegalStateException("Maximum session limit reached");
     }
 
     String sessionId = UUID.randomUUID().toString();
-    Session session = new SessionImpl(sessionId, options.getStreamingEnabled());
+    ServerSession session = new ServerSessionImpl(sessionId, options.getStreamingEnabled(), capabilities);
 
     sessions.put(sessionId, session);
 
@@ -43,7 +44,7 @@ public class SessionManagerImpl implements SessionManager {
     long timeoutMs = options.getSessionTimeoutMs();
     if (timeoutMs > 0) {
       vertx.setTimer(timeoutMs, timerId -> {
-        Session existingSession = sessions.get(sessionId);
+        ServerSession existingSession = sessions.get(sessionId);
         if (existingSession != null && !existingSession.isActive()) {
           sessions.remove(sessionId);
         }
@@ -54,7 +55,7 @@ public class SessionManagerImpl implements SessionManager {
   }
 
   @Override
-  public Session getSession(String sessionId) {
+  public ServerSession getSession(String sessionId) {
     return sessions.get(sessionId);
   }
 

@@ -9,7 +9,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
-import io.vertx.json.schema.common.dsl.SchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.request.CallToolRequest;
 import io.vertx.mcp.common.request.InitializeRequest;
@@ -33,8 +32,8 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     sendRequest(HttpMethod.POST, new InitializeRequest()).compose(resp -> {
       String sessionId = resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER);
-      context.assertNotNull(sessionId, "Session ID should be generated");
-      context.assertFalse(sessionId.isEmpty(), "Session ID should not be empty");
+      context.assertNotNull(sessionId, "ServerSession ID should be generated");
+      context.assertFalse(sessionId.isEmpty(), "ServerSession ID should not be empty");
 
       return resp.body().map(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -56,7 +55,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     sendRequest(HttpMethod.POST, new InitializeRequest()).compose(resp -> {
       String sessionId = resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER);
-      context.assertNull(sessionId, "Session ID should not be generated when sessions disabled");
+      context.assertNull(sessionId, "ServerSession ID should not be generated when sessions disabled");
 
       return resp.body().map(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -133,7 +132,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     toolFeature.addStructuredTool("check-session", StructuredToolHandler.create(Schemas.objectSchema(), SESSION_SCHEMA, args -> {
         Context ctx = Vertx.currentContext();
-        Session session = Session.fromContext(ctx);
+        ServerSession session = ServerSession.fromContext(ctx);
         JsonObject result = new JsonObject().put("hasSession", session != null).put("sessionId", session != null ? session.id() : null);
         return Future.succeededFuture(result);
       })
@@ -157,8 +156,8 @@ public class SessionManagementTest extends HttpTransportTestBase {
           JsonObject structuredContent = result.getJsonObject("structuredContent");
 
           // Verify session was in context
-          context.assertTrue(structuredContent.getBoolean("hasSession"), "Session should be in context");
-          context.assertEquals(sessionId, structuredContent.getString("sessionId"), "Session ID should match");
+          context.assertTrue(structuredContent.getBoolean("hasSession"), "ServerSession should be in context");
+          context.assertEquals(sessionId, structuredContent.getString("sessionId"), "ServerSession ID should match");
           return null;
         }))
       .onComplete(context.asyncAssertSuccess(v -> async.complete()));
@@ -178,8 +177,8 @@ public class SessionManagementTest extends HttpTransportTestBase {
         Context ctx = Vertx.currentContext();
 
         // Test both retrieval methods
-        Session sessionFromHelper = Session.fromContext(ctx);
-        Session sessionFromDirect = ctx.get(HttpServerTransport.MCP_SESSION_CONTEXT_KEY);
+        ServerSession sessionFromHelper = ServerSession.fromContext(ctx);
+        ServerSession sessionFromDirect = ctx.get(HttpServerTransport.MCP_SESSION_CONTEXT_KEY);
 
         boolean helperWorks = (sessionFromHelper != null && sessionFromHelper == sessionFromDirect);
         return Future.succeededFuture(new JsonObject().put("helperWorks", helperWorks));
@@ -203,7 +202,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
           JsonObject result = (JsonObject) response.getResult();
           JsonObject structuredContent = result.getJsonObject("structuredContent");
 
-          context.assertTrue(structuredContent.getBoolean("helperWorks"), "Session.fromContext() should work the same as direct context.get()");
+          context.assertTrue(structuredContent.getBoolean("helperWorks"), "ServerSession.fromContext() should work the same as direct context.get()");
           return null;
         }))
       .onComplete(context.asyncAssertSuccess(v -> async.complete()));

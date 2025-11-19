@@ -267,7 +267,7 @@ public class ServerOptions {
    */
   public ServerOptions setSessionTimeoutMs(long sessionTimeoutMs) {
     if (sessionTimeoutMs <= 0) {
-      throw new IllegalArgumentException("Session timeout must be positive");
+      throw new IllegalArgumentException("ServerSession timeout must be positive");
     }
     this.sessionTimeoutMs = sessionTimeoutMs;
     return this;

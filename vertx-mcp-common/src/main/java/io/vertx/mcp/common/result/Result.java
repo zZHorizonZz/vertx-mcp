@@ -1,6 +1,8 @@
 package io.vertx.mcp.common.result;
 
+import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
+import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Meta;
 import io.vertx.mcp.common.rpc.JsonRequest;
@@ -8,6 +10,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.Map;
 
+@DataObject
 public abstract class Result implements Meta {
 
   private Map<String, Object> _meta;

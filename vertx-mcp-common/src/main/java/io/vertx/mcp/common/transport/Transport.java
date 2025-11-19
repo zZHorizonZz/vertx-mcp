@@ -1,5 +1,6 @@
 package io.vertx.mcp.common.transport;
 
+import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
@@ -8,8 +9,8 @@ import io.vertx.core.json.JsonObject;
  * Represents a transport layer for MCP communication.
  * Handles the low-level sending and receiving of JSON-RPC messages.
  */
+@VertxGen
 public interface Transport {
-
   /**
    * Sends a JSON-RPC message.
    *

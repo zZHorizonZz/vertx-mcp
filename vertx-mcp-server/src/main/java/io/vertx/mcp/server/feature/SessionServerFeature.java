@@ -7,7 +7,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
-import io.vertx.mcp.server.Session;
+import io.vertx.mcp.server.ServerSession;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.Map;
@@ -50,7 +50,7 @@ public class SessionServerFeature extends ServerFeatureBase {
       );
     }
 
-    Session session = serverRequest.session();
+    ServerSession session = serverRequest.session();
 
     if (session == null) {
       return Future.succeededFuture(
@@ -81,7 +81,7 @@ public class SessionServerFeature extends ServerFeatureBase {
       );
     }
 
-    Session session = serverRequest.session();
+    ServerSession session = serverRequest.session();
 
     if (session == null) {
       return Future.succeededFuture(
@@ -124,11 +124,11 @@ public class SessionServerFeature extends ServerFeatureBase {
       );
     }
 
-    Session session = serverRequest.session();
+    ServerSession session = serverRequest.session();
 
     if (session == null) {
       return Future.succeededFuture(
-        JsonResponse.error(request, JsonError.internalError("Session management not available in transport"))
+        JsonResponse.error(request, JsonError.internalError("ServerSession management not available in transport"))
       );
     }
 

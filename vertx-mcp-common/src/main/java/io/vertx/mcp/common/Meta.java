@@ -1,6 +1,7 @@
 package io.vertx.mcp.common;
 
 import io.vertx.codegen.annotations.GenIgnore;
+import io.vertx.codegen.annotations.VertxGen;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Map;
 /**
  * Interface for objects that support metadata. Provides consistent metadata handling across all MCP protocol objects.
  */
+@VertxGen
 public interface Meta {
 
   /**

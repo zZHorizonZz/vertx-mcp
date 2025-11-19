@@ -73,7 +73,7 @@ public class ProtocolServerFeature extends ServerFeatureBase {
       }
     }
 
-    // Session creation is handled by HttpServerRequestImpl during request parsing
+    // ServerSession creation is handled by HttpServerRequestImpl during request parsing
 
     InitializeResult result = new InitializeResult()
       .setServerInfo(new Implementation()
