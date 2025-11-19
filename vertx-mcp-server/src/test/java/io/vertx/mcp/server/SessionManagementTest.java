@@ -74,7 +74,6 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    // First, initialize to get a session ID
     sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> sendStreamingRequest(HttpMethod.POST, new PingRequest().toRequest(2).toJson().toBuffer(), sessionId))
@@ -109,7 +108,6 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    // Ping without session ID should still work
     sendRequest(HttpMethod.POST, new PingRequest())
       .compose(resp -> {
         context.assertEquals(200, resp.statusCode());
@@ -127,7 +125,6 @@ public class SessionManagementTest extends HttpTransportTestBase {
     Async async = context.async();
     ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setSessionsEnabled(true));
 
-    // Add tool feature to test session in context
     ToolServerFeature toolFeature = new ToolServerFeature();
 
     toolFeature.addStructuredTool("check-session", StructuredToolHandler.create(Schemas.objectSchema(), SESSION_SCHEMA, args -> {
@@ -142,7 +139,6 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    // First, initialize to get a session ID
     sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> sendRequest(
@@ -155,7 +151,6 @@ public class SessionManagementTest extends HttpTransportTestBase {
           JsonObject result = (JsonObject) response.getResult();
           JsonObject structuredContent = result.getJsonObject("structuredContent");
 
-          // Verify session was in context
           context.assertTrue(structuredContent.getBoolean("hasSession"), "ServerSession should be in context");
           context.assertEquals(sessionId, structuredContent.getString("sessionId"), "ServerSession ID should match");
           return null;
@@ -173,10 +168,8 @@ public class SessionManagementTest extends HttpTransportTestBase {
     ToolServerFeature toolFeature = new ToolServerFeature();
 
     toolFeature.addStructuredTool("test-helper", StructuredToolHandler.create(Schemas.objectSchema(), HELPER_WORKS_SCHEMA, args -> {
-        // Get the current Vert.x context
         Context ctx = Vertx.currentContext();
 
-        // Test both retrieval methods
         ServerSession sessionFromHelper = ServerSession.fromContext(ctx);
         ServerSession sessionFromDirect = ctx.get(HttpServerTransport.MCP_SESSION_CONTEXT_KEY);
 
@@ -189,7 +182,6 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    // First, initialize to get a session ID
     sendRequest(HttpMethod.POST, new InitializeRequest())
       .compose(resp -> resp.body().map(body -> resp.getHeader(HttpServerTransport.MCP_SESSION_ID_HEADER)))
       .compose(sessionId -> sendRequest(

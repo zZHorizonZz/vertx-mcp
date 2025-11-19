@@ -99,7 +99,6 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
         context.assertNotNull(prompts, "Should have prompts array");
         context.assertEquals(2, prompts.size(), "Should have 2 prompts");
 
-        // Verify prompt structure
         JsonObject prompt1 = prompts.getJsonObject(0);
         context.assertEquals("code_review", prompt1.getString("name"));
         context.assertEquals("Code Review", prompt1.getString("title"));
@@ -187,7 +186,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
     Async async = context.async();
 
     sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/get", new JsonObject(), 1))
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -271,7 +270,6 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
         context.assertNotNull(messages, "Should have messages array");
         context.assertEquals(3, messages.size(), "Should have 3 messages");
 
-        // Verify roles
         context.assertEquals("user", messages.getJsonObject(0).getString("role"));
         context.assertEquals("assistant", messages.getJsonObject(1).getString("role"));
         context.assertEquals("user", messages.getJsonObject(2).getString("role"));

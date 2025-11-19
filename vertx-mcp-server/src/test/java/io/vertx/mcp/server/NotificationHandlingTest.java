@@ -21,7 +21,6 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
 
-    // Add a feature that handles notifications
     AtomicBoolean notificationReceived = new AtomicBoolean(false);
     server.addServerFeature(new ServerFeature() {
       @Override
@@ -37,7 +36,6 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    // Send a notification (no id field)
     JsonObject notificationJson = new JsonObject()
       .put("jsonrpc", "2.0")
       .put("method", "notifications/test")
@@ -46,11 +44,9 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     sendRequest(HttpMethod.POST, notificationJson.toBuffer()).onComplete(context.asyncAssertSuccess(resp -> {
       context.assertEquals(202, resp.statusCode(), "Notification should return 202 Accepted");
 
-      // Verify body is empty
       resp.body().onComplete(context.asyncAssertSuccess(body -> {
         context.assertTrue(body.length() == 0, "Response body should be empty for notification");
 
-        // Give the notification handler time to execute
         vertx.setTimer(100, tid -> {
           context.assertTrue(notificationReceived.get(), "Notification handler should have been called");
           async.complete();
@@ -69,7 +65,6 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    // Send a notification without a handler
     JsonObject notificationJson = new JsonObject()
       .put("jsonrpc", "2.0")
       .put("method", "notifications/unknown")
@@ -106,7 +101,6 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     startServer(context, server);
 
     sendRequest(HttpMethod.POST, JsonRequest.createRequest("notifications/test", new JsonObject(), 1).toBuffer()).onComplete(context.asyncAssertSuccess(resp -> {
-      // Notification should be ignored but connection should not fail
       resp.body().onComplete(context.asyncAssertSuccess(body -> vertx.setTimer(100, tid -> {
         context.assertFalse(notificationReceived.get(), "Notification handler should not be called when disabled");
         async.complete();
@@ -124,7 +118,6 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
     startServer(context, server);
 
-    // Send a request (has id field) to unknown method
     sendRequest(HttpMethod.POST, JsonRequest.createRequest("unknown/method", new JsonObject(), 1)).onComplete(context.asyncAssertSuccess(resp -> {
       context.assertEquals(200, resp.statusCode(), "Request should return 200");
 
@@ -152,13 +145,11 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
       .put("method", "ping")
       .put("params", new JsonObject());
 
-    // Test 1: Notification (no id)
     sendRequest(HttpMethod.POST, notificationJson.toBuffer()).onComplete(context.asyncAssertSuccess(resp -> {
       context.assertEquals(202, resp.statusCode());
       async.countDown();
     }));
 
-    // Test 2: Request (has id)
     sendRequest(HttpMethod.POST, new PingRequest()).onComplete(context.asyncAssertSuccess(resp -> {
       context.assertEquals(200, resp.statusCode());
       async.countDown();

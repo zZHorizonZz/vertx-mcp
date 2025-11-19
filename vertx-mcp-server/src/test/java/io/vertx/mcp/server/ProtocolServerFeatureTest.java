@@ -149,7 +149,6 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create();
     startServer(context, server);
 
-    // Invalid JSON-RPC (missing required fields)
     JsonObject request = new JsonObject().put("invalid", "request");
 
     sendRequest(HttpMethod.POST, request.toBuffer()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {

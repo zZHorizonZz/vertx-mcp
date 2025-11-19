@@ -43,11 +43,10 @@ public class McpInspectorTest extends HttpTransportTestBase {
   public void setUp(TestContext context) {
     super.setUp(context);
 
-    // Create MCP server with tools, resources, and prompts
     ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create();
 
-    // Add tools
     ToolServerFeature toolFeature = new ToolServerFeature();
+
     toolFeature.addStructuredTool(
       "echo",
       "Echo Tool",
@@ -192,9 +191,7 @@ public class McpInspectorTest extends HttpTransportTestBase {
     );
 
     future.onComplete(context.asyncAssertSuccess(output -> {
-      // The output should contain the result
-      context.assertTrue(output.length() > 0,
-        "Output should not be empty: " + output);
+      context.assertFalse(output.isEmpty(), "Output should not be empty: " + output);
       async.complete();
     }));
   }
@@ -208,10 +205,7 @@ public class McpInspectorTest extends HttpTransportTestBase {
     );
 
     future.onComplete(context.asyncAssertSuccess(output -> {
-      // Inspector should handle the error gracefully
-      // The server will return an error for unknown tool
-      context.assertTrue(output.length() > 0,
-        "Output should not be empty: " + output);
+      context.assertFalse(output.isEmpty(), "Output should not be empty: " + output);
       async.complete();
     }));
   }
