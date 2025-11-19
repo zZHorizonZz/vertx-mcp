@@ -79,7 +79,7 @@ public class McpInspectorTest extends HttpTransportTestBase {
 
     // Add resources
     ResourceServerFeature resourceFeature = new ResourceServerFeature();
-    resourceFeature.addStaticResource("example-resource", () ->
+    resourceFeature.addStaticResource("test://example", "example-resource", () ->
       Future.succeededFuture(new TextResourceContent()
         .setUri("test://example")
         .setName("Example Resource")

@@ -3,12 +3,13 @@ package io.vertx.mcp.common.result;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.completion.Completion;
 
 @DataObject
 @JsonGen(publicConverter = false)
 public class CompleteResult extends Result {
 
-  private JsonObject completion;
+  private Completion completion;
 
   public CompleteResult() {
     super(null);
@@ -19,11 +20,11 @@ public class CompleteResult extends Result {
     CompleteResultConverter.fromJson(json, this);
   }
 
-  public JsonObject getCompletion() {
+  public Completion getCompletion() {
     return completion;
   }
 
-  public CompleteResult setCompletion(JsonObject completion) {
+  public CompleteResult setCompletion(Completion completion) {
     this.completion = completion;
     return this;
   }

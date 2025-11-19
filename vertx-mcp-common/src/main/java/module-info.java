@@ -8,6 +8,7 @@ module io.vertx.mcp.common {
   exports io.vertx.mcp.common;
   exports io.vertx.mcp.common.capabilities;
   exports io.vertx.mcp.common.content;
+  exports io.vertx.mcp.common.completion;
   exports io.vertx.mcp.common.notification;
   exports io.vertx.mcp.common.prompt;
   exports io.vertx.mcp.common.reference;

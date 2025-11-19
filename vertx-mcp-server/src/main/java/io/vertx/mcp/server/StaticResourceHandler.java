@@ -13,8 +13,23 @@ import java.util.function.Supplier;
  */
 public interface StaticResourceHandler extends ServerFeatureHandler<Void, Future<Resource>> {
 
-  static StaticResourceHandler create(String name, Supplier<Future<Resource>> resourceSupplier) {
+  /**
+   * Creates a new instance of a {@code StaticResourceHandler} with the specified parameters.
+   *
+   * @param uri the fixed URI associated with the static resource
+   * @param name the name of the static resource handler
+   * @param title the title of the static resource handler
+   * @param description the description of the static resource handler
+   * @param resourceSupplier a supplier that dynamically provides the asynchronous resource content
+   * @return a new {@code StaticResourceHandler} instance initialized with the provided parameters
+   */
+  static StaticResourceHandler create(String uri, String name, String title, String description, Supplier<Future<Resource>> resourceSupplier) {
     return new StaticResourceHandler() {
+      @Override
+      public String uri() {
+        return uri;
+      }
+
       @Override
       public String name() {
         return name;
@@ -22,12 +37,12 @@ public interface StaticResourceHandler extends ServerFeatureHandler<Void, Future
 
       @Override
       public String title() {
-        return "";
+        return title;
       }
 
       @Override
       public String description() {
-        return "";
+        return description;
       }
 
       @Override
@@ -36,4 +51,11 @@ public interface StaticResourceHandler extends ServerFeatureHandler<Void, Future
       }
     };
   }
+
+  /**
+   * Retrieves the fixed URI associated with the static resource.
+   *
+   * @return the fixed URI where the static resource is accessible
+   */
+  String uri();
 }

@@ -3,6 +3,9 @@ package io.vertx.mcp.server.feature;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.completion.Completion;
+import io.vertx.mcp.common.completion.CompletionArgument;
+import io.vertx.mcp.common.completion.CompletionContext;
 import io.vertx.mcp.common.resources.Resource;
 import io.vertx.mcp.common.resources.ResourceTemplate;
 import io.vertx.mcp.common.result.ListResourceTemplatesResult;
@@ -20,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -44,18 +48,30 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   private Future<JsonResponse> handleListResources(ServerRequest serverRequest, JsonRequest request) {
-    JsonArray resourcesArray = new JsonArray();
+    JsonArray resources = new JsonArray();
 
     // Add all static resources
     for (StaticResourceHandler handler : staticHandlers) {
-      JsonObject resourceInfo = new JsonObject()
-        .put("uri", "resource://" + handler.name())
-        .put("name", handler.name());
-      resourcesArray.add(resourceInfo);
+      JsonObject resource = new JsonObject().put("uri", handler.uri());
+
+      if (handler.name() != null) {
+        resource.put("name", handler.name());
+      } else {
+        resource.put("name", handler.uri());
+      }
+
+      if (handler.title() != null) {
+        resource.put("title", handler.title());
+      }
+
+      if (handler.description() != null) {
+        resource.put("description", handler.description());
+      }
+
+      resources.add(resource);
     }
 
-    ListResourcesResult result = new ListResourcesResult()
-      .setResources(resourcesArray);
+    ListResourcesResult result = new ListResourcesResult().setResources(resources);
 
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
   }
@@ -72,8 +88,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
 
     // Try static resources first
     for (StaticResourceHandler handler : staticHandlers) {
-      String staticUri = "resource://" + handler.name();
-      if (staticUri.equals(uri)) {
+      if (handler.uri().equals(uri)) {
         return handler.apply(null)
           .compose(resource -> {
             JsonArray contents = new JsonArray().add(resource.toJson());
@@ -86,13 +101,11 @@ public class ResourceServerFeature extends ServerFeatureBase {
       }
     }
 
-    // Try dynamic resources - match using template pattern
     for (DynamicResourceHandler handler : dynamicHandlers) {
-      String template = handler.getResourceTemplate();
+      String template = handler.uri();
 
       if (matchesTemplate(uri, template)) {
-        // Extract template variables from the URI
-        java.util.Map<String, String> uriParams = extractTemplateVariables(uri, template);
+        Map<String, String> uriParams = extractTemplateVariables(uri, template);
 
         return handler.apply(uriParams)
           .compose(resource -> {
@@ -116,24 +129,34 @@ public class ResourceServerFeature extends ServerFeatureBase {
 
     // Convert dynamic handlers to resource templates
     for (DynamicResourceHandler handler : dynamicHandlers) {
-      ResourceTemplate template = new ResourceTemplate()
-        .setName(handler.getResourceTemplate())
-        .setUriTemplate(handler.getResourceTemplate());
+      ResourceTemplate template = new ResourceTemplate().setUriTemplate(handler.uri());
+
+      if (handler.name() != null) {
+        template.setName(handler.name());
+      }
+
+      if (handler.title() != null) {
+        template.setTitle(handler.title());
+      }
+
+      if (handler.description() != null) {
+        template.setDescription(handler.description());
+      }
+
       templates.add(template);
     }
 
-    ListResourceTemplatesResult result = new ListResourceTemplatesResult()
-      .setResourceTemplates(templates);
+    ListResourceTemplatesResult result = new ListResourceTemplatesResult().setResourceTemplates(templates);
 
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
   }
 
   /**
-   * Utility method to check if a URI matches a URI template pattern. Template variables are denoted by curly braces, e.g., "resource://{id}/details" or "{type}://resource/data"
+   * Utility method to check if a URI matches a URI uri pattern. Template variables are denoted by curly braces, e.g., "resource://{id}/details" or "{type}://resource/data"
    *
    * @param uri the URI to match
-   * @param template the URI template pattern
-   * @return true if the URI matches the template pattern
+   * @param template the URI uri pattern
+   * @return true if the URI matches the uri pattern
    */
   private boolean matchesTemplate(String uri, String template) {
     String[] uriParts = uri.split("/");
@@ -148,7 +171,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
       String templatePart = templateParts[i];
       String uriPart = uriParts[i];
 
-      // Check if this is a complete template variable (e.g., {id})
+      // Check if this is a complete uri variable (e.g., {id})
       if (templatePart.startsWith("{") && templatePart.endsWith("}")) {
         // Variable segment - matches any non-empty value
         if (uriPart.isEmpty()) {
@@ -157,7 +180,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
         continue;
       }
 
-      // Check if this segment contains template variables (e.g., {type}:)
+      // Check if this segment contains uri variables (e.g., {type}:)
       if (templatePart.contains("{") && templatePart.contains("}")) {
         if (!matchesSegmentWithVariables(uriPart, templatePart)) {
           return false;
@@ -175,11 +198,11 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Matches a URI segment against a template segment that contains variables. For example, matches "file:" against "{type}:"
+   * Matches a URI segment against a uri segment that contains variables. For example, matches "file:" against "{type}:"
    *
    * @param uriSegment the URI segment to match
-   * @param templateSegment the template segment with variables
-   * @return true if the URI segment matches the template
+   * @param templateSegment the uri segment with variables
+   * @return true if the URI segment matches the uri
    */
   private boolean matchesSegmentWithVariables(String uriSegment, String templateSegment) {
     int templatePos = 0;
@@ -190,7 +213,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
         // Find the closing brace
         int closeBrace = templateSegment.indexOf('}', templatePos);
         if (closeBrace == -1) {
-          return false; // Malformed template
+          return false; // Malformed uri
         }
 
         // Find what comes after the variable
@@ -230,10 +253,10 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Extracts template variables from a URI given a template pattern. For example, given URI "resource://user/123" and template "resource://user/{id}", returns {"id": "123"}
+   * Extracts uri variables from a URI given a uri pattern. For example, given URI "resource://user/123" and uri "resource://user/{id}", returns {"id": "123"}
    *
    * @param uri the URI to extract variables from
-   * @param template the URI template pattern
+   * @param template the URI uri pattern
    * @return map of variable names to their values
    */
   private java.util.Map<String, String> extractTemplateVariables(String uri, String template) {
@@ -246,14 +269,14 @@ public class ResourceServerFeature extends ServerFeatureBase {
       String templatePart = templateParts[i];
       String uriPart = uriParts[i];
 
-      // Check if this is a complete template variable (e.g., {id})
+      // Check if this is a complete uri variable (e.g., {id})
       if (templatePart.startsWith("{") && templatePart.endsWith("}")) {
         String varName = templatePart.substring(1, templatePart.length() - 1);
         variables.put(varName, uriPart);
         continue;
       }
 
-      // Check if this segment contains template variables (e.g., {type}:)
+      // Check if this segment contains uri variables (e.g., {type}:)
       if (templatePart.contains("{") && templatePart.contains("}")) {
         extractSegmentVariables(uriPart, templatePart, variables);
       }
@@ -263,10 +286,10 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Extracts variables from a URI segment that matches a template segment with variables. For example, given "file:" and "{type}:", extracts {"type": "file"}
+   * Extracts variables from a URI segment that matches a uri segment with variables. For example, given "file:" and "{type}:", extracts {"type": "file"}
    *
    * @param uriSegment the URI segment
-   * @param templateSegment the template segment with variables
+   * @param templateSegment the uri segment with variables
    * @param variables map to add extracted variables to
    */
   private void extractSegmentVariables(String uriSegment, String templateSegment, java.util.Map<String, String> variables) {
@@ -278,7 +301,7 @@ public class ResourceServerFeature extends ServerFeatureBase {
         // Find the closing brace
         int closeBrace = templateSegment.indexOf('}', templatePos);
         if (closeBrace == -1) {
-          return; // Malformed template
+          return; // Malformed uri
         }
 
         String varName = templateSegment.substring(templatePos + 1, closeBrace);
@@ -310,16 +333,45 @@ public class ResourceServerFeature extends ServerFeatureBase {
     }
   }
 
-  public void addStaticResource(String name, Supplier<Future<Resource>> resourceSupplier) {
-    staticHandlers.add(StaticResourceHandler.create(name, resourceSupplier));
+  public void addStaticResource(String uri, Supplier<Future<Resource>> resourceSupplier) {
+    addStaticResource(uri, uri, resourceSupplier);
+  }
+
+  public void addStaticResource(String uri, String name, Supplier<Future<Resource>> resourceSupplier) {
+    addStaticResource(uri, name, null, resourceSupplier);
+  }
+
+  public void addStaticResource(String uri, String name, String title, Supplier<Future<Resource>> resourceSupplier) {
+    addStaticResource(uri, name, title, null, resourceSupplier);
+  }
+
+  public void addStaticResource(String uri, String name, String title, String description, Supplier<Future<Resource>> resourceSupplier) {
+    addStaticResource(StaticResourceHandler.create(uri, name, title, description, resourceSupplier));
   }
 
   public void addStaticResource(StaticResourceHandler handler) {
     staticHandlers.add(handler);
   }
 
-  public void addDynamicResource(String template, java.util.function.Function<java.util.Map<String, String>, Future<Resource>> handler) {
-    dynamicHandlers.add(DynamicResourceHandler.create(template, handler));
+  public void addDynamicResource(String uri, Function<Map<String, String>, Future<Resource>> resourceFunction) {
+    addDynamicResource(uri, uri, resourceFunction);
+  }
+
+  public void addDynamicResource(String uri, String name, Function<Map<String, String>, Future<Resource>> resourceFunction) {
+    addDynamicResource(uri, name, null, resourceFunction);
+  }
+
+  public void addDynamicResource(String uri, String name, String title, Function<Map<String, String>, Future<Resource>> resourceFunction) {
+    addDynamicResource(uri, name, title, null, resourceFunction);
+  }
+
+  public void addDynamicResource(String uri, String name, String title, String description, Function<Map<String, String>, Future<Resource>> resourceFunction) {
+    addDynamicResource(uri, name, title, description, resourceFunction, null);
+  }
+
+  public void addDynamicResource(String uri, String name, String title, String description, Function<Map<String, String>, Future<Resource>> resourceFunction,
+    BiFunction<CompletionArgument, CompletionContext, Future<Completion>> completionFunction) {
+    addDynamicResource(DynamicResourceHandler.create(uri, name, title, description, resourceFunction, completionFunction));
   }
 
   public void addDynamicResource(DynamicResourceHandler handler) {
