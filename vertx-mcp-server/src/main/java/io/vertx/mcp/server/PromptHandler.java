@@ -1,5 +1,8 @@
 package io.vertx.mcp.server;
 
+import io.vertx.codegen.annotations.CacheReturn;
+import io.vertx.codegen.annotations.GenIgnore;
+import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
@@ -15,6 +18,7 @@ import java.util.function.Function;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#prompt">Server Features - Prompts - Prompt</a>
  */
+@VertxGen
 public interface PromptHandler extends Function<JsonObject, Future<List<PromptMessage>>> {
 
   /**
@@ -27,6 +31,7 @@ public interface PromptHandler extends Function<JsonObject, Future<List<PromptMe
    * @param function the function to process the input JSON and return a future list of prompt messages
    * @return a new {@code PromptHandler} instance initialized with the provided parameters
    */
+  @GenIgnore
   static PromptHandler create(String name, String title, String description, ArraySchemaBuilder arguments, Function<JsonObject, Future<List<PromptMessage>>> function) {
     return new PromptHandler() {
       @Override
@@ -61,6 +66,7 @@ public interface PromptHandler extends Function<JsonObject, Future<List<PromptMe
    *
    * @return the name of the prompt handler
    */
+  @CacheReturn
   String name();
 
   /**
@@ -68,6 +74,7 @@ public interface PromptHandler extends Function<JsonObject, Future<List<PromptMe
    *
    * @return the title associated with this prompt handler
    */
+  @CacheReturn
   String title();
 
   /**
@@ -75,6 +82,7 @@ public interface PromptHandler extends Function<JsonObject, Future<List<PromptMe
    *
    * @return the description of the prompt handler
    */
+  @CacheReturn
   String description();
 
   /**
@@ -82,5 +90,6 @@ public interface PromptHandler extends Function<JsonObject, Future<List<PromptMe
    *
    * @return the argument schema builder
    */
+  @GenIgnore
   ArraySchemaBuilder arguments();
 }

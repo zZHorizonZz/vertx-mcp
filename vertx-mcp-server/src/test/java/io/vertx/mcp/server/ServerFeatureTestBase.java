@@ -30,6 +30,6 @@ public abstract class ServerFeatureTestBase<T extends ServerFeature> extends Htt
 
     feature = createFeature();
 
-    super.mcpServer.serverFeatures(feature);
+    super.mcpServer.addServerFeature(feature);
   }
 }

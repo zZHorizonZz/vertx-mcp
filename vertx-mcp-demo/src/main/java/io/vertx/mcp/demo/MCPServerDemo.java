@@ -250,7 +250,7 @@ public class MCPServerDemo {
         })
     );
 
-    server.serverFeatures(toolFeature);
+    server.addServerFeature(toolFeature);
   }
 
   private static void setupResources(ModelContextProtocolServer server) {
@@ -368,7 +368,7 @@ public class MCPServerDemo {
       }
     });
 
-    server.serverFeatures(resourceFeature);
+    server.addServerFeature(resourceFeature);
   }
 
   private static void setupPrompts(ModelContextProtocolServer server) {
@@ -483,6 +483,6 @@ public class MCPServerDemo {
       }
     );
 
-    server.serverFeatures(promptFeature);
+    server.addServerFeature(promptFeature);
   }
 }

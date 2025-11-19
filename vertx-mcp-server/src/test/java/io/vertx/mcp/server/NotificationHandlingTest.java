@@ -23,7 +23,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     // Add a feature that handles notifications
     AtomicBoolean notificationReceived = new AtomicBoolean(false);
-    server.serverFeatures(new ServerFeature() {
+    server.addServerFeature(new ServerFeature() {
       @Override
       public void handle(ServerRequest request) {
         notificationReceived.set(true);
@@ -91,7 +91,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     AtomicBoolean notificationReceived = new AtomicBoolean(false);
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
 
-    server.serverFeatures(new ServerFeature() {
+    server.addServerFeature(new ServerFeature() {
       @Override
       public void handle(ServerRequest request) {
         notificationReceived.set(true);

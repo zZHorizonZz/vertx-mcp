@@ -1,16 +1,30 @@
 package io.vertx.mcp.server;
 
+import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Handler;
 
 import java.util.Set;
 
 /**
- * Base marker interface for MCP server features. Server features handle specific capabilities like tools, resources, prompts, etc. Context is obtained from Vert.x context.
+ * The {@code ServerFeature} interface represents a server feature in a JSON-RPC framework. It serves as a handler for processing server requests and provides a mechanism to define
+ * and retrieve the capabilities associated with the server feature.
  */
+@VertxGen
 public interface ServerFeature extends Handler<ServerRequest> {
 
+  /**
+   * Retrieves a set of capabilities associated with this server feature.
+   *
+   * @return a set of strings representing the capabilities provided by the server feature
+   */
   Set<String> getCapabilities();
 
+  /**
+   * Checks if the given capability is supported.
+   *
+   * @param capability the name of the capability to check
+   * @return true if the capability is supported, false otherwise
+   */
   default boolean hasCapability(String capability) {
     return getCapabilities().contains(capability);
   }

@@ -1,63 +1,80 @@
 package io.vertx.mcp.server;
 
+import io.vertx.codegen.annotations.Fluent;
+import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Handler;
-import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
 import io.vertx.mcp.server.feature.ProtocolServerFeature;
 import io.vertx.mcp.server.feature.SessionServerFeature;
+import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
 
 import java.util.List;
 
 /**
- * Main interface for the Model Context Protocol server. Supports registering individual items (tools, resources, prompts, roots) and handlers.
+ * The {@code ModelContextProtocolServer} interface defines a protocol server for managing Model Context Protocol operations. It extends the {@code Handler<ServerRequest>}
+ * interface to handle server requests within the JSON-RPC framework. This server provides functionalities such as protocol and session handling, feature registration, and
+ * interaction with server requests.
  */
+@VertxGen
 public interface ModelContextProtocolServer extends Handler<ServerRequest> {
 
   /**
-   * Creates a new MCP server with default options and protocol features pre-registered.
+   * Creates a new instance of the ModelContextProtocolServer with default server options. This method initializes a protocol server that supports the core features of the Model
+   * Context Protocol.
    *
-   * @return a new server instance with protocol and session features registered
+   * @return a new instance of ModelContextProtocolServer with default configuration.
    */
   static ModelContextProtocolServer create() {
     return create(new ServerOptions());
   }
 
   /**
-   * Creates a new MCP server with default protocol features pre-registered.
+   * Creates a new instance of the ModelContextProtocolServer using the specified server name and server version.
    *
-   * @param serverName the server name
-   * @param serverVersion the server version
-   * @return a new server instance with protocol and session features registered
+   * @param serverName the name of the server
+   * @param serverVersion the version of the server
+   * @return a new instance of ModelContextProtocolServer configured with the specified server name and version
    */
   static ModelContextProtocolServer create(String serverName, String serverVersion) {
-    ServerOptions options = new ServerOptions()
-      .setServerName(serverName)
-      .setServerVersion(serverVersion);
-    return create(options);
+    return create(new ServerOptions().setServerName(serverName).setServerVersion(serverVersion));
   }
 
   /**
-   * Creates a new MCP server with the specified options and protocol features pre-registered.
+   * Creates and returns a new instance of {@code ModelContextProtocolServer} with the specified server options. Registers necessary features including protocol and session
+   * handling (if sessions are enabled).
    *
-   * @param options the server options
-   * @return a new server instance with protocol and session features registered
+   * @param options the {@code ServerOptions} object containing configuration details for the server
+   * @return a new instance of {@code ModelContextProtocolServer} initialized with the provided options
    */
   static ModelContextProtocolServer create(ServerOptions options) {
     ModelContextProtocolServer server = new ModelContextProtocolServerImpl(options);
 
     // Register protocol feature (handles initialize, ping)
     ProtocolServerFeature protocolFeature = new ProtocolServerFeature(server, options);
-    server.serverFeatures(protocolFeature);
+    server.addServerFeature(protocolFeature);
 
     // Register session feature if sessions are enabled (handles subscribe, unsubscribe)
     if (options.getSessionsEnabled()) {
       SessionServerFeature sessionFeature = new SessionServerFeature(options);
-      server.serverFeatures(sessionFeature);
+      server.addServerFeature(sessionFeature);
     }
 
     return server;
   }
 
-  ModelContextProtocolServer serverFeatures(ServerFeature feature);
+  /**
+   * Adds a server feature to the Model Context Protocol server. Server features define specific capabilities for the server, such as handling tools, resources, or prompts.
+   *
+   * @param feature the server feature to add
+   * @return the current instance of {@code ModelContextProtocolServer}, allowing for method chaining
+   */
+  @Fluent
+  ModelContextProtocolServer addServerFeature(ServerFeature feature);
 
+  /**
+   * Retrieves the list of server features registered with the server. Each server feature represents a specific capability supported by the server, such as tools, resources, or
+   * prompts.
+   *
+   * @return a list of registered server features
+   */
   List<ServerFeature> features();
 }

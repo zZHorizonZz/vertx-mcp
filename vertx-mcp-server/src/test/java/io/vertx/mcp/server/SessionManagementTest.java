@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 import io.vertx.json.schema.common.dsl.SchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.request.CallToolRequest;
@@ -20,8 +21,8 @@ import org.junit.Test;
 
 public class SessionManagementTest extends HttpTransportTestBase {
 
-  private static final SchemaBuilder SESSION_SCHEMA = Schemas.objectSchema().property("hasSession", Schemas.booleanSchema()).property("sessionId", Schemas.stringSchema());
-  private static final SchemaBuilder HELPER_WORKS_SCHEMA = Schemas.objectSchema().property("helperWorks", Schemas.booleanSchema());
+  private static final ObjectSchemaBuilder SESSION_SCHEMA = Schemas.objectSchema().property("hasSession", Schemas.booleanSchema()).property("sessionId", Schemas.stringSchema());
+  private static final ObjectSchemaBuilder HELPER_WORKS_SCHEMA = Schemas.objectSchema().property("helperWorks", Schemas.booleanSchema());
 
   @Test
   public void testInitializeGeneratesSessionId(TestContext context) {
@@ -138,7 +139,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
       })
     );
 
-    server.serverFeatures(toolFeature);
+    server.addServerFeature(toolFeature);
 
     startServer(context, server);
 
@@ -185,7 +186,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
       })
     );
 
-    server.serverFeatures(toolFeature);
+    server.addServerFeature(toolFeature);
 
     startServer(context, server);
 

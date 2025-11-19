@@ -1,5 +1,7 @@
 package io.vertx.mcp.server;
 
+import io.vertx.codegen.annotations.GenIgnore;
+import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.JsonObject;
@@ -11,6 +13,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
  * Represents the server response in a JSON-RPC framework. This interface extends {@link WriteStream} and provides mechanisms for writing and managing JSON-RPC responses and
  * notifications.
  */
+@VertxGen
 public interface ServerResponse extends WriteStream<JsonObject> {
 
   /**
@@ -25,6 +28,7 @@ public interface ServerResponse extends WriteStream<JsonObject> {
    *
    * @return the internal context of the server response
    */
+  @GenIgnore
   ContextInternal context();
 
   /**

@@ -2,6 +2,7 @@ package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 import io.vertx.json.schema.common.dsl.SchemaBuilder;
 
 import java.util.function.Function;
@@ -15,7 +16,7 @@ import java.util.function.Function;
  */
 public interface StructuredToolHandler extends Function<JsonObject, Future<JsonObject>> {
 
-  static StructuredToolHandler create(SchemaBuilder inputSchema, SchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> function) {
+  static StructuredToolHandler create(ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> function) {
     if (inputSchema == null) {
       throw new IllegalArgumentException("Input schema must not be null");
     }
@@ -26,12 +27,12 @@ public interface StructuredToolHandler extends Function<JsonObject, Future<JsonO
 
     return new StructuredToolHandler() {
       @Override
-      public SchemaBuilder inputSchema() {
+      public ObjectSchemaBuilder inputSchema() {
         return inputSchema;
       }
 
       @Override
-      public SchemaBuilder outputSchema() {
+      public ObjectSchemaBuilder outputSchema() {
         return outputSchema;
       }
 
@@ -42,7 +43,7 @@ public interface StructuredToolHandler extends Function<JsonObject, Future<JsonO
     };
   }
 
-  SchemaBuilder inputSchema();
+  ObjectSchemaBuilder inputSchema();
 
-  SchemaBuilder outputSchema();
+  ObjectSchemaBuilder outputSchema();
 }

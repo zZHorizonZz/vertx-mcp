@@ -10,6 +10,7 @@
  */
 package io.vertx.mcp.common.rpc;
 
+import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 /**
@@ -22,6 +23,7 @@ import io.vertx.core.json.JsonObject;
  *   <li>data - A Primitive or Structured value that contains additional information about the error (optional).</li>
  * </ul>
  */
+@DataObject
 public class JsonError {
 
   // Standard error codes

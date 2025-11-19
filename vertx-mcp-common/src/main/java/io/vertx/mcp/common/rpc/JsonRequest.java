@@ -10,6 +10,7 @@
  */
 package io.vertx.mcp.common.rpc;
 
+import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -25,6 +26,7 @@ import io.vertx.core.json.JsonObject;
  *   <li>id - An identifier established by the Client (optional for notifications).</li>
  * </ul>
  */
+@DataObject
 public class JsonRequest {
 
   private static final String JSONRPC_VERSION = "2.0";

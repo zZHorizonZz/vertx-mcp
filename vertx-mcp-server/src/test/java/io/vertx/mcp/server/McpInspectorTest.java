@@ -105,9 +105,9 @@ public class McpInspectorTest extends HttpTransportTestBase {
       }
     );
 
-    mcpServer.serverFeatures(toolFeature);
-    mcpServer.serverFeatures(resourceFeature);
-    mcpServer.serverFeatures(promptFeature);
+    mcpServer.addServerFeature(toolFeature);
+    mcpServer.addServerFeature(resourceFeature);
+    mcpServer.addServerFeature(promptFeature);
 
     startServer(context, mcpServer);
   }

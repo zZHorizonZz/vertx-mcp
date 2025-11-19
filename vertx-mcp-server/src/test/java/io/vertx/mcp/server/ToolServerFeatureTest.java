@@ -1,12 +1,13 @@
 package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.json.schema.common.dsl.SchemaBuilder;
+import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
@@ -19,22 +20,14 @@ import org.junit.Test;
 
 public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeature> {
 
-  // Common input schemas used across tests
-  private static final SchemaBuilder EMPTY_SCHEMA = Schemas.objectSchema();
-  private static final SchemaBuilder TEXT_INPUT_SCHEMA = Schemas.objectSchema()
-    .requiredProperty("text", Schemas.stringSchema());
-  private static final SchemaBuilder MESSAGE_INPUT_SCHEMA = Schemas.objectSchema()
-    .requiredProperty("message", Schemas.stringSchema());
-  private static final SchemaBuilder NUMBER_VALUE_SCHEMA = Schemas.objectSchema()
-    .requiredProperty("value", Schemas.numberSchema());
-  private static final SchemaBuilder STRING_VALUE_SCHEMA = Schemas.objectSchema()
-    .requiredProperty("value", Schemas.stringSchema());
+  private static final ObjectSchemaBuilder EMPTY_SCHEMA = Schemas.objectSchema();
+  private static final ObjectSchemaBuilder TEXT_INPUT_SCHEMA = Schemas.objectSchema().requiredProperty("text", Schemas.stringSchema());
+  private static final ObjectSchemaBuilder MESSAGE_INPUT_SCHEMA = Schemas.objectSchema().requiredProperty("message", Schemas.stringSchema());
+  private static final ObjectSchemaBuilder NUMBER_VALUE_SCHEMA = Schemas.objectSchema().requiredProperty("value", Schemas.numberSchema());
+  private static final ObjectSchemaBuilder STRING_VALUE_SCHEMA = Schemas.objectSchema().requiredProperty("value", Schemas.stringSchema());
 
-  // Common output schemas
-  private static final SchemaBuilder MESSAGE_OUTPUT_SCHEMA = Schemas.objectSchema()
-    .property("message", Schemas.stringSchema());
-  private static final SchemaBuilder NUMBER_OUTPUT_SCHEMA = Schemas.objectSchema()
-    .property("result", Schemas.numberSchema());
+  private static final ObjectSchemaBuilder MESSAGE_OUTPUT_SCHEMA = Schemas.objectSchema().property("message", Schemas.stringSchema());
+  private static final ObjectSchemaBuilder NUMBER_OUTPUT_SCHEMA = Schemas.objectSchema().property("result", Schemas.numberSchema());
 
   @Override
   protected ToolServerFeature createFeature() {
@@ -48,7 +41,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = new ListToolsRequest().toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -99,12 +92,11 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       )
     );
 
-
     Async async = context.async();
     JsonRequest request = new ListToolsRequest().toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -161,12 +153,11 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       )
     );
 
-
     Async async = context.async();
     JsonRequest request = new ListToolsRequest().toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -205,7 +196,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
         })
     );
 
-
     Async async = context.async();
 
     JsonObject params = new JsonObject()
@@ -216,7 +206,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = new CallToolRequest(params).toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -249,7 +239,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       )
     );
 
-
     Async async = context.async();
 
     JsonObject params = new JsonObject()
@@ -259,7 +248,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = new CallToolRequest(params).toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -284,7 +273,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
   @Test
   public void testCallToolNotFound(TestContext context) {
 
-
     Async async = context.async();
 
     JsonObject params = new JsonObject()
@@ -293,7 +281,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = new CallToolRequest(params).toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -310,7 +298,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
   @Test
   public void testCallToolMissingName(TestContext context) {
 
-
     Async async = context.async();
 
     JsonObject params = new JsonObject()
@@ -318,7 +305,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = JsonRequest.createRequest("tools/call", params, 1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -345,7 +332,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       )
     );
 
-
     Async async = context.async();
 
     JsonObject params = new JsonObject()
@@ -354,7 +340,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = new CallToolRequest(params).toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -384,7 +370,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       )
     );
 
-
     Async async = context.async();
 
     JsonObject params = new JsonObject()
@@ -393,7 +378,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = new CallToolRequest(params).toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -413,13 +398,12 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
   @Test
   public void testUnsupportedToolMethod(TestContext context) {
 
-
     Async async = context.async();
 
     JsonRequest request = JsonRequest.createRequest("tools/unsupported", new JsonObject(), 1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -445,7 +429,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       )
     );
 
-
     Async async = context.async();
 
     JsonObject params = new JsonObject()
@@ -454,7 +437,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     JsonRequest request = new CallToolRequest(params).toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 
@@ -485,12 +468,11 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       );
     }
 
-
     Async async = context.async();
     JsonRequest request = new ListToolsRequest().toRequest(1);
 
     sendRequest(HttpMethod.POST, request.toJson().toBuffer())
-      .compose(resp -> resp.body())
+      .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
 

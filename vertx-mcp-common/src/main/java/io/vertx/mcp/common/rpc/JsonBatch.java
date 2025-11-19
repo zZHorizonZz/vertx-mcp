@@ -10,6 +10,7 @@
  */
 package io.vertx.mcp.common.rpc;
 
+import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -21,6 +22,7 @@ import java.util.List;
  * <p>
  * A batch allows sending multiple requests or responses in a single JSON-RPC call.
  */
+@DataObject
 public class JsonBatch {
 
   private final List<Object> items;

@@ -54,7 +54,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       .setSessionsEnabled(true);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
-    server.serverFeatures(new ResourceServerFeature());
+    server.addServerFeature(new ResourceServerFeature());
 
     startServer(context, server);
 
@@ -82,7 +82,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       .setSessionsEnabled(false);
 
     ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
-    server.serverFeatures(new ResourceServerFeature());
+    server.addServerFeature(new ResourceServerFeature());
 
     startServer(context, server);
 

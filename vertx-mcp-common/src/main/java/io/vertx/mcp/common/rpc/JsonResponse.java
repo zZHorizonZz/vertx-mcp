@@ -10,6 +10,7 @@
  */
 package io.vertx.mcp.common.rpc;
 
+import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 /**
@@ -23,6 +24,7 @@ import io.vertx.core.json.JsonObject;
  *   <li>id - This member is REQUIRED. It MUST be the same as the value of the id member in the Request Object.</li>
  * </ul>
  */
+@DataObject
 public class JsonResponse {
 
   private static final String JSONRPC_VERSION = "2.0";
