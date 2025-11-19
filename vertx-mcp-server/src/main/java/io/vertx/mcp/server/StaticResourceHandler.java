@@ -11,22 +11,29 @@ import java.util.function.Supplier;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources#resource">Server Features - Resources - Resource</a>
  */
-public interface StaticResourceHandler extends Supplier<Future<Resource>> {
+public interface StaticResourceHandler extends ServerFeatureHandler<Void, Future<Resource>> {
 
   static StaticResourceHandler create(String name, Supplier<Future<Resource>> resourceSupplier) {
     return new StaticResourceHandler() {
       @Override
-      public String getResourceName() {
+      public String name() {
         return name;
       }
 
       @Override
-      public Future<Resource> get() {
+      public String title() {
+        return "";
+      }
+
+      @Override
+      public String description() {
+        return "";
+      }
+
+      @Override
+      public Future<Resource> apply(Void unused) {
         return resourceSupplier.get();
       }
     };
   }
-
-  String getResourceName();
-
 }

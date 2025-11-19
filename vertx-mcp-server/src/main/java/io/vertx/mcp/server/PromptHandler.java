@@ -1,6 +1,5 @@
 package io.vertx.mcp.server;
 
-import io.vertx.codegen.annotations.CacheReturn;
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
@@ -19,8 +18,7 @@ import java.util.function.Function;
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#prompt">Server Features - Prompts - Prompt</a>
  */
 @VertxGen
-public interface PromptHandler extends Function<JsonObject, Future<List<PromptMessage>>> {
-
+public interface PromptHandler extends ServerFeatureHandler<JsonObject, Future<List<PromptMessage>>> {
   /**
    * Creates a new instance of a {@code PromptHandler} with specified parameters.
    *
@@ -60,30 +58,6 @@ public interface PromptHandler extends Function<JsonObject, Future<List<PromptMe
       }
     };
   }
-
-  /**
-   * Retrieves the name of the prompt handler.
-   *
-   * @return the name of the prompt handler
-   */
-  @CacheReturn
-  String name();
-
-  /**
-   * Retrieves the title of the prompt handler.
-   *
-   * @return the title associated with this prompt handler
-   */
-  @CacheReturn
-  String title();
-
-  /**
-   * Provides the description of the prompt handler.
-   *
-   * @return the description of the prompt handler
-   */
-  @CacheReturn
-  String description();
 
   /**
    * Provides the argument schema builder for the prompt, which defines the expected structure of the arguments to be passed.

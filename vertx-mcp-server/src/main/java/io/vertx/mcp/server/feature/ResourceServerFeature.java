@@ -49,8 +49,8 @@ public class ResourceServerFeature extends ServerFeatureBase {
     // Add all static resources
     for (StaticResourceHandler handler : staticHandlers) {
       JsonObject resourceInfo = new JsonObject()
-        .put("uri", "resource://" + handler.getResourceName())
-        .put("name", handler.getResourceName());
+        .put("uri", "resource://" + handler.name())
+        .put("name", handler.name());
       resourcesArray.add(resourceInfo);
     }
 
@@ -72,9 +72,9 @@ public class ResourceServerFeature extends ServerFeatureBase {
 
     // Try static resources first
     for (StaticResourceHandler handler : staticHandlers) {
-      String staticUri = "resource://" + handler.getResourceName();
+      String staticUri = "resource://" + handler.name();
       if (staticUri.equals(uri)) {
-        return handler.get()
+        return handler.apply(null)
           .compose(resource -> {
             JsonArray contents = new JsonArray().add(resource.toJson());
             ReadResourceResult result = new ReadResourceResult().setContents(contents);

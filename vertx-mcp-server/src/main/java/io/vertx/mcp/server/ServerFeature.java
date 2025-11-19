@@ -11,7 +11,6 @@ import java.util.Set;
  */
 @VertxGen
 public interface ServerFeature extends Handler<ServerRequest> {
-
   /**
    * Retrieves a set of capabilities associated with this server feature.
    *
@@ -28,5 +27,4 @@ public interface ServerFeature extends Handler<ServerRequest> {
   default boolean hasCapability(String capability) {
     return getCapabilities().contains(capability);
   }
-
 }

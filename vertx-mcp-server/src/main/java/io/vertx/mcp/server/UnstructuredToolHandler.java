@@ -14,7 +14,7 @@ import java.util.function.Function;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool">Server Features - Tools - Tool</a>
  */
-public interface UnstructuredToolHandler extends Function<JsonObject, Future<Content[]>> {
+public interface UnstructuredToolHandler extends ServerFeatureHandler<JsonObject, Future<Content[]>> {
 
   static UnstructuredToolHandler create(ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> function) {
     if (inputSchema == null) {
@@ -22,6 +22,21 @@ public interface UnstructuredToolHandler extends Function<JsonObject, Future<Con
     }
 
     return new UnstructuredToolHandler() {
+      @Override
+      public String name() {
+        return "";
+      }
+
+      @Override
+      public String title() {
+        return "";
+      }
+
+      @Override
+      public String description() {
+        return "";
+      }
+
       @Override
       public ObjectSchemaBuilder inputSchema() {
         return inputSchema;
