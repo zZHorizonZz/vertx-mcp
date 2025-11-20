@@ -20,13 +20,15 @@ public class SessionManagerImpl implements SessionManager {
     this.vertx = vertx;
     this.options = options;
 
-    this.vertx.eventBus().consumer("io.vertx.mcp.server.notification", message -> {
-      String sessionId = message.body().toString();
+    /*this.vertx.eventBus().consumer("io.vertx.mcp.server.notification", message -> {
+      String id = message.headers().get("Mcp-Session-Id");
+      String notification =
       ServerSession session = sessions.get(sessionId);
       if (session != null) {
+        session.sendNotification()
         //session.notify(message.body());
       }
-    });
+    });*/
   }
 
   @Override

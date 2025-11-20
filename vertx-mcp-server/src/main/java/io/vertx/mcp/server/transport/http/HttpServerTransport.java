@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 public class HttpServerTransport implements Handler<HttpServerRequest> {
 
-  public static final String MCP_SESSION_ID_HEADER = "Mcp-ServerSession-Id";
+  public static final String MCP_SESSION_ID_HEADER = "Mcp-Session-Id";
   public static final String MCP_PROTOCOL_VERSION_HEADER = "Mcp-Protocol-Version";
   public static final String MCP_SESSION_CONTEXT_KEY = "mcp.session";
 

@@ -10,10 +10,7 @@ import io.vertx.mcp.common.capabilities.ToolsCapability;
 import io.vertx.mcp.common.result.InitializeResult;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.server.ModelContextProtocolServer;
-import io.vertx.mcp.server.ServerFeature;
-import io.vertx.mcp.server.ServerOptions;
-import io.vertx.mcp.server.ServerRequest;
+import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.Map;
@@ -58,10 +55,12 @@ public class ProtocolServerFeature extends ServerFeatureBase {
       }
       if (featureCapabilities.stream().anyMatch(cap -> cap.startsWith("resources/"))) {
         ResourcesCapability resourcesCap = new ResourcesCapability();
+
         // Subscribe capability requires sessions
         if (options.getSessionsEnabled()) {
           resourcesCap.setSubscribe(true);
         }
+
         resourcesCap.setListChanged(options.getNotificationsEnabled());
         capabilities.setResources(resourcesCap);
       }
@@ -71,9 +70,10 @@ public class ProtocolServerFeature extends ServerFeatureBase {
       if (featureCapabilities.stream().anyMatch(cap -> cap.equals("logging"))) {
         capabilities.setLogging(new JsonObject());
       }
+      if (featureCapabilities.stream().anyMatch(cap -> cap.startsWith("completion/"))) {
+        capabilities.setCompletions(new JsonObject());
+      }
     }
-
-    // ServerSession creation is handled by HttpServerRequestImpl during request parsing
 
     InitializeResult result = new InitializeResult()
       .setServerInfo(new Implementation()

@@ -14,6 +14,7 @@ import io.vertx.mcp.common.result.ReadResourceResult;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.mcp.server.CompletionProvider;
 import io.vertx.mcp.server.DynamicResourceHandler;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StaticResourceHandler;
@@ -22,9 +23,12 @@ import io.vertx.mcp.server.impl.ServerFeatureBase;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The ResourceServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to resource management. This includes listing
@@ -33,7 +37,7 @@ import java.util.function.Supplier;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources">Server Features - Resources</a>
  */
-public class ResourceServerFeature extends ServerFeatureBase {
+public class ResourceServerFeature extends ServerFeatureBase implements CompletionProvider {
 
   private final List<StaticResourceHandler> staticHandlers = new ArrayList<>();
   private final List<DynamicResourceHandler> dynamicHandlers = new ArrayList<>();
@@ -45,6 +49,46 @@ public class ResourceServerFeature extends ServerFeatureBase {
       "resources/read", this::handleReadResource,
       "resources/templates/list", this::handleListResourceTemplates
     );
+  }
+
+  @Override
+  public Future<Completion> handleCompletion(String refType, String refName, CompletionArgument argument, CompletionContext context) {
+    // For completion, refName is the URI template itself (e.g., "resource://user/{id}")
+    // Find the handler with matching template
+    for (DynamicResourceHandler handler : dynamicHandlers) {
+      String handlerTemplate = handler.uri();
+
+      // Direct template match or pattern match for completion
+      if (handlerTemplate.equals(refName) || templateMatchesPattern(refName, handlerTemplate)) {
+        // Delegate to the handler's completion function
+        Future<Completion> completionFuture = handler.completion(argument, context);
+        if (completionFuture != null) {
+          return completionFuture;
+        }
+      }
+    }
+
+    // Return empty completion if no handler found or no completion function
+    return Future.succeededFuture(new Completion()
+      .setValues(new ArrayList<>())
+      .setTotal(0)
+      .setHasMore(false));
+  }
+
+  /**
+   * Checks if two URI templates could match the same pattern.
+   * This compares the structure of templates for completion purposes.
+   */
+  private boolean templateMatchesPattern(String template1, String template2) {
+    // Normalize both templates by replacing variables with a placeholder
+    String normalized1 = template1.replaceAll("\\{[^}]+\\}", "{var}");
+    String normalized2 = template2.replaceAll("\\{[^}]+\\}", "{var}");
+    return normalized1.equals(normalized2);
+  }
+
+  @Override
+  public Set<String> getCompletionCapabilities() {
+    return Set.of("ref/resource");
   }
 
   private Future<JsonResponse> handleListResources(ServerRequest serverRequest, JsonRequest request) {
@@ -152,185 +196,88 @@ public class ResourceServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Utility method to check if a URI matches a URI uri pattern. Template variables are denoted by curly braces, e.g., "resource://{id}/details" or "{type}://resource/data"
+   * Converts a URI template to a regex pattern for matching.
+   * Template variables like {id} are converted to named capture groups.
+   *
+   * @param template the URI template
+   * @return the compiled regex pattern
+   */
+  private Pattern templateToPattern(String template) {
+    // Escape regex special characters except { and }
+    String regex = template
+      .replace(".", "\\.")
+      .replace("?", "\\?")
+      .replace("+", "\\+")
+      .replace("*", "\\*")
+      .replace("[", "\\[")
+      .replace("]", "\\]")
+      .replace("(", "\\(")
+      .replace(")", "\\)")
+      .replace("^", "\\^")
+      .replace("$", "\\$")
+      .replace("|", "\\|");
+
+    // Replace {varname} with named capture groups
+    regex = regex.replaceAll("\\{([^}]+)\\}", "(?<$1>[^/]+)");
+
+    return Pattern.compile("^" + regex + "$");
+  }
+
+  /**
+   * Utility method to check if a URI matches a URI template pattern.
+   * Template variables are denoted by curly braces, e.g., "resource://user/{id}"
    *
    * @param uri the URI to match
-   * @param template the URI uri pattern
-   * @return true if the URI matches the uri pattern
+   * @param template the URI template pattern
+   * @return true if the URI matches the template pattern
    */
   private boolean matchesTemplate(String uri, String template) {
-    String[] uriParts = uri.split("/");
-    String[] templateParts = template.split("/");
-
-    // Must have same number of segments
-    if (uriParts.length != templateParts.length) {
+    try {
+      Pattern pattern = templateToPattern(template);
+      return pattern.matcher(uri).matches();
+    } catch (Exception e) {
       return false;
     }
-
-    for (int i = 0; i < templateParts.length; i++) {
-      String templatePart = templateParts[i];
-      String uriPart = uriParts[i];
-
-      // Check if this is a complete uri variable (e.g., {id})
-      if (templatePart.startsWith("{") && templatePart.endsWith("}")) {
-        // Variable segment - matches any non-empty value
-        if (uriPart.isEmpty()) {
-          return false;
-        }
-        continue;
-      }
-
-      // Check if this segment contains uri variables (e.g., {type}:)
-      if (templatePart.contains("{") && templatePart.contains("}")) {
-        if (!matchesSegmentWithVariables(uriPart, templatePart)) {
-          return false;
-        }
-        continue;
-      }
-
-      // Literal segment - must match exactly
-      if (!templatePart.equals(uriPart)) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   /**
-   * Matches a URI segment against a uri segment that contains variables. For example, matches "file:" against "{type}:"
-   *
-   * @param uriSegment the URI segment to match
-   * @param templateSegment the uri segment with variables
-   * @return true if the URI segment matches the uri
-   */
-  private boolean matchesSegmentWithVariables(String uriSegment, String templateSegment) {
-    int templatePos = 0;
-    int uriPos = 0;
-
-    while (templatePos < templateSegment.length()) {
-      if (templateSegment.charAt(templatePos) == '{') {
-        // Find the closing brace
-        int closeBrace = templateSegment.indexOf('}', templatePos);
-        if (closeBrace == -1) {
-          return false; // Malformed uri
-        }
-
-        // Find what comes after the variable
-        int afterVar = closeBrace + 1;
-        if (afterVar < templateSegment.length()) {
-          // There's literal text after the variable - find it in the URI
-          char nextLiteral = templateSegment.charAt(afterVar);
-          int nextLiteralPos = uriSegment.indexOf(nextLiteral, uriPos);
-          if (nextLiteralPos == -1) {
-            return false; // Required literal not found
-          }
-          // Variable matches everything from uriPos to nextLiteralPos
-          if (nextLiteralPos == uriPos) {
-            return false; // Variable must match at least one character
-          }
-          uriPos = nextLiteralPos;
-        } else {
-          // Variable is at the end - matches rest of URI segment
-          if (uriPos >= uriSegment.length()) {
-            return false; // Variable must match at least one character
-          }
-          uriPos = uriSegment.length();
-        }
-        templatePos = afterVar;
-      } else {
-        // Literal character - must match
-        if (uriPos >= uriSegment.length() || uriSegment.charAt(uriPos) != templateSegment.charAt(templatePos)) {
-          return false;
-        }
-        templatePos++;
-        uriPos++;
-      }
-    }
-
-    // Both must be fully consumed
-    return uriPos == uriSegment.length();
-  }
-
-  /**
-   * Extracts uri variables from a URI given a uri pattern. For example, given URI "resource://user/123" and uri "resource://user/{id}", returns {"id": "123"}
+   * Extracts template variables from a URI given a template pattern.
+   * For example, given URI "resource://user/123" and template "resource://user/{id}",
+   * returns {"id": "123"}
    *
    * @param uri the URI to extract variables from
-   * @param template the URI uri pattern
+   * @param template the URI template pattern
    * @return map of variable names to their values
    */
-  private java.util.Map<String, String> extractTemplateVariables(String uri, String template) {
-    java.util.Map<String, String> variables = new java.util.HashMap<>();
+  private Map<String, String> extractTemplateVariables(String uri, String template) {
+    Map<String, String> variables = new java.util.HashMap<>();
 
-    String[] uriParts = uri.split("/");
-    String[] templateParts = template.split("/");
+    try {
+      Pattern pattern = templateToPattern(template);
+      Matcher matcher = pattern.matcher(uri);
 
-    for (int i = 0; i < templateParts.length && i < uriParts.length; i++) {
-      String templatePart = templateParts[i];
-      String uriPart = uriParts[i];
+      if (matcher.matches()) {
+        // Extract all named groups
+        Pattern varPattern = Pattern.compile("\\{([^}]+)\\}");
+        Matcher varMatcher = varPattern.matcher(template);
 
-      // Check if this is a complete uri variable (e.g., {id})
-      if (templatePart.startsWith("{") && templatePart.endsWith("}")) {
-        String varName = templatePart.substring(1, templatePart.length() - 1);
-        variables.put(varName, uriPart);
-        continue;
+        while (varMatcher.find()) {
+          String varName = varMatcher.group(1);
+          try {
+            String value = matcher.group(varName);
+            if (value != null) {
+              variables.put(varName, value);
+            }
+          } catch (IllegalArgumentException e) {
+            // Group not found, skip
+          }
+        }
       }
-
-      // Check if this segment contains uri variables (e.g., {type}:)
-      if (templatePart.contains("{") && templatePart.contains("}")) {
-        extractSegmentVariables(uriPart, templatePart, variables);
-      }
+    } catch (Exception e) {
+      // Return empty map on error
     }
 
     return variables;
-  }
-
-  /**
-   * Extracts variables from a URI segment that matches a uri segment with variables. For example, given "file:" and "{type}:", extracts {"type": "file"}
-   *
-   * @param uriSegment the URI segment
-   * @param templateSegment the uri segment with variables
-   * @param variables map to add extracted variables to
-   */
-  private void extractSegmentVariables(String uriSegment, String templateSegment, java.util.Map<String, String> variables) {
-    int templatePos = 0;
-    int uriPos = 0;
-
-    while (templatePos < templateSegment.length()) {
-      if (templateSegment.charAt(templatePos) == '{') {
-        // Find the closing brace
-        int closeBrace = templateSegment.indexOf('}', templatePos);
-        if (closeBrace == -1) {
-          return; // Malformed uri
-        }
-
-        String varName = templateSegment.substring(templatePos + 1, closeBrace);
-
-        // Find what comes after the variable
-        int afterVar = closeBrace + 1;
-        if (afterVar < templateSegment.length()) {
-          // There's literal text after the variable - find it in the URI
-          char nextLiteral = templateSegment.charAt(afterVar);
-          int nextLiteralPos = uriSegment.indexOf(nextLiteral, uriPos);
-          if (nextLiteralPos != -1) {
-            // Extract variable value
-            String value = uriSegment.substring(uriPos, nextLiteralPos);
-            variables.put(varName, value);
-            uriPos = nextLiteralPos;
-          }
-        } else {
-          // Variable is at the end - extract rest of URI segment
-          String value = uriSegment.substring(uriPos);
-          variables.put(varName, value);
-          uriPos = uriSegment.length();
-        }
-        templatePos = afterVar;
-      } else {
-        // Literal character - skip it
-        templatePos++;
-        uriPos++;
-      }
-    }
   }
 
   public void addStaticResource(String uri, Supplier<Future<Resource>> resourceSupplier) {

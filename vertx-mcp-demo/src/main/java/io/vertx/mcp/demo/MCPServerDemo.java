@@ -7,14 +7,17 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.Schemas;
+import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.resources.TextResourceContent;
 import io.vertx.mcp.server.ModelContextProtocolServer;
+import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
+import io.vertx.mcp.server.feature.CompletionServerFeature;
 import io.vertx.mcp.server.feature.PromptServerFeature;
 import io.vertx.mcp.server.feature.ResourceServerFeature;
 import io.vertx.mcp.server.feature.ToolServerFeature;
@@ -23,7 +26,9 @@ import io.vertx.mcp.server.transport.http.HttpServerTransport;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Demo MCP Server with example tools, resources, and prompts.
@@ -45,10 +50,13 @@ public class MCPServerDemo {
 
     ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(serverOptions);
 
-    // Setup tools, resources, and prompts
+    // Setup tools, resources, prompts, and completions
     setupTools(mcpServer);
     setupResources(mcpServer);
     setupPrompts(mcpServer);
+
+    // Add completion support
+    mcpServer.addServerFeature(new CompletionServerFeature(mcpServer));
 
     // Create HTTP transport
     HttpServerTransport transport = new HttpServerTransport(vertx, mcpServer);
@@ -316,57 +324,111 @@ public class MCPServerDemo {
         .setText(products.encodePrettily()))
     );
 
-    // Dynamic Resource: Individual User by ID
-    resourceFeature.addDynamicResource("resource://user/{id}", params -> {
-      String idStr = params.get("id");
-      try {
-        int id = Integer.parseInt(idStr);
+    // Dynamic Resource: Individual User by ID (with completion)
+    resourceFeature.addDynamicResource(
+      "resource://user/{id}",
+      "user",
+      "User Resource",
+      "Get user details by ID",
+      params -> {
+        String idStr = params.get("id");
+        try {
+          int id = Integer.parseInt(idStr);
 
-        // Find user by ID
-        for (int i = 0; i < users.size(); i++) {
-          JsonObject user = users.getJsonObject(i);
-          if (user.getInteger("id") == id) {
-            return Future.succeededFuture(new TextResourceContent()
-              .setUri("resource://user/" + id)
-              .setName("user-" + id)
-              .setTitle("User: " + user.getString("name"))
-              .setDescription("Details for user ID " + id)
-              .setMimeType("application/json")
-              .setText(user.encodePrettily()));
+          // Find user by ID
+          for (int i = 0; i < users.size(); i++) {
+            JsonObject user = users.getJsonObject(i);
+            if (user.getInteger("id") == id) {
+              return Future.succeededFuture(new TextResourceContent()
+                .setUri("resource://user/" + id)
+                .setName("user-" + id)
+                .setTitle("User: " + user.getString("name"))
+                .setDescription("Details for user ID " + id)
+                .setMimeType("application/json")
+                .setText(user.encodePrettily()));
+            }
           }
+
+          return Future.failedFuture("User not found: " + id);
+        } catch (NumberFormatException e) {
+          return Future.failedFuture("Invalid user ID: " + idStr);
         }
-
-        return Future.failedFuture("User not found: " + id);
-      } catch (NumberFormatException e) {
-        return Future.failedFuture("Invalid user ID: " + idStr);
-      }
-    });
-
-    // Dynamic Resource: Individual Product by ID
-    resourceFeature.addDynamicResource("resource://product/{id}", params -> {
-      String idStr = params.get("id");
-      try {
-        int id = Integer.parseInt(idStr);
-
-        // Find product by ID
-        for (int i = 0; i < products.size(); i++) {
-          JsonObject product = products.getJsonObject(i);
-          if (product.getInteger("id") == id) {
-            return Future.succeededFuture(new TextResourceContent()
-              .setUri("resource://product/" + id)
-              .setName("product-" + id)
-              .setTitle("Product: " + product.getString("name"))
-              .setDescription("Details for product ID " + id)
-              .setMimeType("application/json")
-              .setText(product.encodePrettily()));
+      },
+      // Completion handler for user IDs
+      (argument, context) -> {
+        if ("id".equals(argument.getName())) {
+          String prefix = argument.getValue() != null ? argument.getValue() : "";
+          List<String> userIds = new ArrayList<>();
+          for (int i = 0; i < users.size(); i++) {
+            String id = String.valueOf(users.getJsonObject(i).getInteger("id"));
+            if (id.startsWith(prefix)) {
+              userIds.add(id);
+            }
           }
+          return Future.succeededFuture(new Completion()
+            .setValues(userIds)
+            .setTotal(userIds.size())
+            .setHasMore(false));
         }
-
-        return Future.failedFuture("Product not found: " + id);
-      } catch (NumberFormatException e) {
-        return Future.failedFuture("Invalid product ID: " + idStr);
+        return Future.succeededFuture(new Completion()
+          .setValues(new ArrayList<>())
+          .setTotal(0)
+          .setHasMore(false));
       }
-    });
+    );
+
+    // Dynamic Resource: Individual Product by ID (with completion)
+    resourceFeature.addDynamicResource(
+      "resource://product/{id}",
+      "product",
+      "Product Resource",
+      "Get product details by ID",
+      params -> {
+        String idStr = params.get("id");
+        try {
+          int id = Integer.parseInt(idStr);
+
+          // Find product by ID
+          for (int i = 0; i < products.size(); i++) {
+            JsonObject product = products.getJsonObject(i);
+            if (product.getInteger("id") == id) {
+              return Future.succeededFuture(new TextResourceContent()
+                .setUri("resource://product/" + id)
+                .setName("product-" + id)
+                .setTitle("Product: " + product.getString("name"))
+                .setDescription("Details for product ID " + id)
+                .setMimeType("application/json")
+                .setText(product.encodePrettily()));
+            }
+          }
+
+          return Future.failedFuture("Product not found: " + id);
+        } catch (NumberFormatException e) {
+          return Future.failedFuture("Invalid product ID: " + idStr);
+        }
+      },
+      // Completion handler for product IDs
+      (argument, context) -> {
+        if ("id".equals(argument.getName())) {
+          String prefix = argument.getValue() != null ? argument.getValue() : "";
+          List<String> productIds = new ArrayList<>();
+          for (int i = 0; i < products.size(); i++) {
+            String id = String.valueOf(products.getJsonObject(i).getInteger("id"));
+            if (id.contains(prefix)) {
+              productIds.add(id);
+            }
+          }
+          return Future.succeededFuture(new Completion()
+            .setValues(productIds)
+            .setTotal(productIds.size())
+            .setHasMore(false));
+        }
+        return Future.succeededFuture(new Completion()
+          .setValues(new ArrayList<>())
+          .setTotal(0)
+          .setHasMore(false));
+      }
+    );
 
     server.addServerFeature(resourceFeature);
   }
@@ -374,12 +436,19 @@ public class MCPServerDemo {
   private static void setupPrompts(ModelContextProtocolServer server) {
     PromptServerFeature promptFeature = new PromptServerFeature();
 
-    // Prompt: Code Review
-    promptFeature.addPrompt(
+    // Available languages for completion
+    List<String> languages = Arrays.asList(
+      "java", "javascript", "typescript", "python", "go", "rust", "c", "cpp", "csharp", "ruby", "php", "swift", "kotlin"
+    );
+
+    // Available documentation styles
+    List<String> docStyles = Arrays.asList("javadoc", "jsdoc", "markdown", "sphinx", "doxygen");
+
+    // Prompt: Code Review (with completion for language)
+    promptFeature.addPrompt(PromptHandler.create(
       "code_review",
       "Code Review",
       "Provides comprehensive code review with suggestions for improvements, best practices, and potential issues",
-
       Schemas.arraySchema()
         .items(
           Schemas.objectSchema()
@@ -412,8 +481,25 @@ public class MCPServerDemo {
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
+      },
+      // Completion handler for language argument
+      (argument, context) -> {
+        if ("language".equals(argument.getName())) {
+          String prefix = argument.getValue() != null ? argument.getValue().toLowerCase() : "";
+          List<String> filtered = languages.stream()
+            .filter(lang -> lang.startsWith(prefix))
+            .collect(Collectors.toList());
+          return Future.succeededFuture(new Completion()
+            .setValues(filtered)
+            .setTotal(filtered.size())
+            .setHasMore(false));
+        }
+        return Future.succeededFuture(new Completion()
+          .setValues(new ArrayList<>())
+          .setTotal(0)
+          .setHasMore(false));
       }
-    );
+    ));
 
     // Prompt: Explain Code
     promptFeature.addPrompt(
@@ -448,8 +534,8 @@ public class MCPServerDemo {
       }
     );
 
-    // Prompt: Write Documentation
-    promptFeature.addPrompt(
+    // Prompt: Write Documentation (with completion for style and language)
+    promptFeature.addPrompt(PromptHandler.create(
       "write_docs",
       "Write Documentation",
       "Generates comprehensive documentation for the provided code in the specified format",
@@ -480,8 +566,30 @@ public class MCPServerDemo {
         messages.add(userMessage);
 
         return Future.succeededFuture(messages);
+      },
+      // Completion handler for style and language arguments
+      (argument, context) -> {
+        String prefix = argument.getValue() != null ? argument.getValue().toLowerCase() : "";
+        List<String> suggestions;
+
+        if ("style".equals(argument.getName())) {
+          suggestions = docStyles.stream()
+            .filter(style -> style.startsWith(prefix))
+            .collect(Collectors.toList());
+        } else if ("language".equals(argument.getName())) {
+          suggestions = languages.stream()
+            .filter(lang -> lang.startsWith(prefix))
+            .collect(Collectors.toList());
+        } else {
+          suggestions = new ArrayList<>();
+        }
+
+        return Future.succeededFuture(new Completion()
+          .setValues(suggestions)
+          .setTotal(suggestions.size())
+          .setHasMore(false));
       }
-    );
+    ));
 
     server.addServerFeature(promptFeature);
   }

@@ -3,6 +3,9 @@ package io.vertx.mcp.server.feature;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
+import io.vertx.mcp.common.completion.Completion;
+import io.vertx.mcp.common.completion.CompletionArgument;
+import io.vertx.mcp.common.completion.CompletionContext;
 import io.vertx.mcp.common.prompt.Prompt;
 import io.vertx.mcp.common.prompt.PromptArgument;
 import io.vertx.mcp.common.prompt.PromptMessage;
@@ -12,6 +15,7 @@ import io.vertx.mcp.common.result.ListPromptsResult;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.mcp.server.CompletionProvider;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
@@ -20,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -30,7 +35,7 @@ import java.util.function.Function;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/prompts">Server Features - Prompts</a>
  */
-public class PromptServerFeature extends ServerFeatureBase {
+public class PromptServerFeature extends ServerFeatureBase implements CompletionProvider {
 
   private final Map<String, PromptHandler> prompts = new HashMap<>();
 
@@ -40,6 +45,36 @@ public class PromptServerFeature extends ServerFeatureBase {
       "prompts/list", this::handleListPrompts,
       "prompts/get", this::handleGetPrompt
     );
+  }
+
+  @Override
+  public Future<Completion> handleCompletion(String refType, String refName, CompletionArgument argument, CompletionContext context) {
+    // Find the prompt
+    PromptHandler handler = prompts.get(refName);
+    if (handler == null) {
+      // Return empty completion for unknown prompt
+      return Future.succeededFuture(new Completion()
+        .setValues(new ArrayList<>())
+        .setTotal(0)
+        .setHasMore(false));
+    }
+
+    // Use the handler's completion function
+    Future<Completion> completionFuture = handler.completion(argument, context);
+    if (completionFuture != null) {
+      return completionFuture;
+    }
+
+    // Default: return empty completion
+    return Future.succeededFuture(new Completion()
+      .setValues(new ArrayList<>())
+      .setTotal(0)
+      .setHasMore(false));
+  }
+
+  @Override
+  public Set<String> getCompletionCapabilities() {
+    return Set.of("ref/prompt");
   }
 
   private Future<JsonResponse> handleListPrompts(ServerRequest serverRequest, JsonRequest request) {

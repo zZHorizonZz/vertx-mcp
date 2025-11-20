@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.WriteStream;
+import io.vertx.mcp.common.rpc.JsonProtocol;
 import io.vertx.mcp.server.ServerResponse;
 import io.vertx.mcp.server.ServerSession;
 
@@ -58,6 +59,10 @@ public class HttpServerResponseImpl implements ServerResponse {
 
     if (this.session != null && this.session.isStreaming()) {
       return httpResponse.write("data: " + data.encode() + "\n\n");
+    }
+
+    if (this.requestId != null && !data.containsKey(JsonProtocol.ID_FIELD)) {
+      data.put(JsonProtocol.ID_FIELD, this.requestId);
     }
 
     return end(data);
