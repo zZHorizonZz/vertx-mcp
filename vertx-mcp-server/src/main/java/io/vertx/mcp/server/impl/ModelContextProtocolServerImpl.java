@@ -2,6 +2,7 @@ package io.vertx.mcp.server.impl;
 
 import io.vertx.core.Handler;
 import io.vertx.mcp.common.rpc.JsonError;
+import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
@@ -47,60 +48,29 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
   public void handle(ServerRequest request) {
     try {
       JsonRequest jsonRequest = request.getJsonRequest();
-
       String method = jsonRequest.getMethod();
+      boolean isNotification = jsonRequest instanceof JsonNotification;
 
-      // Check if this is a notification (no id means no response expected)
-      boolean isNotification = jsonRequest.isNotification();
-
-      // Check if notifications are enabled
       if (isNotification && !options.getNotificationsEnabled()) {
-        // Notifications are disabled, ignore silently but still acknowledge with 202
-        request.response().endNotification();
+        request.response().end();
         return;
       }
 
-      // Find a feature that can handle this method
-      Optional<ServerFeature> feature = features.stream()
-        .filter(f -> f.hasCapability(method))
-        .findFirst();
+      Optional<ServerFeature> feature = features.stream().filter(f -> f.hasCapability(method)).findFirst();
 
       if (feature.isEmpty()) {
-        // No feature found
-        if (isNotification) {
-          // Notifications don't get error responses, just log and return 202 Accepted
-          System.err.println("No handler for notification: " + method);
-          request.response().endNotification();
-          return;
-        }
-
-        // For requests, return method not found error
-        JsonResponse errorResponse = JsonResponse.error(
-          jsonRequest,
-          JsonError.methodNotFound(method)
-        );
-        request.response().end(errorResponse);
+        request.response().end(JsonResponse.error(jsonRequest, JsonError.methodNotFound(method)));
         return;
       }
 
-      // For notifications, send 202 Accepted immediately and handle in background
       if (isNotification) {
-        request.response().endNotification();
-        // Process the notification asynchronously (fire and forget)
-        Handler<ServerRequest> handler = feature.get();
-        handler.handle(request);
-      } else {
-        // For requests, call the feature handler which will send the response
-        Handler<ServerRequest> handler = feature.get();
-        handler.handle(request);
+        request.response().end();
+        feature.get().handle(request);
       }
+
+      feature.get().handle(request);
     } catch (Exception e) {
-      // Failed to parse the request - return invalid request error
-      JsonResponse errorResponse = new JsonResponse(
-        JsonError.invalidRequest(e.getMessage()),
-        null
-      );
-      request.response().end(errorResponse);
+      request.response().end(new JsonResponse(JsonError.invalidRequest(e.getMessage()), null));
     }
   }
 

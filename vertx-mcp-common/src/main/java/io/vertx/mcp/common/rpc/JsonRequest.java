@@ -29,13 +29,6 @@ import io.vertx.core.json.JsonObject;
 @DataObject
 public class JsonRequest {
 
-  private static final String JSONRPC_VERSION = "2.0";
-  private static final String JSONRPC_FIELD = "jsonrpc";
-
-  private static final String METHOD_FIELD = "method";
-  private static final String PARAMS_FIELD = "params";
-  private static final String ID_FIELD = "id";
-
   private final Integer id;
   private final String method;
   private final String version;
@@ -44,7 +37,7 @@ public class JsonRequest {
   private final JsonObject namedParams;
 
   public JsonRequest(String method, JsonArray unamedParams, Integer id) {
-    this.version = JSONRPC_VERSION;
+    this.version = JsonProtocol.JSONRPC_VERSION;
     this.method = method;
     this.unamedParams = unamedParams;
     this.namedParams = null;
@@ -52,7 +45,7 @@ public class JsonRequest {
   }
 
   public JsonRequest(String method, JsonObject namedParams, Integer id) {
-    this.version = JSONRPC_VERSION;
+    this.version = JsonProtocol.JSONRPC_VERSION;
     this.method = method;
     this.unamedParams = null;
     this.namedParams = namedParams;
@@ -60,26 +53,15 @@ public class JsonRequest {
   }
 
   /**
-   * Creates a new JSON-RPC notification (request without an id).
+   * Creates a new JSON-RPC request with the provided method, parameters, and identifier. If the parameters are null, an empty JsonArray will be used by default. If the parameters
+   * are not of type JsonObject or JsonArray, an IllegalArgumentException will be thrown.
    *
-   * @param method the method name
-   * @param params the parameters (can be JsonObject for named parameters or JsonArray for positional parameters)
-   * @return a new JSON-RPC notification
+   * @param method the name of the method to be invoked in the JSON-RPC request
+   * @param params the parameters for the method, which can be a JsonObject or JsonArray
+   * @param id the identifier for the JSON-RPC request, used to match responses to requests
+   * @return a new instance of JsonRequest representing the JSON-RPC request
+   * @throws IllegalArgumentException if the params object is not a JsonObject or JsonArray
    */
-  public static JsonRequest createNotification(String method, Object params) {
-    if (params == null) {
-      return new JsonRequest(method, new JsonArray(), null);
-    }
-
-    if (params instanceof JsonObject) {
-      return new JsonRequest(method, (JsonObject) params, null);
-    } else if (params instanceof JsonArray) {
-      return new JsonRequest(method, (JsonArray) params, null);
-    } else {
-      throw new IllegalArgumentException("Params must be an object or array");
-    }
-  }
-
   public static JsonRequest createRequest(String method, Object params, Integer id) {
     if (params == null) {
       return new JsonRequest(method, new JsonArray(), id);
@@ -95,41 +77,10 @@ public class JsonRequest {
   }
 
   /**
-   * Creates a JSON-RPC request from a JsonObject.
-   *
-   * @param json the JsonObject representing the request
-   * @return a new JsonRequest
-   * @throws IllegalArgumentException if the JsonObject is not a valid JSON-RPC request
+   * @return the request identifier (can be String, Number, or null for notifications)
    */
-  public static JsonRequest fromJson(JsonObject json) {
-    String version = json.getString(JSONRPC_FIELD);
-    if (version == null || !version.equals(JSONRPC_VERSION)) {
-      throw new IllegalArgumentException("Invalid JSON-RPC version: " + version);
-    }
-
-    String method = json.getString(METHOD_FIELD);
-    if (method == null) {
-      throw new IllegalArgumentException("Method is required");
-    }
-
-    Object params = null;
-    if (json.containsKey(PARAMS_FIELD)) {
-      params = json.getValue(PARAMS_FIELD);
-      if (!(params instanceof JsonObject) && !(params instanceof JsonArray)) {
-        throw new IllegalArgumentException("Params must be an object or array");
-      }
-    }
-
-    Integer id = null;
-    if (json.containsKey(ID_FIELD)) {
-      id = json.getInteger(ID_FIELD);
-    }
-
-    if (id == null) {
-      return createNotification(method, params);
-    }
-
-    return createRequest(method, params, id);
+  public Integer getId() {
+    return id;
   }
 
   /**
@@ -157,14 +108,30 @@ public class JsonRequest {
     }
   }
 
+  /**
+   * Retrieves the unnamed parameters associated with this JSON-RPC request.
+   *
+   * @return a JsonArray containing the unnamed parameters of the request
+   */
   public JsonArray getUnnamedParams() {
     return unamedParams;
   }
 
+  /**
+   * Retrieves the named parameters associated with this JSON-RPC request.
+   *
+   * @return a JsonObject containing the named parameters, or null if no named parameters are set
+   */
   public JsonObject getNamedParams() {
     return namedParams;
   }
 
+  /**
+   * Converts the parameters of the JSON-RPC request to a Buffer object. If the unnamed parameters are present, their encoded value will be used to create the buffer. If the named
+   * parameters are present instead, their encoded value will be used. If neither are present, an empty buffer will be returned.
+   *
+   * @return a Buffer object containing the encoded parameters or an empty Buffer if no parameters exist
+   */
   public Buffer toBuffer() {
     if (unamedParams != null) {
       return Buffer.buffer(unamedParams.encode());
@@ -176,39 +143,25 @@ public class JsonRequest {
   }
 
   /**
-   * @return the request identifier (can be String, Number, or null for notifications)
-   */
-  public Integer getId() {
-    return id;
-  }
-
-  /**
-   * @return true if this request is a notification (no id)
-   */
-  public boolean isNotification() {
-    return id == null;
-  }
-
-  /**
    * Converts this request to a JsonObject.
    *
    * @return the JsonObject representation of this request
    */
   public JsonObject toJson() {
     JsonObject json = new JsonObject()
-      .put(JSONRPC_FIELD, version)
-      .put(METHOD_FIELD, method);
+      .put(JsonProtocol.JSONRPC_FIELD, version)
+      .put(JsonProtocol.METHOD_FIELD, method);
 
     if (unamedParams != null) {
-      json.put(PARAMS_FIELD, unamedParams);
+      json.put(JsonProtocol.PARAMS_FIELD, unamedParams);
     }
 
     if (namedParams != null) {
-      json.put(PARAMS_FIELD, namedParams);
+      json.put(JsonProtocol.PARAMS_FIELD, namedParams);
     }
 
     if (id != null) {
-      json.put(ID_FIELD, id);
+      json.put(JsonProtocol.ID_FIELD, id);
     }
 
     return json;

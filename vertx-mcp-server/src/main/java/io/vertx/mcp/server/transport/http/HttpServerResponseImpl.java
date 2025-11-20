@@ -8,7 +8,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.WriteStream;
-import io.vertx.mcp.common.rpc.JsonBatch;
 import io.vertx.mcp.server.ServerResponse;
 import io.vertx.mcp.server.ServerSession;
 
@@ -19,6 +18,7 @@ public class HttpServerResponseImpl implements ServerResponse {
   private Handler<Throwable> exceptionHandler;
 
   private boolean ended = false;
+  private Object requestId;
   private ServerSession session;
 
   public HttpServerResponseImpl(ContextInternal context, HttpServerResponse httpResponse) {
@@ -32,8 +32,22 @@ public class HttpServerResponseImpl implements ServerResponse {
   }
 
   @Override
+  public Object requestId() {
+    return this.requestId;
+  }
+
+  public void requestId(Object requestId) {
+    this.requestId = requestId;
+  }
+
+  @Override
+  public ServerSession session() {
+    return this.session;
+  }
+
+  @Override
   public ContextInternal context() {
-    return context;
+    return this.context;
   }
 
   @Override
@@ -54,7 +68,17 @@ public class HttpServerResponseImpl implements ServerResponse {
     if (ended) {
       return Future.succeededFuture();
     }
+
     ended = true;
+
+    if (this.requestId == null) {
+      httpResponse.setStatusCode(202);
+      httpResponse.headers().remove(HttpHeaders.CONTENT_TYPE);
+      httpResponse.headers().remove(HttpHeaders.CACHE_CONTROL);
+      httpResponse.headers().remove(HttpHeaders.CONNECTION);
+      httpResponse.setChunked(false);
+    }
+
     return httpResponse.end();
   }
 
@@ -75,35 +99,6 @@ public class HttpServerResponseImpl implements ServerResponse {
     httpResponse.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
     return httpResponse.end(data.toBuffer());
-  }
-
-  @Override
-  public Future<Void> end(JsonBatch batch) {
-    if (ended) {
-      return Future.failedFuture("Response already ended");
-    }
-    ended = true;
-    httpResponse.putHeader("Content-Type", "application/json");
-    return httpResponse.end(batch.toJson().toBuffer());
-  }
-
-  @Override
-  public Future<Void> endNotification() {
-    if (ended) {
-      return Future.failedFuture("Response already ended");
-    }
-    ended = true;
-
-    // For notifications, we don't use SSE even if it's enabled
-    // Reset headers to plain 202 Accepted
-    httpResponse.setStatusCode(202);
-    // Clear SSE headers if they were set
-    httpResponse.headers().remove("Content-Type");
-    httpResponse.headers().remove("Cache-Control");
-    httpResponse.headers().remove("Connection");
-    httpResponse.setChunked(false);
-
-    return httpResponse.end();
   }
 
   @Override
@@ -128,10 +123,5 @@ public class HttpServerResponseImpl implements ServerResponse {
     this.exceptionHandler = handler;
     httpResponse.exceptionHandler(handler);
     return this;
-  }
-
-  @Override
-  public ServerSession session() {
-    return session;
   }
 }

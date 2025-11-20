@@ -33,6 +33,7 @@ public class JsonError {
   public static final int METHOD_NOT_ALLOWED = -32000;
   public static final int INVALID_PARAMS = -32602;
   public static final int INTERNAL_ERROR = -32603;
+
   // Server error codes range from -32000 to -32099
   public static final int SERVER_ERROR_MIN = -32099;
   public static final int SERVER_ERROR_MAX = -32000;

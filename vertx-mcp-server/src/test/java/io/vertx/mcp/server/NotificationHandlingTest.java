@@ -71,8 +71,14 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
       .put("params", new JsonObject());
 
     sendRequest(HttpMethod.POST, notificationJson.toBuffer()).onComplete(context.asyncAssertSuccess(resp -> {
-      context.assertEquals(202, resp.statusCode(), "Notification without handler should still return 202");
-      async.complete();
+      context.assertEquals(200, resp.statusCode(), "Notification without handler should still return 200");
+
+      resp.body().onComplete(context.asyncAssertSuccess(body -> {
+        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+        context.assertNotNull(response.getError(), "Should have error for unknown method");
+        context.assertEquals(-32601, response.getError().getCode(), "Should be method not found");
+        async.complete();
+      }));
     }));
 
     async.awaitSuccess(10_000);

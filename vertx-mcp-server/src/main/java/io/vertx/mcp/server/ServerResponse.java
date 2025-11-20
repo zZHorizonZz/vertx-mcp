@@ -6,7 +6,6 @@ import io.vertx.core.Future;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.WriteStream;
-import io.vertx.mcp.common.rpc.JsonBatch;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
 /**
@@ -22,6 +21,20 @@ public interface ServerResponse extends WriteStream<JsonObject> {
    * @param session the session to associate with the server response
    */
   void init(ServerSession session);
+
+  /**
+   * Retrieves the identifier associated with the current server response request.
+   *
+   * @return the request identifier, typically associated with a JSON-RPC request
+   */
+  Object requestId();
+
+  /**
+   * Retrieve the current session associated with the server response.
+   *
+   * @return the current {@code ServerSession} object
+   */
+  ServerSession session();
 
   /**
    * Retrieves the internal Vert.x context associated with the current server response.
@@ -51,27 +64,5 @@ public interface ServerResponse extends WriteStream<JsonObject> {
   default Future<Void> end(JsonResponse response) {
     return end(response.toJson());
   }
-
-  /**
-   * Ends the response after processing a JSON-RPC batch request or response.
-   *
-   * @param batch the JSON-RPC batch to be processed and sent in the response
-   * @return a Future representing the completion of the response ending operation
-   */
-  Future<Void> end(JsonBatch batch);
-
-  /**
-   * Ends the notification process associated with the server response. This method is used to signal the end of a server-sent notification operation.
-   *
-   * @return a future that completes when the notification process has successfully ended
-   */
-  Future<Void> endNotification();
-
-  /**
-   * Retrieve the current session associated with the server response.
-   *
-   * @return the current {@code ServerSession} object
-   */
-  ServerSession session();
 }
 

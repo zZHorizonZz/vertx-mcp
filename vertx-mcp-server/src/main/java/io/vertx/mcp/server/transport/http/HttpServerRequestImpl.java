@@ -9,7 +9,9 @@ import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.request.InitializeRequest;
+import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.common.rpc.JsonRequest;
+import io.vertx.mcp.common.rpc.JsonRequestDecoder;
 import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.impl.ServerSessionImpl;
 
@@ -20,7 +22,7 @@ public class HttpServerRequestImpl implements ServerRequest {
   private final SessionManager sessionManager;
   private final ServerOptions options;
 
-  private ServerResponse response;
+  private HttpServerResponseImpl response;
   private Handler<Void> requestHandler;
   private Handler<Throwable> exceptionHandler;
 
@@ -55,7 +57,12 @@ public class HttpServerRequestImpl implements ServerRequest {
   @Override
   public void init(ServerSession session, ServerResponse response) {
     this.session = session;
-    this.response = response;
+
+    if (!(response instanceof HttpServerResponseImpl)) {
+      throw new IllegalArgumentException("Response must be an instance of HttpServerResponseImpl");
+    }
+
+    this.response = (HttpServerResponseImpl) response;
 
     if (session != null) {
       ((ServerSessionImpl) session).init(this.response);
@@ -67,7 +74,7 @@ public class HttpServerRequestImpl implements ServerRequest {
     // MCP always sends a single JSON-RPC request per HTTP request
     httpRequest.bodyHandler(body -> {
       try {
-        this.jsonRequest = JsonRequest.fromJson(new JsonObject(body.toString()));
+        this.jsonRequest = JsonRequestDecoder.fromJson(new JsonObject(body.toString()));
 
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS");
@@ -79,7 +86,7 @@ public class HttpServerRequestImpl implements ServerRequest {
           httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, sessionManager.createSession(initialize.getCapabilities()).id());
         }
 
-        if (this.session != null && options.getStreamingEnabled() && !this.jsonRequest.isNotification()) {
+        if (this.session != null && options.getStreamingEnabled() && !(this.jsonRequest instanceof JsonNotification)) {
           HttpServerResponse httpResponse = httpRequest.response();
 
           httpResponse.setChunked(true);
@@ -87,6 +94,8 @@ public class HttpServerRequestImpl implements ServerRequest {
           httpResponse.putHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
           httpResponse.putHeader(HttpHeaders.CONNECTION, "keep-alive");
         }
+
+        this.response.requestId(this.jsonRequest.getId());
 
         // Notify that request is ready
         if (requestHandler != null) {
