@@ -1,6 +1,6 @@
 package io.vertx.mcp.server.impl;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.common.rpc.JsonRequest;
@@ -16,14 +16,15 @@ import java.util.Optional;
 
 public class ModelContextProtocolServerImpl implements ModelContextProtocolServer {
 
+  private final Vertx vertx;
   private final List<ServerFeature> features = new ArrayList<>();
   private final ServerOptions options;
 
   /**
    * Creates a new MCP server instance with default options.
    */
-  public ModelContextProtocolServerImpl() {
-    this(new ServerOptions());
+  public ModelContextProtocolServerImpl(Vertx vertx) {
+    this(vertx, new ServerOptions());
   }
 
   /**
@@ -31,7 +32,8 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
    *
    * @param options the server options
    */
-  public ModelContextProtocolServerImpl(ServerOptions options) {
+  public ModelContextProtocolServerImpl(Vertx vertx, ServerOptions options) {
+    this.vertx = vertx;
     this.options = options;
   }
 
@@ -81,6 +83,8 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
     }
 
     this.features.add(feature);
+
+    feature.init(this.vertx);
 
     return this;
   }

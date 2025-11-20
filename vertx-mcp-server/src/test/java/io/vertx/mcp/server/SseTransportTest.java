@@ -16,7 +16,7 @@ public class SseTransportTest extends HttpTransportTestBase {
   public void testRequestWithSessionIdEnablesSse(TestContext context) {
     Async async = context.async();
     ServerOptions options = new ServerOptions().setSessionsEnabled(true).setStreamingEnabled(true);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     startServer(context, server);
 
@@ -37,7 +37,7 @@ public class SseTransportTest extends HttpTransportTestBase {
   public void testNotificationWithSessionIdDoesNotEnableSse(TestContext context) {
     Async async = context.async();
     ServerOptions options = new ServerOptions().setSessionsEnabled(true).setStreamingEnabled(true).setNotificationsEnabled(true);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     startServer(context, server);
 
@@ -58,7 +58,7 @@ public class SseTransportTest extends HttpTransportTestBase {
   public void testRequestWithoutSessionIdDoesNotEnableSse(TestContext context) {
     Async async = context.async();
     ServerOptions options = new ServerOptions().setSessionsEnabled(true).setStreamingEnabled(true);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     startServer(context, server);
 
@@ -76,7 +76,7 @@ public class SseTransportTest extends HttpTransportTestBase {
   public void testStreamingDisabledUsesRegularJson(TestContext context) {
     Async async = context.async();
     ServerOptions options = new ServerOptions().setSessionsEnabled(true).setStreamingEnabled(false);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     startServer(context, server);
 

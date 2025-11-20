@@ -34,7 +34,7 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
 
   @Before
   public void setUpFeatures(TestContext context) {
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
     super.startServer(context, server);
 
     completionFeature = new CompletionServerFeature(server);

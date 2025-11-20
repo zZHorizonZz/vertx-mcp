@@ -23,7 +23,7 @@ public abstract class Notification implements Meta {
 
   public abstract JsonObject toJson();
 
-  public JsonRequest toRequest() {
+  public JsonRequest toNotification() {
     return JsonNotification.createNotification(method, toJson());
   }
 

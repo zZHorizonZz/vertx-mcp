@@ -43,7 +43,7 @@ public class McpInspectorTest extends HttpTransportTestBase {
   public void setUp(TestContext context) {
     super.setUp(context);
 
-    ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create();
+    ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(super.vertx);
 
     ToolServerFeature toolFeature = new ToolServerFeature();
 

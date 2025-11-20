@@ -22,7 +22,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       .setServerName("test-server")
       .setServerVersion("1.0.0");
 
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
     startServer(context, server);
 
     sendRequest(HttpMethod.POST, new InitializeRequest()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
@@ -53,7 +53,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
     ServerOptions options = new ServerOptions()
       .setSessionsEnabled(true);
 
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
     server.addServerFeature(new ResourceServerFeature());
 
     startServer(context, server);
@@ -81,7 +81,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
       .setStreamingEnabled(false)
       .setSessionsEnabled(false);
 
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
     server.addServerFeature(new ResourceServerFeature());
 
     startServer(context, server);
@@ -106,7 +106,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   public void testPing(TestContext context) {
     Async async = context.async();
 
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
     startServer(context, server);
 
     sendRequest(HttpMethod.POST, new PingRequest()).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
@@ -126,7 +126,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   public void testUnknownMethod(TestContext context) {
     Async async = context.async();
 
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
     startServer(context, server);
 
     sendRequest(HttpMethod.POST, JsonRequest.createRequest("unknown/method", new JsonObject(), 1)).compose(HttpClientResponse::body).onComplete(context.asyncAssertSuccess(body -> {
@@ -146,7 +146,7 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   public void testInvalidJsonRpcRequest(TestContext context) {
     Async async = context.async();
 
-    ModelContextProtocolServer server = ModelContextProtocolServer.create();
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
     startServer(context, server);
 
     JsonObject request = new JsonObject().put("invalid", "request");

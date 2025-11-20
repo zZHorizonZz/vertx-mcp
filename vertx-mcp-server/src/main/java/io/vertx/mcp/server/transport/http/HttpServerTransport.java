@@ -53,9 +53,11 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
     if (httpRequest.method().equals(HttpMethod.OPTIONS)) {
       httpRequest.response()
         .setStatusCode(200)
+        .putHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600")
         .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS")
-        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", ACCEPTED_HEADERS))
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS))
+        .putHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS))
         .end();
       return;
     }
@@ -73,8 +75,8 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
 
     Set<String> acceptTypes = Arrays.stream(accept.split(",")).map(String::trim).collect(Collectors.toUnmodifiableSet());
 
-    if (!acceptTypes.containsAll(ACCEPTED_CONTENT_TYPES)) {
-      httpRequest.response().setStatusCode(400).end("Invalid Accept header - must accept application/json or text/event-stream");
+    if (acceptTypes.isEmpty() || !acceptTypes.contains("text/event-stream")) {
+      httpRequest.response().setStatusCode(400).end("Invalid Accept header - must accept text/event-stream");
       return;
     }
 

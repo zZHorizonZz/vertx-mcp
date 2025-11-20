@@ -1,7 +1,10 @@
 package io.vertx.mcp.server.impl;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
+import io.vertx.mcp.common.notification.*;
+import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerSession;
 import io.vertx.mcp.server.SessionManager;
@@ -16,19 +19,55 @@ public class SessionManagerImpl implements SessionManager {
   private final ServerOptions options;
   private final Map<String, ServerSession> sessions = new ConcurrentHashMap<>();
 
+  /**
+   * Event bus address for sending notifications to sessions.
+   */
+  public static final String NOTIFICATION_ADDRESS = "io.vertx.mcp.server.notification";
+
   public SessionManagerImpl(Vertx vertx, ServerOptions options) {
     this.vertx = vertx;
     this.options = options;
 
-    /*this.vertx.eventBus().consumer("io.vertx.mcp.server.notification", message -> {
-      String id = message.headers().get("Mcp-Session-Id");
-      String notification =
-      ServerSession session = sessions.get(sessionId);
-      if (session != null) {
-        session.sendNotification()
-        //session.notify(message.body());
+    // Register event bus consumer for notifications
+    this.vertx.eventBus().<JsonObject> consumer(NOTIFICATION_ADDRESS, message -> {
+      String sessionId = message.headers().get("Mcp-Session-Id");
+
+      JsonNotification notification = new JsonNotification(message.body());
+      String method = new JsonNotification(message.body()).getMethod();
+      JsonObject params = notification.getParams() != null ? (JsonObject) notification.getParams() : new JsonObject();
+
+      switch (method) {
+        case "notifications/resources/updated": {
+          if (sessionId != null && params != null) {
+            ServerSession session = sessions.get(sessionId);
+            if (session != null && session.isStreaming()) {
+              session.sendNotification(new ResourceUpdatedNotification(params));
+            }
+          }
+          break;
+        }
+        case "notifications/resources/list_changed":
+          sendNotification(new ResourceListChangedNotification(params));
+          break;
+        case "notifications/tools/list_changed":
+          sendNotification(new ToolListChangedNotification(params));
+          break;
+        case "notifications/prompts/list_changed":
+          sendNotification(new PromptListChangedNotification(params));
+          break;
+        default:
+          // Unknown notification type, ignore
+          break;
       }
-    });*/
+    });
+  }
+
+  private void sendNotification(Notification notification) {
+    for (ServerSession session : sessions.values()) {
+      if (session.isStreaming()) {
+        session.sendNotification(notification);
+      }
+    }
   }
 
   @Override

@@ -68,7 +68,7 @@ public class ServerSessionImpl implements ServerSession {
       return Future.failedFuture("ServerSession is not streaming");
     }
 
-    return this.stream.write(notification.toRequest().toJson());
+    return this.stream.write(notification.toNotification().toJson());
   }
 
   @Override
@@ -84,7 +84,7 @@ public class ServerSessionImpl implements ServerSession {
 
   @Override
   public boolean isStreaming() {
-    return this.streaming;
+    return this.streaming && this.stream != null;
   }
 
   @Override

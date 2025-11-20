@@ -26,7 +26,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testInitializeGeneratesSessionId(TestContext context) {
     Async async = context.async();
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setSessionsEnabled(true));
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, new ServerOptions().setSessionsEnabled(true));
 
     startServer(context, server);
 
@@ -49,7 +49,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testInitializeWithoutSessionsDoesNotGenerateSessionId(TestContext context) {
     Async async = context.async();
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setStreamingEnabled(false).setSessionsEnabled(false));
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, new ServerOptions().setStreamingEnabled(false).setSessionsEnabled(false));
 
     startServer(context, server);
 
@@ -70,7 +70,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testSubsequentRequestWithSessionId(TestContext context) {
     Async async = context.async();
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setSessionsEnabled(true));
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, new ServerOptions().setSessionsEnabled(true));
 
     startServer(context, server);
 
@@ -89,7 +89,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testInvalidSessionIdReturns400(TestContext context) {
     Async async = context.async();
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setSessionsEnabled(true));
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, new ServerOptions().setSessionsEnabled(true));
 
     startServer(context, server);
 
@@ -104,7 +104,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testRequestWithoutSessionIdWorks(TestContext context) {
     Async async = context.async();
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setSessionsEnabled(true));
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, new ServerOptions().setSessionsEnabled(true));
 
     startServer(context, server);
 
@@ -123,7 +123,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testSessionIsStoredInContextWithExistingSessionId(TestContext context) {
     Async async = context.async();
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setSessionsEnabled(true));
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, new ServerOptions().setSessionsEnabled(true));
 
     ToolServerFeature toolFeature = new ToolServerFeature();
 
@@ -163,7 +163,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
   @Test
   public void testSessionFromContextHelperMethod(TestContext context) {
     Async async = context.async();
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(new ServerOptions().setSessionsEnabled(true));
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, new ServerOptions().setSessionsEnabled(true));
 
     ToolServerFeature toolFeature = new ToolServerFeature();
 

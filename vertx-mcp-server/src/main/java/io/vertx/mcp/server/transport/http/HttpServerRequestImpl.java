@@ -3,6 +3,7 @@ package io.vertx.mcp.server.transport.http;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.internal.ContextInternal;
@@ -70,15 +71,42 @@ public class HttpServerRequestImpl implements ServerRequest {
 
     response.init(session);
 
+    if (httpRequest.method().equals(HttpMethod.GET)) {
+      if (session == null) {
+        httpRequest.response().setStatusCode(404).end("Session not found");
+        return;
+      }
+
+      httpRequest.response().setChunked(true);
+
+      httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
+      httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+      httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS");
+      httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
+      httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
+
+      httpRequest.response().putHeader(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8");
+      httpRequest.response().putHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
+      httpRequest.response().putHeader(HttpHeaders.CONNECTION, "keep-alive");
+
+      httpRequest.response().writeHead();
+    }
+
     // Directly read the body and parse as a single JsonRequest
     // MCP always sends a single JSON-RPC request per HTTP request
     httpRequest.bodyHandler(body -> {
       try {
+        if (body.length() == 0 && httpRequest.method().equals(HttpMethod.GET)) {
+          return;
+        }
+
         this.jsonRequest = JsonRequestDecoder.fromJson(new JsonObject(body.toString()));
 
+        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS");
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
+        httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
 
         // If this is an initialize request and sessions are enabled, create a new session
         if (this.jsonRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {

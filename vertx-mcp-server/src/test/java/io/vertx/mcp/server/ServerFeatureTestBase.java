@@ -24,7 +24,7 @@ public abstract class ServerFeatureTestBase<T extends ServerFeature> extends Htt
   @Before
   public void setUpFeature(TestContext context) {
     if (feature == null) {
-      ModelContextProtocolServer server = ModelContextProtocolServer.create();
+      ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
       super.startServer(context, server);
     }
 

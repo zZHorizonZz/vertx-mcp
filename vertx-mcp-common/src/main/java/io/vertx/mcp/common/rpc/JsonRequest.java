@@ -36,6 +36,24 @@ public class JsonRequest {
   private final JsonArray unamedParams;
   private final JsonObject namedParams;
 
+  public JsonRequest(JsonObject json) {
+    this.version = json.getString(JsonProtocol.JSONRPC_FIELD);
+    this.method = json.getString(JsonProtocol.METHOD_FIELD);
+
+    if (json.getValue(JsonProtocol.PARAMS_FIELD) instanceof JsonObject) {
+      this.namedParams = json.getJsonObject(JsonProtocol.PARAMS_FIELD);
+      this.unamedParams = null;
+    } else if (json.getValue(JsonProtocol.PARAMS_FIELD) instanceof JsonArray) {
+      this.unamedParams = json.getJsonArray(JsonProtocol.PARAMS_FIELD);
+      this.namedParams = null;
+    } else {
+      this.unamedParams = null;
+      this.namedParams = null;
+    }
+
+    this.id = json.getInteger(JsonProtocol.ID_FIELD);
+  }
+
   public JsonRequest(String method, JsonArray unamedParams, Integer id) {
     this.version = JsonProtocol.JSONRPC_VERSION;
     this.method = method;

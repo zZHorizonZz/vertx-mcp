@@ -1,11 +1,15 @@
 package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.completion.CompletionArgument;
 import io.vertx.mcp.common.completion.CompletionContext;
+import io.vertx.mcp.common.notification.ResourceListChangedNotification;
+import io.vertx.mcp.common.notification.ResourceUpdatedNotification;
 import io.vertx.mcp.common.resources.Resource;
 import io.vertx.mcp.common.resources.ResourceTemplate;
 import io.vertx.mcp.common.result.ListResourceTemplatesResult;
@@ -14,16 +18,15 @@ import io.vertx.mcp.common.result.ReadResourceResult;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
-import io.vertx.mcp.server.CompletionProvider;
-import io.vertx.mcp.server.DynamicResourceHandler;
-import io.vertx.mcp.server.ServerRequest;
-import io.vertx.mcp.server.StaticResourceHandler;
+import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
+import io.vertx.mcp.server.impl.SessionManagerImpl;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -37,10 +40,19 @@ import java.util.regex.Pattern;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources">Server Features - Resources</a>
  */
-public class ResourceServerFeature extends ServerFeatureBase implements CompletionProvider {
+public class ResourceServerFeature extends ServerFeatureBase implements CompletionProvider, SubscriptionProvider {
 
   private final List<StaticResourceHandler> staticHandlers = new ArrayList<>();
   private final List<DynamicResourceHandler> dynamicHandlers = new ArrayList<>();
+
+  private final Map<String, Set<String>> subscriptions = new ConcurrentHashMap<>();
+
+  private Vertx vertx;
+
+  @Override
+  public void init(Vertx vertx) {
+    this.vertx = vertx;
+  }
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
@@ -76,8 +88,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   }
 
   /**
-   * Checks if two URI templates could match the same pattern.
-   * This compares the structure of templates for completion purposes.
+   * Checks if two URI templates could match the same pattern. This compares the structure of templates for completion purposes.
    */
   private boolean templateMatchesPattern(String template1, String template2) {
     // Normalize both templates by replacing variables with a placeholder
@@ -89,6 +100,74 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   @Override
   public Set<String> getCompletionCapabilities() {
     return Set.of("ref/resource");
+  }
+
+  @Override
+  public Future<Boolean> validateSubscription(String uri) {
+    // Check if URI matches any static resource
+    for (StaticResourceHandler handler : staticHandlers) {
+      if (handler.uri().equals(uri)) {
+        return Future.succeededFuture(true);
+      }
+    }
+
+    // Check if URI matches any dynamic resource template
+    for (DynamicResourceHandler handler : dynamicHandlers) {
+      if (matchesTemplate(uri, handler.uri())) {
+        return Future.succeededFuture(true);
+      }
+    }
+
+    return Future.succeededFuture(false);
+  }
+
+  @Override
+  public void subscribe(String sessionId, String uri) {
+    subscriptions.computeIfAbsent(sessionId, k -> ConcurrentHashMap.newKeySet()).add(uri);
+  }
+
+  @Override
+  public void unsubscribe(String sessionId, String uri) {
+    Set<String> sessionSubs = subscriptions.get(sessionId);
+    if (sessionSubs != null) {
+      sessionSubs.remove(uri);
+      if (sessionSubs.isEmpty()) {
+        subscriptions.remove(sessionId);
+      }
+    }
+  }
+
+  /**
+   * Notifies all subscribed sessions that a resource has been updated. This sends a ResourceUpdatedNotification to each session that is subscribed to the given URI.
+   *
+   * @param vertx the Vertx instance to use for event bus communication
+   * @param uri the URI of the resource that was updated
+   */
+  public void notifyResourceUpdated(Vertx vertx, String uri) {
+    ResourceUpdatedNotification notification = new ResourceUpdatedNotification().setUri(uri);
+
+    // Find all sessions subscribed to this URI and notify them
+    for (Map.Entry<String, Set<String>> entry : subscriptions.entrySet()) {
+      String sessionId = entry.getKey();
+      Set<String> subscribedUris = entry.getValue();
+
+      // Check if this session is subscribed to the URI (exact match or template match)
+      boolean isSubscribed = subscribedUris.contains(uri);
+      if (!isSubscribed) {
+        // Check for template matches
+        for (String subscribedUri : subscribedUris) {
+          if (matchesTemplate(uri, subscribedUri)) {
+            isSubscribed = true;
+            break;
+          }
+        }
+      }
+
+      if (isSubscribed) {
+        DeliveryOptions options = new DeliveryOptions().addHeader("Mcp-Session-Id", sessionId);
+        vertx.eventBus().send(SessionManagerImpl.NOTIFICATION_ADDRESS, notification.toNotification().toJson(), options);
+      }
+    }
   }
 
   private Future<JsonResponse> handleListResources(ServerRequest serverRequest, JsonRequest request) {
@@ -196,8 +275,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   }
 
   /**
-   * Converts a URI template to a regex pattern for matching.
-   * Template variables like {id} are converted to named capture groups.
+   * Converts a URI template to a regex pattern for matching. Template variables like {id} are converted to named capture groups.
    *
    * @param template the URI template
    * @return the compiled regex pattern
@@ -224,8 +302,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   }
 
   /**
-   * Utility method to check if a URI matches a URI template pattern.
-   * Template variables are denoted by curly braces, e.g., "resource://user/{id}"
+   * Utility method to check if a URI matches a URI template pattern. Template variables are denoted by curly braces, e.g., "resource://user/{id}"
    *
    * @param uri the URI to match
    * @param template the URI template pattern
@@ -241,9 +318,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   }
 
   /**
-   * Extracts template variables from a URI given a template pattern.
-   * For example, given URI "resource://user/123" and template "resource://user/{id}",
-   * returns {"id": "123"}
+   * Extracts template variables from a URI given a template pattern. For example, given URI "resource://user/123" and template "resource://user/{id}", returns {"id": "123"}
    *
    * @param uri the URI to extract variables from
    * @param template the URI template pattern
@@ -298,6 +373,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
 
   public void addStaticResource(StaticResourceHandler handler) {
     staticHandlers.add(handler);
+    sendNotification(this.vertx, new ResourceListChangedNotification());
   }
 
   public void addDynamicResource(String uri, Function<Map<String, String>, Future<Resource>> resourceFunction) {
@@ -323,5 +399,6 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
 
   public void addDynamicResource(DynamicResourceHandler handler) {
     dynamicHandlers.add(handler);
+    sendNotification(this.vertx, new ResourceListChangedNotification());
   }
 }

@@ -19,7 +19,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     Async async = context.async();
 
     ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     AtomicBoolean notificationReceived = new AtomicBoolean(false);
     server.addServerFeature(new ServerFeature() {
@@ -62,7 +62,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     Async async = context.async();
 
     ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
     startServer(context, server);
 
     JsonObject notificationJson = new JsonObject()
@@ -90,7 +90,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     ServerOptions options = new ServerOptions().setNotificationsEnabled(false);
     AtomicBoolean notificationReceived = new AtomicBoolean(false);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     server.addServerFeature(new ServerFeature() {
       @Override
@@ -121,7 +121,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     Async async = context.async();
 
     ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
     startServer(context, server);
 
     sendRequest(HttpMethod.POST, JsonRequest.createRequest("unknown/method", new JsonObject(), 1)).onComplete(context.asyncAssertSuccess(resp -> {
@@ -143,7 +143,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     Async async = context.async(2);
 
     ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(options);
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
     startServer(context, server);
 
     JsonObject notificationJson = new JsonObject()

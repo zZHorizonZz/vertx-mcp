@@ -8,6 +8,10 @@ import io.vertx.core.json.JsonObject;
  */
 public class JsonNotification extends JsonRequest {
 
+  public JsonNotification(JsonObject json) {
+    super(json);
+  }
+
   public JsonNotification(String method, JsonArray unamedParams) {
     super(method, unamedParams, null);
   }

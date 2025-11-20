@@ -5,9 +5,12 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.mcp.server.ModelContextProtocolServer;
+import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.ServerSession;
+import io.vertx.mcp.server.SubscriptionProvider;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.Map;
@@ -26,11 +29,13 @@ import java.util.function.BiFunction;
 public class SessionServerFeature extends ServerFeatureBase {
 
   private final ServerOptions options;
+  private final ModelContextProtocolServer server;
   private final AtomicInteger sessionCount = new AtomicInteger(0);
   private final Map<String, Set<String>> subscriptions = new ConcurrentHashMap<>();
 
-  public SessionServerFeature(ServerOptions options) {
+  public SessionServerFeature(ServerOptions options, ModelContextProtocolServer server) {
     this.options = options;
+    this.server = server;
   }
 
   @Override
@@ -67,10 +72,39 @@ public class SessionServerFeature extends ServerFeatureBase {
 
     String uri = params.getString("uri");
 
+    // Find a subscription provider and validate the subscription
+    SubscriptionProvider provider = findSubscriptionProvider();
+    if (provider != null) {
+      return provider.validateSubscription(uri)
+        .compose(valid -> {
+          if (!valid) {
+            return Future.succeededFuture(
+              JsonResponse.error(request, JsonError.invalidParams("Resource not found: " + uri))
+            );
+          }
+
+          subscriptions.computeIfAbsent(session.id(), k -> ConcurrentHashMap.newKeySet()).add(uri);
+          provider.subscribe(session.id(), uri);
+
+          JsonObject result = new JsonObject().put("subscribed", true);
+          return Future.succeededFuture(JsonResponse.success(request, result));
+        });
+    }
+
+    // No provider, just store the subscription
     subscriptions.computeIfAbsent(session.id(), k -> ConcurrentHashMap.newKeySet()).add(uri);
 
     JsonObject result = new JsonObject().put("subscribed", true);
     return Future.succeededFuture(JsonResponse.success(request, result));
+  }
+
+  private SubscriptionProvider findSubscriptionProvider() {
+    for (ServerFeature feature : server.features()) {
+      if (feature instanceof SubscriptionProvider) {
+        return (SubscriptionProvider) feature;
+      }
+    }
+    return null;
   }
 
   private Future<JsonResponse> handleUnsubscribe(ServerRequest serverRequest, JsonRequest request) {
@@ -103,6 +137,12 @@ public class SessionServerFeature extends ServerFeatureBase {
       sessionSubs.remove(uri);
       if (sessionSubs.isEmpty()) {
         subscriptions.remove(session.id());
+      }
+
+      // Notify provider
+      SubscriptionProvider provider = findSubscriptionProvider();
+      if (provider != null) {
+        provider.unsubscribe(session.id(), uri);
       }
     }
 

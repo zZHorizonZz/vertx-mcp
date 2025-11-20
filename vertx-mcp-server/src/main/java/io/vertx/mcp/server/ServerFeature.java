@@ -2,6 +2,7 @@ package io.vertx.mcp.server;
 
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 
 import java.util.Set;
 
@@ -11,6 +12,17 @@ import java.util.Set;
  */
 @VertxGen
 public interface ServerFeature extends Handler<ServerRequest> {
+
+  /**
+   * Initializes the server feature with the provided Vert.x instance. This method is used to set up the server feature and prepare it for handling requests within the Vert.x
+   * context.
+   *
+   * @param vertx the Vert.x instance to be used for initialization
+   */
+  default void init(Vertx vertx) {
+    // Default implementation does nothing
+  }
+
   /**
    * Retrieves a set of capabilities associated with this server feature.
    *

@@ -12,11 +12,7 @@ import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.resources.TextResourceContent;
-import io.vertx.mcp.server.ModelContextProtocolServer;
-import io.vertx.mcp.server.PromptHandler;
-import io.vertx.mcp.server.ServerOptions;
-import io.vertx.mcp.server.StructuredToolHandler;
-import io.vertx.mcp.server.UnstructuredToolHandler;
+import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.feature.CompletionServerFeature;
 import io.vertx.mcp.server.feature.PromptServerFeature;
 import io.vertx.mcp.server.feature.ResourceServerFeature;
@@ -48,12 +44,56 @@ public class MCPServerDemo {
       .setSessionsEnabled(true)
       .setStreamingEnabled(true);
 
-    ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(serverOptions);
+    ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(vertx, serverOptions);
 
     // Setup tools, resources, prompts, and completions
-    setupTools(mcpServer);
-    setupResources(mcpServer);
-    setupPrompts(mcpServer);
+    ToolServerFeature toolServerFeature = setupTools(mcpServer);
+    ResourceServerFeature resourceServerFeature = setupResources(mcpServer);
+    PromptServerFeature promptServerFeature = setupPrompts(mcpServer);
+
+    // Add resource management tool to test notifications
+    toolServerFeature.addStructuredTool(
+      "manage_resource",
+      "Manage Resources",
+      "Add or remove resources to test notifications",
+      StructuredToolHandler.create(
+        Schemas.objectSchema()
+          .requiredProperty("operation", Schemas.stringSchema()
+            .withKeyword("enum", new JsonArray().add("add").add("remove")))
+          .requiredProperty("uri", Schemas.stringSchema())
+          .property("name", Schemas.stringSchema())
+          .property("content", Schemas.stringSchema()),
+        Schemas.objectSchema()
+          .property("success", Schemas.booleanSchema())
+          .property("message", Schemas.stringSchema()),
+        input -> {
+          String operation = input.getString("operation");
+          String uri = input.getString("uri");
+          String name = input.getString("name", uri);
+          String content = input.getString("content", "Sample content for " + uri);
+
+          if ("add".equals(operation)) {
+            resourceServerFeature.addStaticResource(uri, name, null, null, () ->
+              Future.succeededFuture(new TextResourceContent()
+                .setUri(uri)
+                .setName(name)
+                .setMimeType("text/plain")
+                .setText(content))
+            );
+            return Future.succeededFuture(new JsonObject()
+              .put("success", true)
+              .put("message", "Resource added: " + uri));
+          } else {
+            // Remove not implemented yet
+            return Future.succeededFuture(new JsonObject()
+              .put("success", false)
+              .put("message", "Remove operation not yet implemented"));
+          }
+        }));
+
+    mcpServer.addServerFeature(toolServerFeature);
+    mcpServer.addServerFeature(resourceServerFeature);
+    mcpServer.addServerFeature(promptServerFeature);
 
     // Add completion support
     mcpServer.addServerFeature(new CompletionServerFeature(mcpServer));
@@ -87,6 +127,7 @@ public class MCPServerDemo {
         System.out.println("  - reverse: Reverse text");
         System.out.println("  - greeting: Generate personalized greeting");
         System.out.println("  - timestamp: Get current timestamp");
+        System.out.println("  - manage_resource: Add/remove resources (test notifications)");
         System.out.println("\nAvailable Resources:");
         System.out.println("  - resource://sample-data/users");
         System.out.println("  - resource://sample-data/products");
@@ -104,7 +145,7 @@ public class MCPServerDemo {
       });
   }
 
-  private static void setupTools(ModelContextProtocolServer server) {
+  private static ToolServerFeature setupTools(ModelContextProtocolServer server) {
     ToolServerFeature toolFeature = new ToolServerFeature();
 
     // Structured Tool: Calculator
@@ -258,10 +299,10 @@ public class MCPServerDemo {
         })
     );
 
-    server.addServerFeature(toolFeature);
+    return toolFeature;
   }
 
-  private static void setupResources(ModelContextProtocolServer server) {
+  private static ResourceServerFeature setupResources(ModelContextProtocolServer server) {
     ResourceServerFeature resourceFeature = new ResourceServerFeature();
 
     // Sample data storage
@@ -430,10 +471,10 @@ public class MCPServerDemo {
       }
     );
 
-    server.addServerFeature(resourceFeature);
+    return resourceFeature;
   }
 
-  private static void setupPrompts(ModelContextProtocolServer server) {
+  private static PromptServerFeature setupPrompts(ModelContextProtocolServer server) {
     PromptServerFeature promptFeature = new PromptServerFeature();
 
     // Available languages for completion
@@ -591,6 +632,6 @@ public class MCPServerDemo {
       }
     ));
 
-    server.addServerFeature(promptFeature);
+    return promptFeature;
   }
 }

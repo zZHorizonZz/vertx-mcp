@@ -3,6 +3,7 @@ package io.vertx.mcp.server;
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.mcp.server.feature.ProtocolServerFeature;
 import io.vertx.mcp.server.feature.SessionServerFeature;
 import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
@@ -23,8 +24,8 @@ public interface ModelContextProtocolServer extends Handler<ServerRequest> {
    *
    * @return a new instance of ModelContextProtocolServer with default configuration.
    */
-  static ModelContextProtocolServer create() {
-    return create(new ServerOptions());
+  static ModelContextProtocolServer create(Vertx vertx) {
+    return create(vertx, new ServerOptions());
   }
 
   /**
@@ -34,8 +35,8 @@ public interface ModelContextProtocolServer extends Handler<ServerRequest> {
    * @param serverVersion the version of the server
    * @return a new instance of ModelContextProtocolServer configured with the specified server name and version
    */
-  static ModelContextProtocolServer create(String serverName, String serverVersion) {
-    return create(new ServerOptions().setServerName(serverName).setServerVersion(serverVersion));
+  static ModelContextProtocolServer create(Vertx vertx, String serverName, String serverVersion) {
+    return create(vertx, new ServerOptions().setServerName(serverName).setServerVersion(serverVersion));
   }
 
   /**
@@ -45,8 +46,8 @@ public interface ModelContextProtocolServer extends Handler<ServerRequest> {
    * @param options the {@code ServerOptions} object containing configuration details for the server
    * @return a new instance of {@code ModelContextProtocolServer} initialized with the provided options
    */
-  static ModelContextProtocolServer create(ServerOptions options) {
-    ModelContextProtocolServer server = new ModelContextProtocolServerImpl(options);
+  static ModelContextProtocolServer create(Vertx vertx, ServerOptions options) {
+    ModelContextProtocolServer server = new ModelContextProtocolServerImpl(vertx, options);
 
     // Register protocol feature (handles initialize, ping)
     ProtocolServerFeature protocolFeature = new ProtocolServerFeature(server, options);
@@ -54,7 +55,7 @@ public interface ModelContextProtocolServer extends Handler<ServerRequest> {
 
     // Register session feature if sessions are enabled (handles subscribe, unsubscribe)
     if (options.getSessionsEnabled()) {
-      SessionServerFeature sessionFeature = new SessionServerFeature(options);
+      SessionServerFeature sessionFeature = new SessionServerFeature(options, server);
       server.addServerFeature(sessionFeature);
     }
 
