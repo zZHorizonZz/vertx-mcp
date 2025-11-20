@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.notification.*;
+import io.vertx.mcp.common.request.PingRequest;
 import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerSession;
@@ -17,6 +18,7 @@ public class SessionManagerImpl implements SessionManager {
 
   private final Vertx vertx;
   private final ServerOptions options;
+  private final Map<String, Long> sessionLastPing = new ConcurrentHashMap<>();
   private final Map<String, ServerSession> sessions = new ConcurrentHashMap<>();
 
   /**
@@ -60,6 +62,24 @@ public class SessionManagerImpl implements SessionManager {
           break;
       }
     });
+
+    this.vertx.setPeriodic(1000, (timerId) -> {
+      for (Map.Entry<String, ServerSession> entry : sessions.entrySet()) {
+        String sessionId = entry.getKey();
+        ServerSession session = entry.getValue();
+        long lastPing = sessionLastPing.getOrDefault(sessionId, 0L);
+
+        if (System.currentTimeMillis() - lastPing > 5000) {
+          sessionLastPing.put(sessionId, System.currentTimeMillis());
+          session.sendRequest(new PingRequest());
+        }
+
+        if (System.currentTimeMillis() - lastPing > options.getSessionTimeoutMs()) {
+          sessions.remove(sessionId);
+          sessionLastPing.remove(sessionId);
+        }
+      }
+    });
   }
 
   private void sendNotification(Notification notification) {
@@ -87,6 +107,7 @@ public class SessionManagerImpl implements SessionManager {
       vertx.setTimer(timeoutMs, timerId -> {
         ServerSession existingSession = sessions.get(sessionId);
         if (existingSession != null && !existingSession.isActive()) {
+          //existingSession.close();
           sessions.remove(sessionId);
         }
       });

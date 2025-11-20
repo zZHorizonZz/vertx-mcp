@@ -11,6 +11,7 @@ import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.Result;
 import io.vertx.mcp.server.ServerSession;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,6 +22,7 @@ public class ServerSessionImpl implements ServerSession {
   private final ClientCapabilities capabilities;
   private final AtomicInteger requestCount = new AtomicInteger(0);
   private final AtomicBoolean active = new AtomicBoolean(true);
+  //private final Map<Object, >
 
   private WriteStream<JsonObject> stream;
 
