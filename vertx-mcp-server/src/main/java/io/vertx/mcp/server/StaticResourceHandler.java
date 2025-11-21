@@ -2,6 +2,7 @@ package io.vertx.mcp.server;
 
 import io.vertx.core.Future;
 import io.vertx.mcp.common.resources.Resource;
+import io.vertx.mcp.common.resources.TextResourceContent;
 
 import java.util.function.Supplier;
 
@@ -11,7 +12,23 @@ import java.util.function.Supplier;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources#resource">Server Features - Resources - Resource</a>
  */
-public interface StaticResourceHandler extends ServerFeatureHandler<Void, Future<Resource>> {
+public interface StaticResourceHandler extends ServerFeatureHandler<Void, Future<Resource>, TextResourceContent> {
+
+  @Override
+  default TextResourceContent toFeature() {
+    TextResourceContent resource = new TextResourceContent()
+      .setUri(uri())
+      .setName(name() != null ? name() : uri());
+
+    if (title() != null) {
+      resource.setTitle(title());
+    }
+    if (description() != null) {
+      resource.setDescription(description());
+    }
+
+    return resource;
+  }
 
   /**
    * Creates a new instance of a {@code StaticResourceHandler} with the specified parameters.

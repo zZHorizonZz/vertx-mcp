@@ -127,12 +127,12 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addStructuredTool("check-session", StructuredToolHandler.create(Schemas.objectSchema(), SESSION_SCHEMA, args -> {
+    toolFeature.addStructuredTool("check-session", Schemas.objectSchema(), SESSION_SCHEMA, args -> {
         Context ctx = Vertx.currentContext();
         ServerSession session = ServerSession.fromContext(ctx);
         JsonObject result = new JsonObject().put("hasSession", session != null).put("sessionId", session != null ? session.id() : null);
         return Future.succeededFuture(result);
-      })
+      }
     );
 
     server.addServerFeature(toolFeature);
@@ -167,7 +167,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
     ToolServerFeature toolFeature = new ToolServerFeature();
 
-    toolFeature.addStructuredTool("test-helper", StructuredToolHandler.create(Schemas.objectSchema(), HELPER_WORKS_SCHEMA, args -> {
+    toolFeature.addStructuredTool("test-helper", Schemas.objectSchema(), HELPER_WORKS_SCHEMA, args -> {
         Context ctx = Vertx.currentContext();
 
         ServerSession sessionFromHelper = ServerSession.fromContext(ctx);
@@ -175,7 +175,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
 
         boolean helperWorks = (sessionFromHelper != null && sessionFromHelper == sessionFromDirect);
         return Future.succeededFuture(new JsonObject().put("helperWorks", helperWorks));
-      })
+      }
     );
 
     server.addServerFeature(toolFeature);

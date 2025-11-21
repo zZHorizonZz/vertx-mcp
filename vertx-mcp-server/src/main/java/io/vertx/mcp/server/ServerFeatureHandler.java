@@ -13,9 +13,10 @@ import java.util.function.Function;
  *
  * @param <I> the type of input data processed by the handler
  * @param <O> the type of output data produced by the handler
+ * @param <F> the feature type this handler produces (e.g., Tool, Prompt, Resource)
  */
 @VertxGen
-public interface ServerFeatureHandler<I, O> extends Function<I, O> {
+public interface ServerFeatureHandler<I, O, F> extends Function<I, O> {
   /**
    * Retrieves the name of the server feature handler.
    *
@@ -39,4 +40,11 @@ public interface ServerFeatureHandler<I, O> extends Function<I, O> {
    */
   @CacheReturn
   String description();
+
+  /**
+   * Converts this handler to its corresponding feature object.
+   *
+   * @return the feature object (e.g., Tool, Prompt, Resource)
+   */
+  F toFeature();
 }

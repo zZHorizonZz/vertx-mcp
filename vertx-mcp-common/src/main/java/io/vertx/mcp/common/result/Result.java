@@ -2,7 +2,6 @@ package io.vertx.mcp.common.result;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
-import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.Meta;
 import io.vertx.mcp.common.rpc.JsonRequest;
@@ -21,7 +20,7 @@ public abstract class Result implements Meta {
 
   public abstract JsonObject toJson();
 
-  public JsonResponse toRequest(JsonRequest request) {
+  public JsonResponse toResponse(JsonRequest request) {
     return JsonResponse.success(request, toJson());
   }
 

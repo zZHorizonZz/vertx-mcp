@@ -80,25 +80,8 @@ public class PromptServerFeature extends ServerFeatureBase implements Completion
   private Future<JsonResponse> handleListPrompts(ServerRequest serverRequest, JsonRequest request) {
     List<Prompt> promptsList = new ArrayList<>();
 
-    // Build Prompt objects from registered prompts
-    for (Map.Entry<String, PromptHandler> entry : prompts.entrySet()) {
-      PromptHandler handler = entry.getValue();
-      Prompt prompt = new Prompt().setName(entry.getKey());
-
-      // Add optional fields if present
-      if (handler.title() != null) {
-        prompt.setTitle(handler.title());
-      }
-      if (handler.description() != null) {
-        prompt.setDescription(handler.description());
-      }
-
-      if (handler.arguments() != null) {
-        List<PromptArgument> arguments = PromptArgument.convertSchemaToArguments(handler.arguments());
-        prompt.setArguments(arguments);
-      }
-
-      promptsList.add(prompt);
+    for (PromptHandler handler : prompts.values()) {
+      promptsList.add(handler.toFeature());
     }
 
     ListPromptsResult result = new ListPromptsResult().setPrompts(promptsList);

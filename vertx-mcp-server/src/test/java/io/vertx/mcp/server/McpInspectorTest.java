@@ -51,28 +51,21 @@ public class McpInspectorTest extends HttpTransportTestBase {
       "echo",
       "Echo Tool",
       "Echoes back the input message",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("message", Schemas.stringSchema()),
-        Schemas.objectSchema()
-          .property("echo", Schemas.stringSchema()),
-        args -> Future.succeededFuture(new JsonObject().put("echo", args.getString("message")))
-      )
+      Schemas.objectSchema().requiredProperty("message", Schemas.stringSchema()),
+      Schemas.objectSchema().property("echo", Schemas.stringSchema()),
+      args -> Future.succeededFuture(new JsonObject().put("echo", args.getString("message")))
     );
 
     toolFeature.addStructuredTool(
       "add",
       "Addition Tool",
       "Adds two numbers",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("a", Schemas.numberSchema())
-          .requiredProperty("b", Schemas.numberSchema()),
-        Schemas.objectSchema()
-          .property("result", Schemas.numberSchema()),
-        args -> Future.succeededFuture(
-          new JsonObject().put("result", args.getInteger("a") + args.getInteger("b"))
-        )
+      Schemas.objectSchema()
+        .requiredProperty("a", Schemas.numberSchema())
+        .requiredProperty("b", Schemas.numberSchema()),
+      Schemas.objectSchema().property("result", Schemas.numberSchema()),
+      args -> Future.succeededFuture(
+        new JsonObject().put("result", args.getInteger("a") + args.getInteger("b"))
       )
     );
 

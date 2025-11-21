@@ -8,6 +8,8 @@ import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.completion.CompletionArgument;
 import io.vertx.mcp.common.completion.CompletionContext;
+import io.vertx.mcp.common.prompt.Prompt;
+import io.vertx.mcp.common.prompt.PromptArgument;
 import io.vertx.mcp.common.prompt.PromptMessage;
 
 import java.util.List;
@@ -22,7 +24,25 @@ import java.util.function.Function;
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#prompt">Server Features - Prompts - Prompt</a>
  */
 @VertxGen
-public interface PromptHandler extends ServerFeatureHandler<JsonObject, Future<List<PromptMessage>>> {
+public interface PromptHandler extends ServerFeatureHandler<JsonObject, Future<List<PromptMessage>>, Prompt> {
+
+  @Override
+  default Prompt toFeature() {
+    Prompt prompt = new Prompt().setName(name());
+
+    if (title() != null) {
+      prompt.setTitle(title());
+    }
+    if (description() != null) {
+      prompt.setDescription(description());
+    }
+    if (arguments() != null) {
+      List<PromptArgument> args = PromptArgument.convertSchemaToArguments(arguments());
+      prompt.setArguments(args);
+    }
+
+    return prompt;
+  }
   /**
    * Creates a new instance of a {@code PromptHandler} with specified parameters.
    *

@@ -3,6 +3,7 @@ package io.vertx.mcp.server;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
+import io.vertx.mcp.common.tool.Tool;
 
 import java.util.function.Function;
 
@@ -13,13 +14,39 @@ import java.util.function.Function;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool">Server Features - Tools - Tool</a>
  */
-public interface StructuredToolHandler extends ServerFeatureHandler<JsonObject, Future<JsonObject>> {
+public interface StructuredToolHandler extends ServerFeatureHandler<JsonObject, Future<JsonObject>, Tool> {
 
-  static StructuredToolHandler create(ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> function) {
+  @Override
+  default Tool toFeature() {
+    Tool tool = new Tool()
+      .setName(name())
+      .setInputSchema(inputSchema().toJson());
+
+    if (title() != null) {
+      tool.setTitle(title());
+    }
+    if (description() != null) {
+      tool.setDescription(description());
+    }
+    if (outputSchema() != null) {
+      tool.setOutputSchema(outputSchema().toJson());
+    }
+
+    return tool;
+  }
+
+  static StructuredToolHandler create(String name, ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> function) {
+    return create(name, null, null, inputSchema, outputSchema, function);
+  }
+
+  static StructuredToolHandler create(String name, String title, ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> function) {
+    return create(name, title, null, inputSchema, outputSchema, function);
+  }
+
+  static StructuredToolHandler create(String name, String title, String description, ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> function) {
     if (inputSchema == null) {
       throw new IllegalArgumentException("Input schema must not be null");
     }
-
     if (outputSchema == null) {
       throw new IllegalArgumentException("Output schema must not be null");
     }
@@ -27,17 +54,17 @@ public interface StructuredToolHandler extends ServerFeatureHandler<JsonObject, 
     return new StructuredToolHandler() {
       @Override
       public String name() {
-        return "";
+        return name;
       }
 
       @Override
       public String title() {
-        return "";
+        return title;
       }
 
       @Override
       public String description() {
-        return "";
+        return description;
       }
 
       @Override

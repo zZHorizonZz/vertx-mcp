@@ -173,25 +173,8 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   private Future<JsonResponse> handleListResources(ServerRequest serverRequest, JsonRequest request) {
     JsonArray resources = new JsonArray();
 
-    // Add all static resources
     for (StaticResourceHandler handler : staticHandlers) {
-      JsonObject resource = new JsonObject().put("uri", handler.uri());
-
-      if (handler.name() != null) {
-        resource.put("name", handler.name());
-      } else {
-        resource.put("name", handler.uri());
-      }
-
-      if (handler.title() != null) {
-        resource.put("title", handler.title());
-      }
-
-      if (handler.description() != null) {
-        resource.put("description", handler.description());
-      }
-
-      resources.add(resource);
+      resources.add(handler.toFeature().toJson());
     }
 
     ListResourcesResult result = new ListResourcesResult().setResources(resources);
@@ -250,23 +233,8 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   private Future<JsonResponse> handleListResourceTemplates(ServerRequest serverRequest, JsonRequest request) {
     List<ResourceTemplate> templates = new ArrayList<>();
 
-    // Convert dynamic handlers to resource templates
     for (DynamicResourceHandler handler : dynamicHandlers) {
-      ResourceTemplate template = new ResourceTemplate().setUriTemplate(handler.uri());
-
-      if (handler.name() != null) {
-        template.setName(handler.name());
-      }
-
-      if (handler.title() != null) {
-        template.setTitle(handler.title());
-      }
-
-      if (handler.description() != null) {
-        template.setDescription(handler.description());
-      }
-
-      templates.add(template);
+      templates.add(handler.toFeature());
     }
 
     ListResourceTemplatesResult result = new ListResourceTemplatesResult().setResourceTemplates(templates);

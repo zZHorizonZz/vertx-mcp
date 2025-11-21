@@ -5,6 +5,7 @@ import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.completion.CompletionArgument;
 import io.vertx.mcp.common.completion.CompletionContext;
 import io.vertx.mcp.common.resources.Resource;
+import io.vertx.mcp.common.resources.ResourceTemplate;
 
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -17,7 +18,21 @@ import java.util.function.Function;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources#resourcetemplate">Server Features - Resources - Resource Template</a>
  */
-public interface DynamicResourceHandler extends ServerFeatureHandler<Map<String, String>, Future<Resource>> {
+public interface DynamicResourceHandler extends ServerFeatureHandler<Map<String, String>, Future<Resource>, ResourceTemplate> {
+
+  @Override
+  default ResourceTemplate toFeature() {
+    ResourceTemplate template = new ResourceTemplate().setUriTemplate(uri()).setName(name());
+
+    if (title() != null) {
+      template.setTitle(title());
+    }
+    if (description() != null) {
+      template.setDescription(description());
+    }
+
+    return template;
+  }
 
   static DynamicResourceHandler create(String uri, String name, String title, String description, Function<Map<String, String>, Future<Resource>> resourceFunction,
     BiFunction<CompletionArgument, CompletionContext, Future<Completion>> completionFunction) {

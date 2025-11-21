@@ -12,7 +12,9 @@ import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.resources.TextResourceContent;
-import io.vertx.mcp.server.*;
+import io.vertx.mcp.server.ModelContextProtocolServer;
+import io.vertx.mcp.server.PromptHandler;
+import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.feature.CompletionServerFeature;
 import io.vertx.mcp.server.feature.PromptServerFeature;
 import io.vertx.mcp.server.feature.ResourceServerFeature;
@@ -47,49 +49,48 @@ public class MCPServerDemo {
     ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(vertx, serverOptions);
 
     // Setup tools, resources, prompts, and completions
-    ToolServerFeature toolServerFeature = setupTools(mcpServer);
-    ResourceServerFeature resourceServerFeature = setupResources(mcpServer);
-    PromptServerFeature promptServerFeature = setupPrompts(mcpServer);
+    ToolServerFeature toolServerFeature = setupTools();
+    ResourceServerFeature resourceServerFeature = setupResources();
+    PromptServerFeature promptServerFeature = setupPrompts();
 
     // Add resource management tool to test notifications
     toolServerFeature.addStructuredTool(
       "manage_resource",
       "Manage Resources",
       "Add or remove resources to test notifications",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("operation", Schemas.stringSchema()
-            .withKeyword("enum", new JsonArray().add("add").add("remove")))
-          .requiredProperty("uri", Schemas.stringSchema())
-          .property("name", Schemas.stringSchema())
-          .property("content", Schemas.stringSchema()),
-        Schemas.objectSchema()
-          .property("success", Schemas.booleanSchema())
-          .property("message", Schemas.stringSchema()),
-        input -> {
-          String operation = input.getString("operation");
-          String uri = input.getString("uri");
-          String name = input.getString("name", uri);
-          String content = input.getString("content", "Sample content for " + uri);
+      Schemas.objectSchema()
+        .requiredProperty("operation", Schemas.stringSchema()
+          .withKeyword("enum", new JsonArray().add("add").add("remove")))
+        .requiredProperty("uri", Schemas.stringSchema())
+        .property("name", Schemas.stringSchema())
+        .property("content", Schemas.stringSchema()),
+      Schemas.objectSchema()
+        .property("success", Schemas.booleanSchema())
+        .property("message", Schemas.stringSchema()),
+      input -> {
+        String operation = input.getString("operation");
+        String uri = input.getString("uri");
+        String name = input.getString("name", uri);
+        String content = input.getString("content", "Sample content for " + uri);
 
-          if ("add".equals(operation)) {
-            resourceServerFeature.addStaticResource(uri, name, null, null, () ->
-              Future.succeededFuture(new TextResourceContent()
-                .setUri(uri)
-                .setName(name)
-                .setMimeType("text/plain")
-                .setText(content))
-            );
-            return Future.succeededFuture(new JsonObject()
-              .put("success", true)
-              .put("message", "Resource added: " + uri));
-          } else {
-            // Remove not implemented yet
-            return Future.succeededFuture(new JsonObject()
-              .put("success", false)
-              .put("message", "Remove operation not yet implemented"));
-          }
-        }));
+        if ("add".equals(operation)) {
+          resourceServerFeature.addStaticResource(uri, name, null, null, () ->
+            Future.succeededFuture(new TextResourceContent()
+              .setUri(uri)
+              .setName(name)
+              .setMimeType("text/plain")
+              .setText(content))
+          );
+          return Future.succeededFuture(new JsonObject()
+            .put("success", true)
+            .put("message", "Resource added: " + uri));
+        } else {
+          // Remove not implemented yet
+          return Future.succeededFuture(new JsonObject()
+            .put("success", false)
+            .put("message", "Remove operation not yet implemented"));
+        }
+      });
 
     mcpServer.addServerFeature(toolServerFeature);
     mcpServer.addServerFeature(resourceServerFeature);
@@ -145,7 +146,7 @@ public class MCPServerDemo {
       });
   }
 
-  private static ToolServerFeature setupTools(ModelContextProtocolServer server) {
+  private static ToolServerFeature setupTools() {
     ToolServerFeature toolFeature = new ToolServerFeature();
 
     // Structured Tool: Calculator
@@ -153,46 +154,45 @@ public class MCPServerDemo {
       "calculator",
       "Calculator",
       "Performs arithmetic operations (add, subtract, multiply, divide)",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("operation", Schemas.stringSchema()
-            .withKeyword("enum", new JsonArray()
-              .add("add").add("subtract").add("multiply").add("divide")))
-          .requiredProperty("a", Schemas.numberSchema())
-          .requiredProperty("b", Schemas.numberSchema()),
-        Schemas.objectSchema()
-          .property("result", Schemas.numberSchema())
-          .property("operation", Schemas.stringSchema()),
-        args -> {
-          String operation = args.getString("operation");
-          double a = args.getDouble("a");
-          double b = args.getDouble("b");
-          double result;
+      Schemas.objectSchema()
+        .requiredProperty("operation", Schemas.stringSchema()
+          .withKeyword("enum", new JsonArray()
+            .add("add").add("subtract").add("multiply").add("divide")))
+        .requiredProperty("a", Schemas.numberSchema())
+        .requiredProperty("b", Schemas.numberSchema()),
+      Schemas.objectSchema()
+        .property("result", Schemas.numberSchema())
+        .property("operation", Schemas.stringSchema()),
+      args -> {
+        String operation = args.getString("operation");
+        double a = args.getDouble("a");
+        double b = args.getDouble("b");
+        double result;
 
-          switch (operation) {
-            case "add":
-              result = a + b;
-              break;
-            case "subtract":
-              result = a - b;
-              break;
-            case "multiply":
-              result = a * b;
-              break;
-            case "divide":
-              if (b == 0) {
-                return Future.failedFuture("Division by zero");
-              }
-              result = a / b;
-              break;
-            default:
-              return Future.failedFuture("Unknown operation: " + operation);
-          }
+        switch (operation) {
+          case "add":
+            result = a + b;
+            break;
+          case "subtract":
+            result = a - b;
+            break;
+          case "multiply":
+            result = a * b;
+            break;
+          case "divide":
+            if (b == 0) {
+              return Future.failedFuture("Division by zero");
+            }
+            result = a / b;
+            break;
+          default:
+            return Future.failedFuture("Unknown operation: " + operation);
+        }
 
-          return Future.succeededFuture(new JsonObject()
-            .put("result", result)
-            .put("operation", operation));
-        })
+        return Future.succeededFuture(new JsonObject()
+          .put("result", result)
+          .put("operation", operation));
+      }
     );
 
     // Structured Tool: Text Uppercase
@@ -200,49 +200,37 @@ public class MCPServerDemo {
       "uppercase",
       "Uppercase Text",
       "Converts text to uppercase",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("text", Schemas.stringSchema()),
-        Schemas.objectSchema()
-          .property("result", Schemas.stringSchema()),
-        args -> {
-          String text = args.getString("text");
-          return Future.succeededFuture(new JsonObject()
-            .put("result", text.toUpperCase()));
-        })
+      Schemas.objectSchema().requiredProperty("text", Schemas.stringSchema()),
+      Schemas.objectSchema().property("result", Schemas.stringSchema()),
+      args -> {
+        String text = args.getString("text");
+        return Future.succeededFuture(new JsonObject().put("result", text.toUpperCase()));
+      }
     );
 
     toolFeature.addStructuredTool(
       "lowercase",
       "Lowercase Text",
       "Converts text to lowercase",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("text", Schemas.stringSchema()),
-        Schemas.objectSchema()
-          .property("result", Schemas.stringSchema()),
-        args -> {
-          String text = args.getString("text");
-          return Future.succeededFuture(new JsonObject()
-            .put("result", text.toLowerCase()));
-        })
+      Schemas.objectSchema().requiredProperty("text", Schemas.stringSchema()),
+      Schemas.objectSchema().property("result", Schemas.stringSchema()),
+      args -> {
+        String text = args.getString("text");
+        return Future.succeededFuture(new JsonObject().put("result", text.toLowerCase()));
+      }
     );
 
     toolFeature.addStructuredTool(
       "reverse",
       "Reverse Text",
       "Reverses the input text",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("text", Schemas.stringSchema()),
-        Schemas.objectSchema()
-          .property("result", Schemas.stringSchema()),
-        args -> {
-          String text = args.getString("text");
-          String reversed = new StringBuilder(text).reverse().toString();
-          return Future.succeededFuture(new JsonObject()
-            .put("result", reversed));
-        })
+      Schemas.objectSchema().requiredProperty("text", Schemas.stringSchema()),
+      Schemas.objectSchema().property("result", Schemas.stringSchema()),
+      args -> {
+        String text = args.getString("text");
+        String reversed = new StringBuilder(text).reverse().toString();
+        return Future.succeededFuture(new JsonObject().put("result", reversed));
+      }
     );
 
     // Unstructured Tool: Greeting Generator
@@ -250,33 +238,32 @@ public class MCPServerDemo {
       "greeting",
       "Greeting Generator",
       "Generates personalized greetings in different styles",
-      UnstructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("name", Schemas.stringSchema())
-          .property("style", Schemas.stringSchema()
-            .withKeyword("enum", new JsonArray()
-              .add("formal").add("casual").add("enthusiastic"))),
-        args -> {
-          String name = args.getString("name");
-          String style = args.getString("style", "casual");
-          String greeting;
+      Schemas.objectSchema()
+        .requiredProperty("name", Schemas.stringSchema())
+        .property("style", Schemas.stringSchema()
+          .withKeyword("enum", new JsonArray()
+            .add("formal").add("casual").add("enthusiastic"))),
+      args -> {
+        String name = args.getString("name");
+        String style = args.getString("style", "casual");
+        String greeting;
 
-          switch (style) {
-            case "formal":
-              greeting = "Good day, " + name + ". It is a pleasure to make your acquaintance.";
-              break;
-            case "enthusiastic":
-              greeting = "Hey " + name + "!!! So awesome to meet you! Let's do great things together!";
-              break;
-            default: // casual
-              greeting = "Hi " + name + "! Nice to meet you.";
-              break;
-          }
+        switch (style) {
+          case "formal":
+            greeting = "Good day, " + name + ". It is a pleasure to make your acquaintance.";
+            break;
+          case "enthusiastic":
+            greeting = "Hey " + name + "!!! So awesome to meet you! Let's do great things together!";
+            break;
+          default: // casual
+            greeting = "Hi " + name + "! Nice to meet you.";
+            break;
+        }
 
-          return Future.succeededFuture(new Content[] {
-            new TextContent(greeting)
-          });
-        })
+        return Future.succeededFuture(new Content[] {
+          new TextContent(greeting)
+        });
+      }
     );
 
     // Unstructured Tool: Timestamp
@@ -284,25 +271,23 @@ public class MCPServerDemo {
       "timestamp",
       "Timestamp Generator",
       "Returns the current timestamp in the specified format",
-      UnstructuredToolHandler.create(
-        Schemas.objectSchema()
-          .property("format", Schemas.stringSchema()),
-        args -> {
-          String format = args.getString("format", "yyyy-MM-dd HH:mm:ss");
-          LocalDateTime now = LocalDateTime.now();
-          DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
-          String timestamp = now.format(formatter);
+      Schemas.objectSchema().property("format", Schemas.stringSchema()),
+      args -> {
+        String format = args.getString("format", "yyyy-MM-dd HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+        String timestamp = now.format(formatter);
 
-          return Future.succeededFuture(new Content[] {
-            new TextContent("Current timestamp: " + timestamp)
-          });
-        })
+        return Future.succeededFuture(new Content[] {
+          new TextContent("Current timestamp: " + timestamp)
+        });
+      }
     );
 
     return toolFeature;
   }
 
-  private static ResourceServerFeature setupResources(ModelContextProtocolServer server) {
+  private static ResourceServerFeature setupResources() {
     ResourceServerFeature resourceFeature = new ResourceServerFeature();
 
     // Sample data storage
@@ -474,7 +459,7 @@ public class MCPServerDemo {
     return resourceFeature;
   }
 
-  private static PromptServerFeature setupPrompts(ModelContextProtocolServer server) {
+  private static PromptServerFeature setupPrompts() {
     PromptServerFeature promptFeature = new PromptServerFeature();
 
     // Available languages for completion

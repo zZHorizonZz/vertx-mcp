@@ -62,34 +62,25 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
   @Test
   public void testListToolsWithStructuredTools(TestContext context) {
 
-    // Add structured tools
+    // Add structured tools using new style
     feature.addStructuredTool(
       "greet",
       "Greeting Tool",
       "Greets a person by name",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("name", Schemas.stringSchema()),
-        Schemas.objectSchema()
-          .property("greeting", Schemas.stringSchema()),
-        args ->
-          Future.succeededFuture(new JsonObject().put("greeting", "Hello " + args.getString("name")))
-      )
+      Schemas.objectSchema().requiredProperty("name", Schemas.stringSchema()),
+      Schemas.objectSchema().property("greeting", Schemas.stringSchema()),
+      args -> Future.succeededFuture(new JsonObject().put("greeting", "Hello " + args.getString("name")))
     );
 
     feature.addStructuredTool(
       "add",
       "Addition Tool",
       "Adds two numbers",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("a", Schemas.numberSchema())
-          .requiredProperty("b", Schemas.numberSchema()),
-        Schemas.objectSchema()
-          .property("result", Schemas.numberSchema()),
-        args ->
-          Future.succeededFuture(new JsonObject().put("result", args.getInteger("a") + args.getInteger("b")))
-      )
+      Schemas.objectSchema()
+        .requiredProperty("a", Schemas.numberSchema())
+        .requiredProperty("b", Schemas.numberSchema()),
+      Schemas.objectSchema().property("result", Schemas.numberSchema()),
+      args -> Future.succeededFuture(new JsonObject().put("result", args.getInteger("a") + args.getInteger("b")))
     );
 
     Async async = context.async();
@@ -144,13 +135,10 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       "echo",
       "Echo Tool",
       "Echoes back the message",
-      UnstructuredToolHandler.create(
-        MESSAGE_INPUT_SCHEMA,
-        args ->
-          Future.succeededFuture(new Content[] {
-            new TextContent(args.getString("message"))
-          })
-      )
+      MESSAGE_INPUT_SCHEMA,
+      args -> Future.succeededFuture(new Content[] {
+        new TextContent(args.getString("message"))
+      })
     );
 
     Async async = context.async();
@@ -183,17 +171,15 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     feature.addStructuredTool(
       "multiply",
-      StructuredToolHandler.create(
-        Schemas.objectSchema()
-          .requiredProperty("x", Schemas.numberSchema())
-          .requiredProperty("y", Schemas.numberSchema()),
-        Schemas.objectSchema()
-          .property("product", Schemas.numberSchema()),
-        args -> {
-          int x = args.getInteger("x");
-          int y = args.getInteger("y");
-          return Future.succeededFuture(new JsonObject().put("product", x * y));
-        })
+      Schemas.objectSchema()
+        .requiredProperty("x", Schemas.numberSchema())
+        .requiredProperty("y", Schemas.numberSchema()),
+      Schemas.objectSchema().property("product", Schemas.numberSchema()),
+      args -> {
+        int x = args.getInteger("x");
+        int y = args.getInteger("y");
+        return Future.succeededFuture(new JsonObject().put("product", x * y));
+      }
     );
 
     Async async = context.async();
@@ -230,13 +216,10 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     feature.addUnstructuredTool(
       "uppercase",
-      UnstructuredToolHandler.create(
-        TEXT_INPUT_SCHEMA,
-        args ->
-          Future.succeededFuture(new Content[] {
-            new TextContent(args.getString("text").toUpperCase())
-          })
-      )
+      TEXT_INPUT_SCHEMA,
+      args -> Future.succeededFuture(new Content[] {
+        new TextContent(args.getString("text").toUpperCase())
+      })
     );
 
     Async async = context.async();
@@ -324,12 +307,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     feature.addStructuredTool(
       "failing-tool",
-      StructuredToolHandler.create(
-        NUMBER_VALUE_SCHEMA,
-        NUMBER_OUTPUT_SCHEMA,
-        args ->
-          Future.failedFuture("Tool execution failed")
-      )
+      NUMBER_VALUE_SCHEMA,
+      NUMBER_OUTPUT_SCHEMA,
+      args -> Future.failedFuture("Tool execution failed")
     );
 
     Async async = context.async();
@@ -363,11 +343,8 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     feature.addUnstructuredTool(
       "failing-unstructured",
-      UnstructuredToolHandler.create(
-        STRING_VALUE_SCHEMA,
-        args ->
-          Future.failedFuture("Unstructured tool failed")
-      )
+      STRING_VALUE_SCHEMA,
+      args -> Future.failedFuture("Unstructured tool failed")
     );
 
     Async async = context.async();
@@ -421,12 +398,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     feature.addStructuredTool(
       "no-args-tool",
-      StructuredToolHandler.create(
-        EMPTY_SCHEMA,
-        MESSAGE_OUTPUT_SCHEMA,
-        args ->
-          Future.succeededFuture(new JsonObject().put("message", "No arguments needed"))
-      )
+      EMPTY_SCHEMA,
+      MESSAGE_OUTPUT_SCHEMA,
+      args -> Future.succeededFuture(new JsonObject().put("message", "No arguments needed"))
     );
 
     Async async = context.async();
@@ -459,12 +433,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       final int index = i;
       feature.addStructuredTool(
         "tool-" + i,
-        StructuredToolHandler.create(
-          EMPTY_SCHEMA,
-          Schemas.objectSchema().property("index", Schemas.numberSchema()),
-          args ->
-            Future.succeededFuture(new JsonObject().put("index", index))
-        )
+        EMPTY_SCHEMA,
+        Schemas.objectSchema().property("index", Schemas.numberSchema()),
+        args -> Future.succeededFuture(new JsonObject().put("index", index))
       );
     }
 

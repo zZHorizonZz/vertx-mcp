@@ -3,6 +3,7 @@ package io.vertx.mcp.server.feature;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.request.CallToolRequest;
 import io.vertx.mcp.common.result.CallToolResult;
@@ -18,6 +19,7 @@ import io.vertx.mcp.server.impl.ServerFeatureBase;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * The ToolServerFeature class implements the ServerFeatureBase and provides functionality to handle JSON-RPC requests related to tool management. This includes listing available
@@ -28,7 +30,8 @@ import java.util.function.BiFunction;
  */
 public class ToolServerFeature extends ServerFeatureBase {
 
-  private final Map<String, ToolRegistration> tools = new HashMap<>();
+  private final Map<String, StructuredToolHandler> structuredTools = new HashMap<>();
+  private final Map<String, UnstructuredToolHandler> unstructuredTools = new HashMap<>();
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
@@ -41,25 +44,12 @@ public class ToolServerFeature extends ServerFeatureBase {
   private Future<JsonResponse> handleListTools(ServerRequest serverRequest, JsonRequest request) {
     List<Tool> toolsList = new ArrayList<>();
 
-    // Build Tool objects from registered tools
-    for (Map.Entry<String, ToolRegistration> entry : tools.entrySet()) {
-      ToolRegistration registration = entry.getValue();
-      Tool tool = new Tool()
-        .setName(entry.getKey())
-        .setInputSchema(registration.inputSchema.toJson());
+    for (StructuredToolHandler handler : structuredTools.values()) {
+      toolsList.add(handler.toFeature());
+    }
 
-      // Add optional fields if present
-      if (registration.description != null) {
-        tool.setDescription(registration.description);
-      }
-      if (registration.title != null) {
-        tool.setTitle(registration.title);
-      }
-      if (registration.outputSchema != null) {
-        tool.setOutputSchema(registration.outputSchema.toJson());
-      }
-
-      toolsList.add(tool);
+    for (UnstructuredToolHandler handler : unstructuredTools.values()) {
+      toolsList.add(handler.toFeature());
     }
 
     ListToolsResult result = new ListToolsResult().setTools(toolsList);
@@ -85,55 +75,38 @@ public class ToolServerFeature extends ServerFeatureBase {
       );
     }
 
-    // Find the tool registration
-    ToolRegistration registration = tools.get(toolName);
-    if (registration == null) {
-      return Future.succeededFuture(
-        JsonResponse.error(request, JsonError.invalidParams("Tool not found: " + toolName))
-      );
-    }
-
     // Ensure arguments is not null
     if (arguments == null) {
       arguments = new JsonObject();
     }
 
-    // Execute the appropriate handler
-    if (registration.structuredHandler != null) {
-      return executeStructuredTool(request, registration.structuredHandler, arguments);
-    } else if (registration.unstructuredHandler != null) {
-      return executeUnstructuredTool(request, registration.unstructuredHandler, arguments);
-    } else {
-      return Future.succeededFuture(
-        JsonResponse.error(request, JsonError.internalError("No handler registered for tool: " + toolName))
-      );
+    // Check structured tools first
+    StructuredToolHandler structuredHandler = structuredTools.get(toolName);
+    if (structuredHandler != null) {
+      return executeStructuredTool(structuredHandler, arguments).map(result -> result.toResponse(request));
     }
+
+    // Check unstructured tools
+    UnstructuredToolHandler unstructuredHandler = unstructuredTools.get(toolName);
+    if (unstructuredHandler != null) {
+      return executeUnstructuredTool(unstructuredHandler, arguments).map(result -> result.toResponse(request));
+    }
+
+    return Future.succeededFuture(
+      JsonResponse.error(request, JsonError.invalidParams("Tool not found: " + toolName))
+    );
   }
 
-  private Future<JsonResponse> executeStructuredTool(JsonRequest request, StructuredToolHandler handler, JsonObject arguments) {
+  private Future<CallToolResult> executeStructuredTool(StructuredToolHandler handler, JsonObject arguments) {
     return handler.apply(arguments)
-      .compose(result -> {
-        CallToolResult callResult = new CallToolResult()
-          .setStructuredContent(result)
-          .setIsError(false);
-        return Future.succeededFuture(JsonResponse.success(request, callResult.toJson()));
-      })
-      .recover(err -> {
-        CallToolResult callResult = new CallToolResult()
-          .setIsError(true);
-
-        // Create error content
-        JsonArray errorContent = new JsonArray()
-          .add(new JsonObject()
-            .put("type", "text")
-            .put("text", "Error: " + err.getMessage()));
-        callResult.setContent(errorContent);
-
-        return Future.succeededFuture(JsonResponse.success(request, callResult.toJson()));
-      });
+      .compose(result -> Future.succeededFuture(new CallToolResult().setStructuredContent(result).setIsError(false)))
+      .recover(err -> Future.succeededFuture(new CallToolResult()
+        .setContent(new JsonArray().add(new JsonObject().put("type", "text").put("text", "Error: " + err.getMessage())))
+        .setIsError(true))
+      );
   }
 
-  private Future<JsonResponse> executeUnstructuredTool(JsonRequest request, UnstructuredToolHandler handler, JsonObject arguments) {
+  private Future<CallToolResult> executeUnstructuredTool(UnstructuredToolHandler handler, JsonObject arguments) {
     return handler.apply(arguments)
       .compose(contents -> {
         JsonArray contentArray = new JsonArray();
@@ -141,97 +114,122 @@ public class ToolServerFeature extends ServerFeatureBase {
           contentArray.add(content.toJson());
         }
 
-        CallToolResult callResult = new CallToolResult()
-          .setContent(contentArray)
-          .setIsError(false);
-        return Future.succeededFuture(JsonResponse.success(request, callResult.toJson()));
+        return Future.succeededFuture(new CallToolResult().setContent(contentArray).setIsError(false));
       })
-      .recover(err -> {
-        CallToolResult callResult = new CallToolResult()
-          .setIsError(true);
+      .recover(err -> Future.succeededFuture(new CallToolResult()
+        .setIsError(true)
+        .setContent(new JsonArray().add(new JsonObject().put("type", "text").put("text", "Error: " + err.getMessage()))))
+      );
+  }
 
-        // Create error content
-        JsonArray errorContent = new JsonArray()
-          .add(new JsonObject()
-            .put("type", "text")
-            .put("text", "Error: " + err.getMessage()));
-        callResult.setContent(errorContent);
+  /**
+   * Adds a structured tool handler with just name and schema information.
+   *
+   * @param name the tool name
+   * @param inputSchema the input schema
+   * @param outputSchema the output schema
+   * @param handler the handler function
+   */
+  public void addStructuredTool(String name, ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> handler) {
+    this.addStructuredTool(name, null, null, inputSchema, outputSchema, handler);
+  }
 
-        return Future.succeededFuture(JsonResponse.success(request, callResult.toJson()));
-      });
+  /**
+   * Adds a structured tool handler with name, title, and schema information.
+   *
+   * @param name the tool name
+   * @param title the tool title (optional)
+   * @param inputSchema the input schema
+   * @param outputSchema the output schema
+   * @param handler the handler function
+   */
+  public void addStructuredTool(String name, String title, ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema, Function<JsonObject, Future<JsonObject>> handler) {
+    this.addStructuredTool(name, title, null, inputSchema, outputSchema, handler);
+  }
+
+  /**
+   * Adds a structured tool handler with full metadata.
+   *
+   * @param name the tool name
+   * @param title the tool title (optional)
+   * @param description the tool description (optional)
+   * @param inputSchema the input schema
+   * @param outputSchema the output schema
+   * @param handler the handler function
+   */
+  public void addStructuredTool(String name, String title, String description, ObjectSchemaBuilder inputSchema, ObjectSchemaBuilder outputSchema,
+    Function<JsonObject, Future<JsonObject>> handler) {
+    this.addStructuredTool(StructuredToolHandler.create(name, title, description, inputSchema, outputSchema, handler));
   }
 
   /**
    * Adds a structured tool handler.
    *
-   * @param name the tool name
    * @param handler the structured tool handler
+   * @throws IllegalArgumentException if the handler is null or has an invalid name
    */
-  public void addStructuredTool(String name, StructuredToolHandler handler) {
-    if (name == null || name.isEmpty()) {
-      throw new IllegalArgumentException("Tool name must not be null or empty");
-    }
+  public void addStructuredTool(StructuredToolHandler handler) {
     if (handler == null) {
       throw new IllegalArgumentException("Handler must not be null");
     }
+    if (handler.name() == null || handler.name().isEmpty()) {
+      throw new IllegalArgumentException("Tool name must not be null or empty");
+    }
 
-    ToolRegistration registration = new ToolRegistration();
-    registration.inputSchema = handler.inputSchema();
-    registration.outputSchema = handler.outputSchema();
-    registration.structuredHandler = handler;
-
-    tools.put(name, registration);
+    structuredTools.put(handler.name(), handler);
   }
 
   /**
-   * Adds a structured tool handler with additional metadata.
+   * Adds an unstructured tool handler with just name and schema information.
+   *
+   * @param name the tool name
+   * @param inputSchema the input schema
+   * @param handler the handler function
+   */
+  public void addUnstructuredTool(String name, ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> handler) {
+    this.addUnstructuredTool(name, null, null, inputSchema, handler);
+  }
+
+  /**
+   * Adds an unstructured tool handler with name, title, and schema information.
+   *
+   * @param name the tool name
+   * @param title the tool title (optional)
+   * @param inputSchema the input schema
+   * @param handler the handler function
+   */
+  public void addUnstructuredTool(String name, String title, ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> handler) {
+    this.addUnstructuredTool(name, title, null, inputSchema, handler);
+  }
+
+  /**
+   * Adds an unstructured tool handler with full metadata.
    *
    * @param name the tool name
    * @param title the tool title (optional)
    * @param description the tool description (optional)
-   * @param handler the structured tool handler
+   * @param inputSchema the input schema
+   * @param handler the handler function
    */
-  public void addStructuredTool(String name, String title, String description, StructuredToolHandler handler) {
-    addStructuredTool(name, handler);
-    ToolRegistration registration = tools.get(name);
-    registration.title = title;
-    registration.description = description;
+  public void addUnstructuredTool(String name, String title, String description, ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> handler) {
+    this.addUnstructuredTool(UnstructuredToolHandler.create(name, title, description, inputSchema, handler));
   }
 
   /**
    * Adds an unstructured tool handler.
    *
-   * @param name the tool name
    * @param handler the unstructured tool handler
+   * @throws IllegalArgumentException if the handler is null or has an invalid name
    */
-  public void addUnstructuredTool(String name, UnstructuredToolHandler handler) {
-    if (name == null || name.isEmpty()) {
-      throw new IllegalArgumentException("Tool name must not be null or empty");
-    }
+  public void addUnstructuredTool(UnstructuredToolHandler handler) {
     if (handler == null) {
       throw new IllegalArgumentException("Handler must not be null");
     }
+    if (handler.name() == null || handler.name().isEmpty()) {
+      throw new IllegalArgumentException("Tool name must not be null or empty");
+    }
 
-    ToolRegistration registration = new ToolRegistration();
-    registration.inputSchema = handler.inputSchema();
-    registration.unstructuredHandler = handler;
-
-    tools.put(name, registration);
-  }
-
-  /**
-   * Adds an unstructured tool handler with additional metadata.
-   *
-   * @param name the tool name
-   * @param title the tool title (optional)
-   * @param description the tool description (optional)
-   * @param handler the unstructured tool handler
-   */
-  public void addUnstructuredTool(String name, String title, String description, UnstructuredToolHandler handler) {
-    addUnstructuredTool(name, handler);
-    ToolRegistration registration = tools.get(name);
-    registration.title = title;
-    registration.description = description;
+    unstructuredTools.put(handler.name(), handler);
   }
 
   /**
@@ -241,7 +239,11 @@ public class ToolServerFeature extends ServerFeatureBase {
    * @return true if the tool was removed, false if it didn't exist
    */
   public boolean removeTool(String name) {
-    return tools.remove(name) != null;
+    boolean removed = structuredTools.remove(name) != null;
+    if (!removed) {
+      removed = unstructuredTools.remove(name) != null;
+    }
+    return removed;
   }
 
   /**
@@ -251,7 +253,7 @@ public class ToolServerFeature extends ServerFeatureBase {
    * @return true if the tool exists
    */
   public boolean hasTool(String name) {
-    return tools.containsKey(name);
+    return structuredTools.containsKey(name) || unstructuredTools.containsKey(name);
   }
 
   /**
@@ -260,26 +262,9 @@ public class ToolServerFeature extends ServerFeatureBase {
    * @return set of tool names
    */
   public Set<String> getToolNames() {
-    return tools.keySet();
-  }
-
-  /**
-   * Clears all registered tools. Useful for test isolation when reusing feature instances.
-   */
-  public void clear() {
-    tools.clear();
-  }
-
-  /**
-   * Internal class to hold tool registration information.
-   */
-  private static class ToolRegistration {
-    io.vertx.json.schema.common.dsl.SchemaBuilder inputSchema;
-    io.vertx.json.schema.common.dsl.SchemaBuilder outputSchema;
-
-    String title;
-    String description;
-    StructuredToolHandler structuredHandler;
-    UnstructuredToolHandler unstructuredHandler;
+    Set<String> names = new HashSet<>();
+    names.addAll(structuredTools.keySet());
+    names.addAll(unstructuredTools.keySet());
+    return names;
   }
 }

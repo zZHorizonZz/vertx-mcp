@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 import io.vertx.mcp.common.content.Content;
+import io.vertx.mcp.common.tool.Tool;
 
 import java.util.function.Function;
 
@@ -14,9 +15,33 @@ import java.util.function.Function;
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool">Server Features - Tools - Tool</a>
  */
-public interface UnstructuredToolHandler extends ServerFeatureHandler<JsonObject, Future<Content[]>> {
+public interface UnstructuredToolHandler extends ServerFeatureHandler<JsonObject, Future<Content[]>, Tool> {
 
-  static UnstructuredToolHandler create(ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> function) {
+  @Override
+  default Tool toFeature() {
+    Tool tool = new Tool()
+      .setName(name())
+      .setInputSchema(inputSchema().toJson());
+
+    if (title() != null) {
+      tool.setTitle(title());
+    }
+    if (description() != null) {
+      tool.setDescription(description());
+    }
+
+    return tool;
+  }
+
+  static UnstructuredToolHandler create(String name, ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> function) {
+    return create(name, null, null, inputSchema, function);
+  }
+
+  static UnstructuredToolHandler create(String name, String title, ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> function) {
+    return create(name, title, null, inputSchema, function);
+  }
+
+  static UnstructuredToolHandler create(String name, String title, String description, ObjectSchemaBuilder inputSchema, Function<JsonObject, Future<Content[]>> function) {
     if (inputSchema == null) {
       throw new IllegalArgumentException("Input schema must not be null");
     }
@@ -24,17 +49,17 @@ public interface UnstructuredToolHandler extends ServerFeatureHandler<JsonObject
     return new UnstructuredToolHandler() {
       @Override
       public String name() {
-        return "";
+        return name;
       }
 
       @Override
       public String title() {
-        return "";
+        return title;
       }
 
       @Override
       public String description() {
-        return "";
+        return description;
       }
 
       @Override
