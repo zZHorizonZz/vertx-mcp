@@ -94,7 +94,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
     startServer(context, server);
 
     sendRequest(HttpMethod.POST, new PingRequest(), "invalid-session-id").onComplete(context.asyncAssertSuccess(resp -> {
-      context.assertEquals(400, resp.statusCode(), "Invalid session should return 400");
+      context.assertEquals(404, resp.statusCode(), "Session not found should return 404");
       async.complete();
     }));
 

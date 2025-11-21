@@ -4,6 +4,7 @@ import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Closeable;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
@@ -46,7 +47,7 @@ public interface ServerSession extends Closeable {
    * @param request the request to send
    * @return a future that completes with the result
    */
-  Future<Result> sendRequest(Request request);
+  Future<JsonObject> sendRequest(Request request);
 
   /**
    * Sends a notification to the client.

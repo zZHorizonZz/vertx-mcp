@@ -2,6 +2,7 @@ package io.vertx.mcp.server.impl;
 
 import io.vertx.core.Completable;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.WriteStream;
@@ -12,6 +13,7 @@ import io.vertx.mcp.common.result.Result;
 import io.vertx.mcp.server.ServerSession;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,7 +24,7 @@ public class ServerSessionImpl implements ServerSession {
   private final ClientCapabilities capabilities;
   private final AtomicInteger requestCount = new AtomicInteger(0);
   private final AtomicBoolean active = new AtomicBoolean(true);
-  //private final Map<Object, >
+  private final Map<Object, Promise<JsonObject>> pendingRequests = new ConcurrentHashMap<>();
 
   private WriteStream<JsonObject> stream;
 
@@ -36,6 +38,10 @@ public class ServerSessionImpl implements ServerSession {
     this.stream = stream;
   }
 
+  public Map<Object, Promise<JsonObject>> getPendingRequests() {
+    return pendingRequests;
+  }
+
   @Override
   public String id() {
     return this.id;
@@ -47,7 +53,7 @@ public class ServerSessionImpl implements ServerSession {
   }
 
   @Override
-  public Future<Result> sendRequest(Request request) {
+  public Future<JsonObject> sendRequest(Request request) {
     if (!active.get()) {
       return Future.failedFuture("ServerSession is not active");
     }
@@ -56,8 +62,16 @@ public class ServerSessionImpl implements ServerSession {
       return Future.failedFuture("ServerSession is not streaming");
     }
 
-    //TODO: How to handle this?
-    return this.stream.write(request.toRequest(requestCount.incrementAndGet()).toJson()).map(v -> null);
+    int requestId = requestCount.incrementAndGet();
+    Promise<JsonObject> promise = Promise.promise();
+    pendingRequests.put(requestId, promise);
+
+    this.stream.write(request.toRequest(requestId).toJson()).onFailure(err -> {
+      pendingRequests.remove(requestId);
+      promise.fail(err);
+    });
+
+    return promise.future();
   }
 
   @Override

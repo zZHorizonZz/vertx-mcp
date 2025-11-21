@@ -1,5 +1,6 @@
 package io.vertx.mcp.server.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
@@ -16,15 +17,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionManagerImpl implements SessionManager {
 
-  private final Vertx vertx;
-  private final ServerOptions options;
-  private final Map<String, Long> sessionLastPing = new ConcurrentHashMap<>();
-  private final Map<String, ServerSession> sessions = new ConcurrentHashMap<>();
-
   /**
    * Event bus address for sending notifications to sessions.
    */
   public static final String NOTIFICATION_ADDRESS = "io.vertx.mcp.server.notification";
+
+  private final Vertx vertx;
+  private final ServerOptions options;
+  private final Map<String, Long> sessionLastPing = new ConcurrentHashMap<>();
+  private final Map<String, ServerSession> sessions = new ConcurrentHashMap<>();
 
   public SessionManagerImpl(Vertx vertx, ServerOptions options) {
     this.vertx = vertx;
@@ -49,7 +50,13 @@ public class SessionManagerImpl implements SessionManager {
           break;
         }
         case "notifications/resources/list_changed":
-          sendNotification(new ResourceListChangedNotification(params));
+          sendNotification(new ResourceListChangedNotification(params)).onComplete(ar -> {
+            if (ar.succeeded()) {
+              System.out.println("Resource list changed notification sent");
+            } else {
+              System.out.println("Resource list changed notification failed: " + ar.cause().getMessage());
+            }
+          });
           break;
         case "notifications/tools/list_changed":
           sendNotification(new ToolListChangedNotification(params));
@@ -71,23 +78,25 @@ public class SessionManagerImpl implements SessionManager {
 
         if (System.currentTimeMillis() - lastPing > 5000) {
           sessionLastPing.put(sessionId, System.currentTimeMillis());
-          session.sendRequest(new PingRequest());
+          session.sendRequest(new PingRequest()).onComplete(ar -> {
+            if (ar.succeeded()) {
+              System.out.println("Ping response received");
+            } else {
+              System.out.println("Ping response failed: " + ar.cause().getMessage());
+            }
+          });
         }
 
-        if (System.currentTimeMillis() - lastPing > options.getSessionTimeoutMs()) {
+        /*if (System.currentTimeMillis() - lastPing > options.getSessionTimeoutMs()) {
           sessions.remove(sessionId);
           sessionLastPing.remove(sessionId);
-        }
+        }*/
       }
     });
   }
 
-  private void sendNotification(Notification notification) {
-    for (ServerSession session : sessions.values()) {
-      if (session.isStreaming()) {
-        session.sendNotification(notification);
-      }
-    }
+  private Future<Void> sendNotification(Notification notification) {
+    return Future.join(sessions.values().stream().map(session -> session.sendNotification(notification)).toArray(Future[]::new)).mapEmpty();
   }
 
   @Override

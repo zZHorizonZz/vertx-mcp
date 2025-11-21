@@ -2,6 +2,7 @@ package io.vertx.mcp.server.transport.http;
 
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -13,6 +14,7 @@ import io.vertx.mcp.common.request.InitializeRequest;
 import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonRequestDecoder;
+import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.impl.ServerSessionImpl;
 
@@ -65,16 +67,16 @@ public class HttpServerRequestImpl implements ServerRequest {
 
     this.response = (HttpServerResponseImpl) response;
 
-    if (session != null) {
-      ((ServerSessionImpl) session).init(this.response);
-    }
-
     response.init(session);
 
     if (httpRequest.method().equals(HttpMethod.GET)) {
       if (session == null) {
         httpRequest.response().setStatusCode(404).end("Session not found");
         return;
+      }
+
+      if(!this.session.isStreaming()) {
+        ((ServerSessionImpl) this.session).init(this.response);
       }
 
       httpRequest.response().setChunked(true);
@@ -92,15 +94,53 @@ public class HttpServerRequestImpl implements ServerRequest {
       httpRequest.response().writeHead();
     }
 
-    // Directly read the body and parse as a single JsonRequest
-    // MCP always sends a single JSON-RPC request per HTTP request
+    // Directly read the body and parse as a single JsonRequest or JsonResponse
+    // MCP always sends a single JSON-RPC message per HTTP request
     httpRequest.bodyHandler(body -> {
       try {
         if (body.length() == 0 && httpRequest.method().equals(HttpMethod.GET)) {
           return;
         }
 
-        this.jsonRequest = JsonRequestDecoder.fromJson(new JsonObject(body.toString()));
+        JsonObject json = new JsonObject(body.toString());
+
+        // Check if this is a response (has result/error, no method) from the client
+        // This happens when the server sends a request to the client and the client responds
+        if (!json.containsKey("method") && (json.containsKey("result") || json.containsKey("error"))) {
+          // This is a response to a server-initiated request
+          if (session == null) {
+            httpRequest.response().setStatusCode(400).end("Session required for responses");
+            return;
+          }
+
+          JsonResponse jsonResponse = JsonResponse.fromJson(json);
+          ServerSessionImpl sessionImpl = (ServerSessionImpl) session;
+          Promise<JsonObject> promise = sessionImpl.getPendingRequests().remove(jsonResponse.getId());
+
+          if (promise == null) {
+            httpRequest.response().setStatusCode(400).end("Unknown request ID");
+            return;
+          }
+
+          if (jsonResponse.isSuccess()) {
+            Object resultValue = jsonResponse.getResult();
+            JsonObject resultJson = resultValue instanceof JsonObject ? (JsonObject) resultValue : new JsonObject();
+            promise.complete(resultJson);
+          } else {
+            promise.fail(new RuntimeException(jsonResponse.getError().getMessage()));
+          }
+
+          httpRequest.response().setStatusCode(202);
+          httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
+          httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+          httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS");
+          httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
+          httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, String.join(",", HttpServerTransport.ACCEPTED_HEADERS));
+          httpRequest.response().end();
+          return;
+        }
+
+        this.jsonRequest = JsonRequestDecoder.fromJson(json);
 
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
         httpRequest.response().putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
@@ -110,11 +150,15 @@ public class HttpServerRequestImpl implements ServerRequest {
 
         // If this is an initialize request and sessions are enabled, create a new session
         if (this.jsonRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
-          InitializeRequest initialize = new InitializeRequest(new JsonObject(body.toString()));
+          InitializeRequest initialize = new InitializeRequest(json);
           httpRequest.response().putHeader(HttpServerTransport.MCP_SESSION_ID_HEADER, sessionManager.createSession(initialize.getCapabilities()).id());
         }
 
         if (this.session != null && options.getStreamingEnabled() && !(this.jsonRequest instanceof JsonNotification)) {
+          if(!this.session.isStreaming()) {
+            ((ServerSessionImpl) this.session).init(this.response);
+          }
+
           HttpServerResponse httpResponse = httpRequest.response();
 
           httpResponse.setChunked(true);

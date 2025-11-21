@@ -92,7 +92,7 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
     if (sessionId != null && options.getSessionsEnabled()) {
       session = sessionManager.getSession(sessionId);
       if (session == null) {
-        httpRequest.response().setStatusCode(400).end("Invalid session ID");
+        httpRequest.response().setStatusCode(404).end("Session not found");
         return;
       }
     }
