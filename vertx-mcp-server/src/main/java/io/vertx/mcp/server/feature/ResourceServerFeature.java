@@ -8,7 +8,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.completion.CompletionArgument;
 import io.vertx.mcp.common.completion.CompletionContext;
-import io.vertx.mcp.common.notification.ResourceListChangedNotification;
 import io.vertx.mcp.common.notification.ResourceUpdatedNotification;
 import io.vertx.mcp.common.resources.Resource;
 import io.vertx.mcp.common.resources.ResourceTemplate;
@@ -20,6 +19,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
+import io.vertx.mcp.server.impl.ServerFeatureStorage;
 import io.vertx.mcp.server.impl.SessionManagerImpl;
 
 import java.util.ArrayList;
@@ -42,12 +42,16 @@ import java.util.regex.Pattern;
  */
 public class ResourceServerFeature extends ServerFeatureBase implements CompletionProvider, SubscriptionProvider {
 
-  private final List<StaticResourceHandler> staticHandlers = new ArrayList<>();
-  private final List<DynamicResourceHandler> dynamicHandlers = new ArrayList<>();
+  private Vertx vertx;
+  private final ServerFeatureStorage<StaticResourceHandler> staticHandlers;
+  private final ServerFeatureStorage<DynamicResourceHandler> dynamicHandlers;
 
   private final Map<String, Set<String>> subscriptions = new ConcurrentHashMap<>();
 
-  private Vertx vertx;
+  public ResourceServerFeature() {
+    this.staticHandlers = new ServerFeatureStorage<>(() -> vertx, "notifications/resources/list_changed");
+    this.dynamicHandlers = new ServerFeatureStorage<>(() -> vertx, "notifications/resources/list_changed");
+  }
 
   @Override
   public void init(Vertx vertx) {
@@ -67,7 +71,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   public Future<Completion> handleCompletion(String refType, String refName, CompletionArgument argument, CompletionContext context) {
     // For completion, refName is the URI template itself (e.g., "resource://user/{id}")
     // Find the handler with matching template
-    for (DynamicResourceHandler handler : dynamicHandlers) {
+    for (DynamicResourceHandler handler : dynamicHandlers.values()) {
       String handlerTemplate = handler.uri();
 
       // Direct template match or pattern match for completion
@@ -105,14 +109,14 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   @Override
   public Future<Boolean> validateSubscription(String uri) {
     // Check if URI matches any static resource
-    for (StaticResourceHandler handler : staticHandlers) {
+    for (StaticResourceHandler handler : staticHandlers.values()) {
       if (handler.uri().equals(uri)) {
         return Future.succeededFuture(true);
       }
     }
 
     // Check if URI matches any dynamic resource template
-    for (DynamicResourceHandler handler : dynamicHandlers) {
+    for (DynamicResourceHandler handler : dynamicHandlers.values()) {
       if (matchesTemplate(uri, handler.uri())) {
         return Future.succeededFuture(true);
       }
@@ -173,7 +177,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   private Future<JsonResponse> handleListResources(ServerRequest serverRequest, JsonRequest request) {
     JsonArray resources = new JsonArray();
 
-    for (StaticResourceHandler handler : staticHandlers) {
+    for (StaticResourceHandler handler : staticHandlers.values()) {
       resources.add(handler.toFeature().toJson());
     }
 
@@ -193,7 +197,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
     String uri = params.getString("uri");
 
     // Try static resources first
-    for (StaticResourceHandler handler : staticHandlers) {
+    for (StaticResourceHandler handler : staticHandlers.values()) {
       if (handler.uri().equals(uri)) {
         return handler.apply(null)
           .compose(resource -> {
@@ -207,7 +211,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
       }
     }
 
-    for (DynamicResourceHandler handler : dynamicHandlers) {
+    for (DynamicResourceHandler handler : dynamicHandlers.values()) {
       String template = handler.uri();
 
       if (matchesTemplate(uri, template)) {
@@ -233,7 +237,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   private Future<JsonResponse> handleListResourceTemplates(ServerRequest serverRequest, JsonRequest request) {
     List<ResourceTemplate> templates = new ArrayList<>();
 
-    for (DynamicResourceHandler handler : dynamicHandlers) {
+    for (DynamicResourceHandler handler : dynamicHandlers.values()) {
       templates.add(handler.toFeature());
     }
 
@@ -340,8 +344,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   }
 
   public void addStaticResource(StaticResourceHandler handler) {
-    staticHandlers.add(handler);
-    sendNotification(this.vertx, new ResourceListChangedNotification());
+    staticHandlers.put(handler.uri(), handler);
   }
 
   public void addDynamicResource(String uri, Function<Map<String, String>, Future<Resource>> resourceFunction) {
@@ -366,7 +369,6 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
   }
 
   public void addDynamicResource(DynamicResourceHandler handler) {
-    dynamicHandlers.add(handler);
-    sendNotification(this.vertx, new ResourceListChangedNotification());
+    dynamicHandlers.put(handler.uri(), handler);
   }
 }

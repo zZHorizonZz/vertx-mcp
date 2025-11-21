@@ -83,9 +83,21 @@ public class ResourceServerFeatureTest extends ServerFeatureTestBase<ResourceSer
         context.assertNotNull(resources, "Should have resources array");
         context.assertEquals(2, resources.size(), "Should have 2 resources");
 
-        JsonObject resource1 = resources.getJsonObject(0);
-        context.assertEquals("resource://test-resource-1", resource1.getString("uri"));
-        context.assertEquals("test-resource-1", resource1.getString("name"));
+        // Check both resources exist (order not guaranteed)
+        boolean found1 = false, found2 = false;
+        for (int i = 0; i < resources.size(); i++) {
+          JsonObject resource = resources.getJsonObject(i);
+          String uri = resource.getString("uri");
+          if ("resource://test-resource-1".equals(uri)) {
+            context.assertEquals("test-resource-1", resource.getString("name"));
+            found1 = true;
+          } else if ("resource://test-resource-2".equals(uri)) {
+            context.assertEquals("test-resource-2", resource.getString("name"));
+            found2 = true;
+          }
+        }
+        context.assertTrue(found1, "Should have test-resource-1");
+        context.assertTrue(found2, "Should have test-resource-2");
 
         async.complete();
       }));
@@ -297,11 +309,18 @@ public class ResourceServerFeatureTest extends ServerFeatureTestBase<ResourceSer
         context.assertNotNull(templates, "Should have resourceTemplates array");
         context.assertEquals(2, templates.size(), "Should have 2 templates");
 
-        ResourceTemplate template1 = templates.get(0);
-        context.assertEquals("resource://user/{id}", template1.getUriTemplate());
-
-        ResourceTemplate template2 = templates.get(1);
-        context.assertEquals("resource://file/{path}/content", template2.getUriTemplate());
+        // Check both templates exist (order not guaranteed)
+        boolean found1 = false, found2 = false;
+        for (ResourceTemplate template : templates) {
+          String uri = template.getUriTemplate();
+          if ("resource://user/{id}".equals(uri)) {
+            found1 = true;
+          } else if ("resource://file/{path}/content".equals(uri)) {
+            found2 = true;
+          }
+        }
+        context.assertTrue(found1, "Should have user template");
+        context.assertTrue(found2, "Should have file template");
 
         async.complete();
       }));

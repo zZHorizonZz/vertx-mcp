@@ -171,7 +171,7 @@ public class SessionManagementTest extends HttpTransportTestBase {
         Context ctx = Vertx.currentContext();
 
         ServerSession sessionFromHelper = ServerSession.fromContext(ctx);
-        ServerSession sessionFromDirect = ctx.get(HttpServerTransport.MCP_SESSION_CONTEXT_KEY);
+        ServerSession sessionFromDirect = ctx.get(ServerSession.MCP_SESSION_CONTEXT_KEY);
 
         boolean helperWorks = (sessionFromHelper != null && sessionFromHelper == sessionFromDirect);
         return Future.succeededFuture(new JsonObject().put("helperWorks", helperWorks));

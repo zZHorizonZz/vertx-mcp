@@ -3,6 +3,7 @@ package io.vertx.mcp.server.impl;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonNotification;
+import io.vertx.mcp.server.ServerFeatureHandler;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import java.util.function.Supplier;
  *
  * @param <T> the type of handler being stored
  */
-public class ServerFeatureStorage<T> implements Map<String, T> {
+public class ServerFeatureStorage<T extends ServerFeatureHandler<?, ?, ?>> implements Map<String, T> {
 
   private final Map<String, T> storage = new HashMap<>();
   private final Supplier<Vertx> vertxSupplier;

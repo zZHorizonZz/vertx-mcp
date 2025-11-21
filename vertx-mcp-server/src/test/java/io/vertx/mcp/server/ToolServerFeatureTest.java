@@ -36,11 +36,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testListToolsEmpty(TestContext context) {
-
     Async async = context.async();
-    JsonRequest request = new ListToolsRequest().toRequest(1);
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new ListToolsRequest())
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -61,8 +59,8 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testListToolsWithStructuredTools(TestContext context) {
+    Async async = context.async();
 
-    // Add structured tools using new style
     feature.addStructuredTool(
       "greet",
       "Greeting Tool",
@@ -83,10 +81,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       args -> Future.succeededFuture(new JsonObject().put("result", args.getInteger("a") + args.getInteger("b")))
     );
 
-    Async async = context.async();
-    JsonRequest request = new ListToolsRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new ListToolsRequest())
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -98,7 +93,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
         context.assertNotNull(tools, "Should have tools array");
         context.assertEquals(2, tools.size(), "Should have 2 tools");
 
-        // Find tools by name (order is not guaranteed from HashMap)
         JsonObject greetTool = null;
         JsonObject addTool = null;
         for (int i = 0; i < tools.size(); i++) {
@@ -110,14 +104,12 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
           }
         }
 
-        // Verify greet tool
         context.assertNotNull(greetTool, "Should have greet tool");
         context.assertEquals("Greeting Tool", greetTool.getString("title"));
         context.assertEquals("Greets a person by name", greetTool.getString("description"));
         context.assertNotNull(greetTool.getJsonObject("inputSchema"));
         context.assertNotNull(greetTool.getJsonObject("outputSchema"));
 
-        // Verify add tool
         context.assertNotNull(addTool, "Should have add tool");
         context.assertEquals("Addition Tool", addTool.getString("title"));
         context.assertEquals("Adds two numbers", addTool.getString("description"));
@@ -130,6 +122,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testListToolsWithUnstructuredTools(TestContext context) {
+    Async async = context.async();
 
     feature.addUnstructuredTool(
       "echo",
@@ -141,10 +134,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       })
     );
 
-    Async async = context.async();
-    JsonRequest request = new ListToolsRequest().toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new ListToolsRequest())
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -168,6 +158,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testCallStructuredTool(TestContext context) {
+    Async async = context.async();
 
     feature.addStructuredTool(
       "multiply",
@@ -182,16 +173,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       }
     );
 
-    Async async = context.async();
+    JsonObject params = new JsonObject().put("name", "multiply").put("arguments", new JsonObject().put("x", 6).put("y", 7));
 
-    JsonObject params = new JsonObject()
-      .put("name", "multiply")
-      .put("arguments", new JsonObject()
-        .put("x", 6)
-        .put("y", 7));
-    JsonRequest request = new CallToolRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new CallToolRequest(params))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -213,6 +197,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testCallUnstructuredTool(TestContext context) {
+    Async async = context.async();
 
     feature.addUnstructuredTool(
       "uppercase",
@@ -222,15 +207,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       })
     );
 
-    Async async = context.async();
+    JsonObject params = new JsonObject().put("name", "uppercase").put("arguments", new JsonObject().put("text", "hello world"));
 
-    JsonObject params = new JsonObject()
-      .put("name", "uppercase")
-      .put("arguments", new JsonObject()
-        .put("text", "hello world"));
-    JsonRequest request = new CallToolRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new CallToolRequest(params))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -255,15 +234,11 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testCallToolNotFound(TestContext context) {
-
     Async async = context.async();
 
-    JsonObject params = new JsonObject()
-      .put("name", "nonexistent")
-      .put("arguments", new JsonObject());
-    JsonRequest request = new CallToolRequest(params).toRequest(1);
+    JsonObject params = new JsonObject().put("name", "nonexistent").put("arguments", new JsonObject());
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new CallToolRequest(params))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -280,14 +255,11 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testCallToolMissingName(TestContext context) {
-
     Async async = context.async();
 
-    JsonObject params = new JsonObject()
-      .put("arguments", new JsonObject());
-    JsonRequest request = JsonRequest.createRequest("tools/call", params, 1);
+    JsonObject params = new JsonObject().put("arguments", new JsonObject());
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, JsonRequest.createRequest("tools/call", params, 1))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -304,6 +276,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testStructuredToolExecutionFailure(TestContext context) {
+    Async async = context.async();
 
     feature.addStructuredTool(
       "failing-tool",
@@ -312,14 +285,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       args -> Future.failedFuture("Tool execution failed")
     );
 
-    Async async = context.async();
+    JsonObject params = new JsonObject().put("name", "failing-tool").put("arguments", new JsonObject().put("value", 42));
 
-    JsonObject params = new JsonObject()
-      .put("name", "failing-tool")
-      .put("arguments", new JsonObject().put("value", 42));
-    JsonRequest request = new CallToolRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new CallToolRequest(params))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -340,6 +308,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testUnstructuredToolExecutionFailure(TestContext context) {
+    Async async = context.async();
 
     feature.addUnstructuredTool(
       "failing-unstructured",
@@ -347,14 +316,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       args -> Future.failedFuture("Unstructured tool failed")
     );
 
-    Async async = context.async();
+    JsonObject params = new JsonObject().put("name", "failing-unstructured").put("arguments", new JsonObject().put("value", "test"));
 
-    JsonObject params = new JsonObject()
-      .put("name", "failing-unstructured")
-      .put("arguments", new JsonObject().put("value", "test"));
-    JsonRequest request = new CallToolRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new CallToolRequest(params))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -374,12 +338,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testUnsupportedToolMethod(TestContext context) {
-
     Async async = context.async();
 
-    JsonRequest request = JsonRequest.createRequest("tools/unsupported", new JsonObject(), 1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, JsonRequest.createRequest("tools/unsupported", new JsonObject(), 1))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -395,6 +356,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testCallToolWithNullArguments(TestContext context) {
+    Async async = context.async();
 
     feature.addStructuredTool(
       "no-args-tool",
@@ -403,14 +365,9 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       args -> Future.succeededFuture(new JsonObject().put("message", "No arguments needed"))
     );
 
-    Async async = context.async();
+    JsonObject params = new JsonObject().put("name", "no-args-tool");
 
-    JsonObject params = new JsonObject()
-      .put("name", "no-args-tool");
-    // No arguments field
-    JsonRequest request = new CallToolRequest(params).toRequest(1);
-
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new CallToolRequest(params))
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
@@ -427,8 +384,6 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
   @Test
   public void testMultipleTools(TestContext context) {
-
-    // Add multiple tools
     for (int i = 0; i < 5; i++) {
       final int index = i;
       feature.addStructuredTool(
@@ -440,9 +395,8 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     }
 
     Async async = context.async();
-    JsonRequest request = new ListToolsRequest().toRequest(1);
 
-    sendRequest(HttpMethod.POST, request.toJson().toBuffer())
+    sendRequest(HttpMethod.POST, new ListToolsRequest())
       .compose(HttpClientResponse::body)
       .onComplete(context.asyncAssertSuccess(body -> {
         JsonResponse response = JsonResponse.fromJson(body.toJsonObject());

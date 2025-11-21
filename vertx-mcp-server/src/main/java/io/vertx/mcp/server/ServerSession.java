@@ -17,6 +17,8 @@ import io.vertx.mcp.server.transport.http.HttpServerTransport;
 @VertxGen
 public interface ServerSession extends Closeable {
 
+  String MCP_SESSION_CONTEXT_KEY = "mcp.session";
+
   /**
    * Retrieve the current session from the Vert.x context.
    *
@@ -24,7 +26,7 @@ public interface ServerSession extends Closeable {
    * @return the session, or null if no session is stored in the context
    */
   static ServerSession fromContext(Context context) {
-    return context.get(HttpServerTransport.MCP_SESSION_CONTEXT_KEY);
+    return context.get(MCP_SESSION_CONTEXT_KEY);
   }
 
   /**

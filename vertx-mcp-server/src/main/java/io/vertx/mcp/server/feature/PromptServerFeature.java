@@ -15,13 +15,14 @@ import io.vertx.mcp.common.result.ListPromptsResult;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.core.Vertx;
 import io.vertx.mcp.server.CompletionProvider;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
+import io.vertx.mcp.server.impl.ServerFeatureStorage;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +38,17 @@ import java.util.function.Function;
  */
 public class PromptServerFeature extends ServerFeatureBase implements CompletionProvider {
 
-  private final Map<String, PromptHandler> prompts = new HashMap<>();
+  private Vertx vertx;
+  private final ServerFeatureStorage<PromptHandler> prompts;
+
+  public PromptServerFeature() {
+    this.prompts = new ServerFeatureStorage<>(() -> vertx, "notifications/prompts/list_changed");
+  }
+
+  @Override
+  public void init(Vertx vertx) {
+    this.vertx = vertx;
+  }
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {

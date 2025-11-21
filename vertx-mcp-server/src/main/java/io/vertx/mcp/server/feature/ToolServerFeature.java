@@ -12,10 +12,12 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.common.tool.Tool;
+import io.vertx.core.Vertx;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.StructuredToolHandler;
 import io.vertx.mcp.server.UnstructuredToolHandler;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
+import io.vertx.mcp.server.impl.ServerFeatureStorage;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -30,8 +32,19 @@ import java.util.function.Function;
  */
 public class ToolServerFeature extends ServerFeatureBase {
 
-  private final Map<String, StructuredToolHandler> structuredTools = new HashMap<>();
-  private final Map<String, UnstructuredToolHandler> unstructuredTools = new HashMap<>();
+  private Vertx vertx;
+  private final ServerFeatureStorage<StructuredToolHandler> structuredTools;
+  private final ServerFeatureStorage<UnstructuredToolHandler> unstructuredTools;
+
+  public ToolServerFeature() {
+    this.structuredTools = new ServerFeatureStorage<>(() -> vertx, "notifications/tools/list_changed");
+    this.unstructuredTools = new ServerFeatureStorage<>(() -> vertx, "notifications/tools/list_changed");
+  }
+
+  @Override
+  public void init(Vertx vertx) {
+    this.vertx = vertx;
+  }
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
