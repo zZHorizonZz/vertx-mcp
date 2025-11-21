@@ -1,6 +1,7 @@
 package io.vertx.mcp.server.transport.http;
 
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -62,6 +63,11 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
       return;
     }
 
+    if (httpRequest.method().equals(HttpMethod.DELETE)) {
+      handleDelete(httpRequest);
+      return;
+    }
+
     if (!httpRequest.method().equals(HttpMethod.POST) && !httpRequest.method().equals(HttpMethod.GET)) {
       httpRequest.response().setStatusCode(405).end("Method not allowed");
       return;
@@ -113,5 +119,37 @@ public class HttpServerTransport implements Handler<HttpServerRequest> {
 
   public SessionManager getSessionManager() {
     return sessionManager;
+  }
+
+  private void handleDelete(HttpServerRequest httpRequest) {
+    String sessionId = httpRequest.getHeader(MCP_SESSION_ID_HEADER);
+
+    if (sessionId == null) {
+      httpRequest.response().setStatusCode(400).end("Missing session ID");
+      return;
+    }
+
+    if (!options.getSessionsEnabled()) {
+      httpRequest.response().setStatusCode(400).end("Sessions are not enabled");
+      return;
+    }
+
+    ServerSession session = sessionManager.getSession(sessionId);
+    if (session == null) {
+      httpRequest.response().setStatusCode(404).end("Session not found");
+      return;
+    }
+
+    sessionManager.removeSession(sessionId);
+
+    Promise<Void> promise = Promise.promise();
+
+    session.close(promise);
+
+    promise.future().onComplete(ar -> httpRequest.response()
+      .setStatusCode(204)
+      .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+      .end()
+    );
   }
 }

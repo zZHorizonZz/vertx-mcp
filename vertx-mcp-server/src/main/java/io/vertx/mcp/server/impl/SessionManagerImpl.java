@@ -50,13 +50,7 @@ public class SessionManagerImpl implements SessionManager {
           break;
         }
         case "notifications/resources/list_changed":
-          sendNotification(new ResourceListChangedNotification(params)).onComplete(ar -> {
-            if (ar.succeeded()) {
-              System.out.println("Resource list changed notification sent");
-            } else {
-              System.out.println("Resource list changed notification failed: " + ar.cause().getMessage());
-            }
-          });
+          sendNotification(new ResourceListChangedNotification(params));
           break;
         case "notifications/tools/list_changed":
           sendNotification(new ToolListChangedNotification(params));
@@ -78,13 +72,7 @@ public class SessionManagerImpl implements SessionManager {
 
         if (System.currentTimeMillis() - lastPing > 5000) {
           sessionLastPing.put(sessionId, System.currentTimeMillis());
-          session.sendRequest(new PingRequest()).onComplete(ar -> {
-            if (ar.succeeded()) {
-              System.out.println("Ping response received");
-            } else {
-              System.out.println("Ping response failed: " + ar.cause().getMessage());
-            }
-          });
+          session.sendRequest(new PingRequest());
         }
 
         /*if (System.currentTimeMillis() - lastPing > options.getSessionTimeoutMs()) {
@@ -133,6 +121,7 @@ public class SessionManagerImpl implements SessionManager {
   @Override
   public void removeSession(String sessionId) {
     sessions.remove(sessionId);
+    sessionLastPing.remove(sessionId);
   }
 
   @Override

@@ -3,13 +3,11 @@ package io.vertx.mcp.server.impl;
 import io.vertx.core.Completable;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
-import io.vertx.mcp.common.result.Result;
 import io.vertx.mcp.server.ServerSession;
 
 import java.util.Map;
@@ -55,11 +53,11 @@ public class ServerSessionImpl implements ServerSession {
   @Override
   public Future<JsonObject> sendRequest(Request request) {
     if (!active.get()) {
-      return Future.failedFuture("ServerSession is not active");
+      return Future.failedFuture("Session is not active");
     }
 
-    if (!streaming) {
-      return Future.failedFuture("ServerSession is not streaming");
+    if (!isStreaming()) {
+      return Future.failedFuture("Session is not streaming");
     }
 
     int requestId = requestCount.incrementAndGet();
@@ -77,11 +75,11 @@ public class ServerSessionImpl implements ServerSession {
   @Override
   public Future<Void> sendNotification(Notification notification) {
     if (!active.get()) {
-      return Future.failedFuture("ServerSession is not active");
+      return Future.failedFuture("Session is not active");
     }
 
-    if (!streaming) {
-      return Future.failedFuture("ServerSession is not streaming");
+    if (!isStreaming()) {
+      return Future.failedFuture("Session is not streaming");
     }
 
     return this.stream.write(notification.toNotification().toJson());
@@ -90,9 +88,8 @@ public class ServerSessionImpl implements ServerSession {
   @Override
   public void close(Completable<Void> completable) {
     if (active.compareAndSet(true, false)) {
-      if (streaming) {
-        Vertx.vertx().eventBus().send("vertx.mcp.server.session.close", id);
-      }
+      completable.succeed();
+      return;
     }
 
     this.stream.end().onComplete(completable);

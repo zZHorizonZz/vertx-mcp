@@ -76,7 +76,7 @@ public class HttpServerResponseImpl implements ServerResponse {
 
     ended = true;
 
-    if (this.requestId == null) {
+    if (this.requestId == null && !this.httpResponse.ended()) {
       httpResponse.setStatusCode(202);
       httpResponse.headers().remove(HttpHeaders.CONTENT_TYPE);
       httpResponse.headers().remove(HttpHeaders.CACHE_CONTROL);
