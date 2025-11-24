@@ -1,0 +1,40 @@
+== Vert.x MCP Client
+
+The Vert.x MCP Client provides a client implementation for connecting to MCP servers and invoking tools, reading
+resources, and using prompts.
+
+For detailed information about MCP client capabilities, see the
+https://modelcontextprotocol.io/specification/2025-06-18/client[MCP Client Specification].
+
+[NOTE]
+====
+The Vert.x MCP Client documentation is coming soon. In the meantime, please refer to the
+https://modelcontextprotocol.io/[MCP specification] for protocol details.
+====
+
+=== Using Vert.x MCP Client
+
+To use Vert.x MCP Client, add the following dependency to the _dependencies_ section of your build descriptor:
+
+[tabs]
+====
+pom.xml::
++
+[source,xml,subs="+attributes"]
+----
+<dependency>
+  <groupId>io.vertx</groupId>
+  <artifactId>vertx-mcp-client</artifactId>
+  <version>${maven.version}</version>
+</dependency>
+----
+
+build.gradle::
++
+[source,groovy,subs="+attributes"]
+----
+dependencies {
+  compile 'io.vertx:vertx-mcp-client:${maven.version}'
+}
+----
+====

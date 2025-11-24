@@ -1,0 +1,26 @@
+= Vert.x MCP
+
+Vert.x MCP is a module that implements the Model Context Protocol (MCP) in Vert.x.
+It provides both a server and a [.line-through]#client# implementation, allowing you to easily integrate your Vert.x applications with AI models that support MCP.
+
+[quote,Model Context Protocol Specification]
+____
+MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems.
+
+Using MCP, AI applications like Claude or ChatGPT can connect to data sources (e.g. local files, databases), tools (e.g. search engines, calculators) and workflows (e.g. specialized prompts)—enabling them to access key information and perform tasks.
+
+Think of MCP like a USB-C port for AI applications.
+Just as USB-C provides a standardized way to connect electronic devices, MCP provides a standardized way to connect AI applications to external systems.
+____
+
+For more information about the Model Context Protocol, please consult the official documentation at
+https://modelcontextprotocol.io/.
+
+Vert.x MCP is split into several parts:
+
+- Vert.x MCP Server
+- Vert.x MCP Client
+
+include::server.adoc[]
+
+include::client.adoc[]

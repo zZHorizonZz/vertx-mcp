@@ -1,0 +1,283 @@
+== Vert.x MCP Server
+
+Vert.x MCP Server is a Model Context Protocol server implementation built on Vert.x.
+It provides a feature-based API for building MCP servers that expose tools, resources, and prompts to AI applications.
+
+For detailed information about MCP server capabilities, see the
+https://modelcontextprotocol.io/specification/2025-06-18/server[MCP Server Specification].
+
+=== Using Vert.x MCP Server
+
+To use Vert.x MCP Server, add the following dependency to the _dependencies_ section of your build descriptor:
+
+[tabs]
+====
+pom.xml::
++
+[source,xml,subs="+attributes"]
+----
+<dependency>
+  <groupId>io.vertx</groupId>
+  <artifactId>vertx-mcp-server</artifactId>
+  <version>${maven.version}</version>
+</dependency>
+----
+
+build.gradle::
++
+[source,groovy,subs="+attributes"]
+----
+dependencies {
+  compile 'io.vertx:vertx-mcp-server:${maven.version}'
+}
+----
+====
+
+=== Creating an MCP Server
+
+A `ModelContextProtocolServer` is a `Handler<ServerRequest>` and must be used with an HTTP transport to handle incoming MCP requests.
+
+[source,java]
+----
+{@link examples.McpServerExamples#createServer}
+----
+
+You can also specify a server name and version:
+
+[source,java]
+----
+{@link examples.McpServerExamples#createServerWithNameVersion}
+----
+
+Or use `ServerOptions` for full configuration:
+
+[source,java]
+----
+{@link examples.McpServerExamples#createServerWithOptions}
+----
+
+=== Server Features
+
+MCP servers expose capabilities through _features_.
+Each feature handles specific MCP operations.
+The main features are:
+
+- **ToolServerFeature** - Exposes tools that AI can call
+- **ResourceServerFeature** - Exposes resources that AI can read
+- **PromptServerFeature** - Exposes prompt templates
+
+For more information about these concepts, see the https://modelcontextprotocol.io/specification/2025-06-18/server[MCP specification].
+
+[[tools]]
+=== Tools
+
+Tools allow an AI to perform actions or computations.
+Use `ToolServerFeature` to register tools on your server.
+
+For the full specification, see https://modelcontextprotocol.io/specification/2025-06-18/server/tools[MCP Tools].
+
+==== Adding Unstructured Tools
+
+Unstructured tools return content (text, images, etc.) in a flexible format:
+
+[source,java]
+----
+{@link examples.McpServerExamples#addUnstructuredTool}
+----
+
+==== Adding Structured Tools
+
+Structured tools return JSON data conforming to an output schema:
+
+[source,java]
+----
+{@link examples.McpServerExamples#addStructuredTool}
+----
+
+[[resources]]
+=== Resources
+
+Resources expose data that AI can read, such as files, database records, or API responses.
+Use `ResourceServerFeature`
+to register resources.
+
+For the full specification, see https://modelcontextprotocol.io/specification/2025-06-18/server/resources[MCP Resources].
+
+==== Static Resources
+
+Static resources have a fixed URI and return data from a supplier:
+
+[source,java]
+----
+{@link examples.McpServerExamples#addStaticResource}
+----
+
+==== Dynamic Resources (Templates)
+
+Dynamic resources use URI templates with parameters:
+
+[source,java]
+----
+{@link examples.McpServerExamples#addDynamicResource}
+----
+
+==== Resource Subscriptions
+
+Clients can subscribe to resource changes.
+Notify them when a resource updates:
+
+[source,java]
+----
+{@link examples.McpServerExamples#notifyResourceUpdated}
+----
+
+[[prompts]]
+=== Prompts
+
+Prompts are reusable templates that AI can use to structure its interactions.
+Use `PromptServerFeature` to register prompts.
+
+For the full specification, see https://modelcontextprotocol.io/specification/2025-06-18/server/prompts[MCP Prompts].
+
+[source,java]
+----
+{@link examples.McpServerExamples#addPrompt}
+----
+
+=== Server Options
+
+The `ServerOptions` class provides configuration for the MCP server:
+
+[cols="1,1,3"]
+|===
+|Option |Default |Description
+
+|`serverName`
+|`"vertx-mcp-server"`
+|Server name returned in initialize response
+
+|`serverVersion`
+|`"1.0.0"`
+|Server version returned in initialize response
+
+|`sessionsEnabled`
+|`true`
+|Enable session management for subscriptions and streaming
+
+|`streamingEnabled`
+|`true`
+|Enable Server-Sent Events for streaming responses
+
+|`notificationsEnabled`
+|`true`
+|Enable processing of client notifications
+
+|`sessionTimeoutMs`
+|`1800000` (30 min)
+|Session inactivity timeout in milliseconds
+
+|`maxSessions`
+|`1000`
+|Maximum number of concurrent sessions
+|===
+
+[source,java]
+----
+{@link examples.McpServerExamples#configureServerOptions}
+----
+
+=== Streamable HTTP Transport
+
+The MCP server uses HTTP as the transport layer.
+The `StreamableHttpServerTransport` handles:
+
+- POST requests for JSON-RPC messages
+- GET requests for SSE streaming
+- DELETE requests for session termination
+
+All MCP endpoints are served under the `/mcp` path.
+
+[source,java]
+----
+{@link examples.McpServerExamples#createTransport}
+----
+
+==== CORS Support for Browser Clients
+
+For MCP to be callable from web browsers, you need to add CORS handling before passing requests to the transport.
+The required CORS headers are:
+
+- **Access-Control-Allow-Origin** - Specifies which origins can access the resource (for example: `*`)
+- **Access-Control-Allow-Methods** - Lists allowed HTTP methods `GET, POST, DELETE, OPTIONS` should be included for sessions to work correctly.
+- **Access-Control-Allow-Headers** - Specifies which headers can be used in requests
+- **Access-Control-Expose-Headers** - Lists headers that browsers are allowed to access for session support `Mcp-Session-Id` should be exposed
+
+[source,java]
+----
+{@link examples.McpServerExamples#createTransportWithCors}
+----
+
+=== Sessions
+
+When sessions are enabled, the server tracks client connections and supports:
+
+- Resource subscriptions
+- Streaming responses via SSE
+- Session-scoped state
+
+Sessions are identified by the `Mcp-Session-Id` header.
+The session ID is returned in the initialize response and must be included in subsequent requests.
+
+=== Completions
+
+Resources and prompts can provide argument completions to help AI applications with autocomplete functionality.
+
+For the full specification, see https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/completion[MCP Completion].
+
+[source,java]
+----
+{@link examples.McpServerExamples#addDynamicResourceWithCompletion}
+----
+
+=== Logging
+
+The MCP server can send log messages to clients using the `LoggingServerFeature`.
+
+For the full specification, see https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/logging[MCP Logging].
+
+[source,java]
+----
+{@link examples.McpServerExamples#addLogging}
+----
+
+=== Example: Complete MCP Server
+
+Here's a complete example of an MCP server with tools, resources, and prompts:
+
+[source,java]
+----
+{@link examples.McpServerExamples#completeExample}
+----
+
+=== Testing
+
+You can test your MCP server using the official MCP Inspector tool.
+The inspector provides a web-based UI to interact with your server, call tools, read resources, and test prompts.
+
+To run the inspector:
+
+[source,bash]
+----
+npx @modelcontextprotocol/inspector
+----
+
+This will start a local web server where you can:
+
+- Connect to your MCP server via its HTTP endpoint
+- Browse available tools, resources, and prompts
+- Execute tool calls and view results
+- Read resource contents
+- Test prompt templates with different arguments
+- Monitor server notifications and logs
+
+For more information, see the https://modelcontextprotocol.io/docs/tools/inspector[MCP Inspector documentation].
