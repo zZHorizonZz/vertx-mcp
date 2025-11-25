@@ -14,6 +14,7 @@ import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.GetPromptRequest;
 import io.vertx.mcp.common.request.ListPromptsRequest;
 import io.vertx.mcp.common.result.ListPromptsResult;
+import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.feature.PromptServerFeature;
@@ -154,7 +155,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       .await(10, TimeUnit.SECONDS);
 
     context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(-32602, response.getError().getCode(), "Should be invalid params");
+    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
     context.assertTrue(response.getError().getMessage().contains("not found"));
   }
 
@@ -166,7 +167,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       .await(10, TimeUnit.SECONDS);
 
     context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(-32602, response.getError().getCode(), "Should be invalid params");
+    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
     context.assertTrue(response.getError().getMessage().contains("Missing 'name'"));
   }
 
@@ -186,7 +187,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       .await(10, TimeUnit.SECONDS);
 
     context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(-32603, response.getError().getCode(), "Should be internal error");
+    context.assertEquals(JsonError.INTERNAL_ERROR, response.getError().getCode(), "Should be internal error");
     context.assertTrue(response.getError().getMessage().contains("failed"));
   }
 
@@ -244,6 +245,6 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       .await(10, TimeUnit.SECONDS);
 
     context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(-32601, response.getError().getCode(), "Should be method not found");
+    context.assertEquals(JsonError.METHOD_NOT_FOUND, response.getError().getCode(), "Should be method not found");
   }
 }
