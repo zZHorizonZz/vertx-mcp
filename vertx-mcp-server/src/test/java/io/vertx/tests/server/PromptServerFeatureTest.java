@@ -5,14 +5,15 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.content.TextContent;
+import io.vertx.mcp.common.prompt.Prompt;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.GetPromptRequest;
 import io.vertx.mcp.common.request.ListPromptsRequest;
+import io.vertx.mcp.common.result.ListPromptsResult;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.feature.PromptServerFeature;
@@ -20,6 +21,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerFeature> {
 
@@ -31,32 +34,21 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
   }
 
   @Test
-  public void testListPromptsEmpty(TestContext context) {
-    Async async = context.async();
-
-    sendRequest(HttpMethod.POST, new ListPromptsRequest())
+  public void testListPromptsEmpty(TestContext context) throws Throwable {
+    JsonResponse response = sendRequest(HttpMethod.POST, new ListPromptsRequest())
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .expecting(JsonResponse::isSuccess)
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNull(response.getError(), "Should succeed");
-        JsonObject result = (JsonObject) response.getResult();
-        context.assertNotNull(result, "Should have result");
+    ListPromptsResult result = new ListPromptsResult((JsonObject) response.getResult());
 
-        JsonArray prompts = result.getJsonArray("prompts");
-        context.assertNotNull(prompts, "Should have prompts array");
-        context.assertEquals(0, prompts.size(), "Should be empty");
-
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    context.assertNotNull(result.getPrompts(), "Should have prompts array");
+    context.assertEquals(0, result.getPrompts().size(), "Should be empty");
   }
 
   @Test
-  public void testListPromptsWithPrompts(TestContext context) {
-    Async async = context.async();
-
+  public void testListPromptsWithPrompts(TestContext context) throws Throwable {
     feature.addPrompt(
       "code_review",
       "Code Review",
@@ -87,33 +79,30 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       }
     );
 
-    sendRequest(HttpMethod.POST, new ListPromptsRequest())
+    JsonResponse response = sendRequest(HttpMethod.POST, new ListPromptsRequest())
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .expecting(JsonResponse::isSuccess)
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNull(response.getError(), "Should succeed");
-        JsonObject result = (JsonObject) response.getResult();
+    ListPromptsResult result = new ListPromptsResult((JsonObject) response.getResult());
 
-        JsonArray prompts = result.getJsonArray("prompts");
-        context.assertNotNull(prompts, "Should have prompts array");
-        context.assertEquals(2, prompts.size(), "Should have 2 prompts");
+    context.assertNotNull(result.getPrompts(), "Should have prompts list");
+    context.assertEquals(2, result.getPrompts().size(), "Should have 2 prompts");
 
-        JsonObject prompt1 = prompts.getJsonObject(0);
-        context.assertEquals("code_review", prompt1.getString("name"));
-        context.assertEquals("Code Review", prompt1.getString("title"));
-        context.assertEquals("Reviews code and suggests improvements", prompt1.getString("description"));
+    Optional<Prompt> codeReview = result.getPrompts().stream().filter(p -> "code_review".equals(p.getName())).findFirst();
+    context.assertTrue(codeReview.isPresent(), "Should have code_review prompt");
+    context.assertEquals("Code Review", codeReview.get().getTitle());
+    context.assertEquals("Reviews code and suggests improvements", codeReview.get().getDescription());
 
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    Optional<Prompt> explainCode = result.getPrompts().stream().filter(p -> "explain_code".equals(p.getName())).findFirst();
+    context.assertTrue(explainCode.isPresent(), "Should have explain_code prompt");
+    context.assertEquals("Explain Code", explainCode.get().getTitle());
+    context.assertEquals("Explains what code does", explainCode.get().getDescription());
   }
 
   @Test
-  public void testGetPrompt(TestContext context) {
-    Async async = context.async();
-
+  public void testGetPrompt(TestContext context) throws Throwable {
     feature.addPrompt(
       "code_review",
       "Code Review",
@@ -132,78 +121,57 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       }
     );
 
-    sendRequest(HttpMethod.POST, new GetPromptRequest(
+    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(
       new JsonObject().put("name", "code_review").put("arguments", new JsonObject().put("code", "def hello():\n    print('world')")))
     )
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .expecting(JsonResponse::isSuccess)
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNull(response.getError(), "Should succeed");
-        JsonObject result = (JsonObject) response.getResult();
+    JsonObject result = (JsonObject) response.getResult();
 
-        context.assertEquals("Reviews code and suggests improvements", result.getString("description"));
+    context.assertEquals("Reviews code and suggests improvements", result.getString("description"));
 
-        JsonArray messages = result.getJsonArray("messages");
-        context.assertNotNull(messages, "Should have messages array");
-        context.assertEquals(1, messages.size(), "Should have 1 message");
+    JsonArray messages = result.getJsonArray("messages");
+    context.assertNotNull(messages, "Should have messages array");
+    context.assertEquals(1, messages.size(), "Should have 1 message");
 
-        JsonObject message = messages.getJsonObject(0);
-        context.assertEquals("user", message.getString("role"));
+    JsonObject message = messages.getJsonObject(0);
+    context.assertEquals("user", message.getString("role"));
 
-        JsonObject content = message.getJsonObject("content");
-        context.assertNotNull(content, "Should have content object");
-        context.assertEquals("text", content.getString("type"));
-        context.assertTrue(content.getString("text").contains("def hello()"));
-
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    JsonObject content = message.getJsonObject("content");
+    context.assertNotNull(content, "Should have content object");
+    context.assertEquals("text", content.getString("type"));
+    context.assertTrue(content.getString("text").contains("def hello()"));
   }
 
   @Test
-  public void testGetPromptNotFound(TestContext context) {
-    Async async = context.async();
-
-    sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "nonexistent")))
+  public void testGetPromptNotFound(TestContext context) throws Throwable {
+    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "nonexistent")))
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNotNull(response.getError(), "Should have error");
-        context.assertEquals(-32602, response.getError().getCode(), "Should be invalid params");
-        context.assertTrue(response.getError().getMessage().contains("not found"));
-
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    context.assertNotNull(response.getError(), "Should have error");
+    context.assertEquals(-32602, response.getError().getCode(), "Should be invalid params");
+    context.assertTrue(response.getError().getMessage().contains("not found"));
   }
 
   @Test
-  public void testGetPromptMissingName(TestContext context) {
-    Async async = context.async();
-
-    sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/get", new JsonObject(), 1))
+  public void testGetPromptMissingName(TestContext context) throws Throwable {
+    JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/get", new JsonObject(), 1))
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNotNull(response.getError(), "Should have error");
-        context.assertEquals(-32602, response.getError().getCode(), "Should be invalid params");
-        context.assertTrue(response.getError().getMessage().contains("Missing 'name'"));
-
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    context.assertNotNull(response.getError(), "Should have error");
+    context.assertEquals(-32602, response.getError().getCode(), "Should be invalid params");
+    context.assertTrue(response.getError().getMessage().contains("Missing 'name'"));
   }
 
   @Test
-  public void testPromptHandlerFailure(TestContext context) {
-    Async async = context.async();
-
+  public void testPromptHandlerFailure(TestContext context) throws Throwable {
     feature.addPrompt(
       "failing_prompt",
       "Failing Prompt",
@@ -212,25 +180,18 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       args -> Future.failedFuture("Prompt generation failed")
     );
 
-    sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "failing_prompt")))
+    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "failing_prompt")))
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNotNull(response.getError(), "Should have error");
-        context.assertEquals(-32603, response.getError().getCode(), "Should be internal error");
-        context.assertTrue(response.getError().getMessage().contains("failed"));
-
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    context.assertNotNull(response.getError(), "Should have error");
+    context.assertEquals(-32603, response.getError().getCode(), "Should be internal error");
+    context.assertTrue(response.getError().getMessage().contains("failed"));
   }
 
   @Test
-  public void testGetPromptWithMultipleMessages(TestContext context) {
-    Async async = context.async();
-
+  public void testGetPromptWithMultipleMessages(TestContext context) throws Throwable {
     feature.addPrompt(
       "conversation",
       "Conversation",
@@ -258,43 +219,31 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       }
     );
 
-    sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "conversation")))
+    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "conversation")))
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .expecting(JsonResponse::isSuccess)
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNull(response.getError(), "Should succeed");
-        JsonObject result = (JsonObject) response.getResult();
+    JsonObject result = (JsonObject) response.getResult();
 
-        JsonArray messages = result.getJsonArray("messages");
-        context.assertNotNull(messages, "Should have messages array");
-        context.assertEquals(3, messages.size(), "Should have 3 messages");
+    JsonArray messages = result.getJsonArray("messages");
+    context.assertNotNull(messages, "Should have messages array");
+    context.assertEquals(3, messages.size(), "Should have 3 messages");
 
-        context.assertEquals("user", messages.getJsonObject(0).getString("role"));
-        context.assertEquals("assistant", messages.getJsonObject(1).getString("role"));
-        context.assertEquals("user", messages.getJsonObject(2).getString("role"));
-
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    context.assertEquals("user", messages.getJsonObject(0).getString("role"));
+    context.assertEquals("assistant", messages.getJsonObject(1).getString("role"));
+    context.assertEquals("user", messages.getJsonObject(2).getString("role"));
   }
 
   @Test
-  public void testUnsupportedPromptMethod(TestContext context) {
-    Async async = context.async();
-
-    sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/unsupported", new JsonObject(), 1))
+  public void testUnsupportedPromptMethod(TestContext context) throws Throwable {
+    JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/unsupported", new JsonObject(), 1))
       .compose(HttpClientResponse::body)
-      .onComplete(context.asyncAssertSuccess(body -> {
-        JsonResponse response = JsonResponse.fromJson(body.toJsonObject());
+      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+      .await(10, TimeUnit.SECONDS);
 
-        context.assertNotNull(response.getError(), "Should have error");
-        context.assertEquals(-32601, response.getError().getCode(), "Should be method not found");
-
-        async.complete();
-      }));
-
-    async.awaitSuccess(10_000);
+    context.assertNotNull(response.getError(), "Should have error");
+    context.assertEquals(-32601, response.getError().getCode(), "Should be method not found");
   }
 }
