@@ -16,7 +16,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.Schemas;
 import io.vertx.mcp.common.Meta;
@@ -601,40 +600,36 @@ public class ConformanceTest extends TestContainerTestBase {
   }
 
   @Test
-  public void testAllScenarios(TestContext context) {
-    Async async = context.async();
+  public void testAllScenarios(TestContext context) throws Throwable {
+    String output = executeConformance(null).await(60, java.util.concurrent.TimeUnit.SECONDS);
 
-    executeConformance(null).onComplete(context.asyncAssertSuccess(output -> {
-      System.out.println("[mcp-conformance] Full output: " + output);
+    System.out.println("[mcp-conformance] Full output: " + output);
 
-      // Count passed and failed
-      int passedCount = 0;
-      int failedCount = 0;
+    // Count passed and failed
+    int passedCount = 0;
+    int failedCount = 0;
 
-      // Extract totals from output
-      if (output.contains("Total:")) {
-        String[] lines = output.split("\n");
-        for (String line : lines) {
-          if (line.contains("Total:")) {
-            // Parse "Total: X passed, Y failed"
-            String[] parts = line.split(",");
-            for (String part : parts) {
-              if (part.contains("passed")) {
-                passedCount = Integer.parseInt(part.replaceAll("[^0-9]", ""));
-              } else if (part.contains("failed")) {
-                failedCount = Integer.parseInt(part.replaceAll("[^0-9]", ""));
-              }
+    // Extract totals from output
+    if (output.contains("Total:")) {
+      String[] lines = output.split("\n");
+      for (String line : lines) {
+        if (line.contains("Total:")) {
+          // Parse "Total: X passed, Y failed"
+          String[] parts = line.split(",");
+          for (String part : parts) {
+            if (part.contains("passed")) {
+              passedCount = Integer.parseInt(part.replaceAll("[^0-9]", ""));
+            } else if (part.contains("failed")) {
+              failedCount = Integer.parseInt(part.replaceAll("[^0-9]", ""));
             }
           }
         }
       }
+    }
 
-      System.out.println("[mcp-conformance] Passed: " + passedCount + ", Failed: " + failedCount);
+    System.out.println("[mcp-conformance] Passed: " + passedCount + ", Failed: " + failedCount);
 
-      context.assertTrue(failedCount == 0, "Expected 0 failed scenarios, got " + failedCount + ". Output: " + output);
-
-      async.complete();
-    }));
+    context.assertTrue(failedCount == 0, "Expected 0 failed scenarios, got " + failedCount + ". Output: " + output);
   }
 
   private Future<String> executeConformance(String scenario) {

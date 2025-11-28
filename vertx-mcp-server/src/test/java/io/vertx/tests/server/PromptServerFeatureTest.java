@@ -201,20 +201,9 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       args -> {
         List<PromptMessage> messages = new ArrayList<>();
 
-        PromptMessage userMessage = new PromptMessage()
-          .setRole("user")
-          .setContent(new TextContent("Hello!").toJson());
-        messages.add(userMessage);
-
-        PromptMessage assistantMessage = new PromptMessage()
-          .setRole("assistant")
-          .setContent(new TextContent("Hi! How can I help you?").toJson());
-        messages.add(assistantMessage);
-
-        PromptMessage userMessage2 = new PromptMessage()
-          .setRole("user")
-          .setContent(new TextContent("Tell me about MCP").toJson());
-        messages.add(userMessage2);
+        messages.add(new PromptMessage().setRole("user").setContent(new TextContent("Hello!").toJson()));
+        messages.add(new PromptMessage().setRole("assistant").setContent(new TextContent("Hi! How can I help you?").toJson()));
+        messages.add(new PromptMessage().setRole("user").setContent(new TextContent("Tell me about MCP").toJson()));
 
         return Future.succeededFuture(messages);
       }
