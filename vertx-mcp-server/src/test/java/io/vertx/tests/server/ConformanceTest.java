@@ -18,6 +18,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.Schemas;
+import io.vertx.mcp.common.LogLevel;
 import io.vertx.mcp.common.Meta;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.content.*;
@@ -181,7 +182,7 @@ public class ConformanceTest extends TestContainerTestBase {
 
         // Send 3 log notifications
         return session.sendNotification(new LoggingMessageNotification()
-            .setLevel("info")
+            .setLevel(LogLevel.INFO)
             .setLogger("test_tool")
             .setData("Tool execution started"))
           .compose(v -> {
@@ -189,7 +190,7 @@ public class ConformanceTest extends TestContainerTestBase {
             return Future.future(promise -> Vertx.currentContext().owner().setTimer(50, id -> promise.complete()));
           })
           .compose(v -> session.sendNotification(new LoggingMessageNotification()
-            .setLevel("info")
+            .setLevel(LogLevel.INFO)
             .setLogger("test_tool")
             .setData("Tool processing data")))
           .compose(v -> {
@@ -197,7 +198,7 @@ public class ConformanceTest extends TestContainerTestBase {
             return Future.future(promise -> Vertx.currentContext().owner().setTimer(50, id -> promise.complete()));
           })
           .compose(v -> session.sendNotification(new LoggingMessageNotification()
-            .setLevel("info")
+            .setLevel(LogLevel.INFO)
             .setLogger("test_tool")
             .setData("Tool execution completed")))
           .map(v -> new Content[] {

@@ -326,48 +326,149 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
     return variables;
   }
 
+  /**
+   * Registers a static resource to be served under the specified URI.
+   *
+   * @param uri the URI at which the resource will be served
+   * @param resourceSupplier a supplier providing a Future that resolves to the resource to be served
+   */
   public void addStaticResource(String uri, Supplier<Future<Resource>> resourceSupplier) {
     addStaticResource(uri, uri, resourceSupplier);
   }
 
+  /**
+   * Registers a static resource with the specified URI, name, and supplier.
+   *
+   * @param uri the unique identifier for the resource
+   * @param name the name of the resource
+   * @param resourceSupplier a supplier of the resource, providing a future that resolves to the resource
+   */
   public void addStaticResource(String uri, String name, Supplier<Future<Resource>> resourceSupplier) {
     addStaticResource(uri, name, null, resourceSupplier);
   }
 
+  /**
+   * Adds a static resource to the resource server. This method registers a resource with the specified URI, name, and title, using the provided resource supplier to supply the
+   * resource content dynamically.
+   *
+   * @param uri the unique URI of the resource
+   * @param name the name of the resource
+   * @param title the title of the resource
+   * @param resourceSupplier a supplier that provides a {@link Future} containing the resource
+   */
   public void addStaticResource(String uri, String name, String title, Supplier<Future<Resource>> resourceSupplier) {
     addStaticResource(uri, name, title, null, resourceSupplier);
   }
 
+  /**
+   * Adds a static resource to the resource server.
+   *
+   * @param uri the unique URI associated with the resource
+   * @param name the name of the resource
+   * @param title the title of the resource
+   * @param description a brief description of the resource
+   * @param resourceSupplier a supplier that provides a future containing the resource instance
+   */
   public void addStaticResource(String uri, String name, String title, String description, Supplier<Future<Resource>> resourceSupplier) {
     addStaticResource(StaticResourceHandler.create(uri, name, title, description, resourceSupplier));
   }
 
+  /**
+   * Adds a static resource handler to the resource server.
+   *
+   * @param handler the static resource handler to be added. The handler provides a resource at a fixed URI that does not require any parameters.
+   */
   public void addStaticResource(StaticResourceHandler handler) {
     staticHandlers.put(handler.uri(), handler);
   }
 
+  /**
+   * Adds a dynamic resource to the resource server. The resource is identified by the given URI and can be dynamically generated based on the provided function, which evaluates
+   * template variables in the URI.
+   *
+   * @param uri the unique identifier of the resource, potentially containing template variables
+   * @param resourceFunction a function that accepts a map of template variables extracted from the URI and returns a Future containing the dynamically generated Resource
+   */
   public void addDynamicResource(String uri, Function<Map<String, String>, Future<Resource>> resourceFunction) {
     addDynamicResource(uri, uri, resourceFunction);
   }
 
+  /**
+   * Adds a dynamic resource to the resource server with the specified URI, name, and resource provider function. The added resource is resolved dynamically at runtime based on the
+   * provided function.
+   *
+   * @param uri the URI of the dynamic resource
+   * @param name the name of the dynamic resource
+   * @param resourceFunction a function that takes a map of template variables as input and returns a Future containing the resolved resource
+   */
   public void addDynamicResource(String uri, String name, Function<Map<String, String>, Future<Resource>> resourceFunction) {
     addDynamicResource(uri, name, null, resourceFunction);
   }
 
+  /**
+   * Registers a dynamic resource with the specified URI, name, and title.
+   *
+   * @param uri the URI of the resource
+   * @param name the name of the resource
+   * @param title the title of the resource
+   * @param resourceFunction a function that generates the resource dynamically based on the provided parameters
+   */
   public void addDynamicResource(String uri, String name, String title, Function<Map<String, String>, Future<Resource>> resourceFunction) {
     addDynamicResource(uri, name, title, null, resourceFunction);
   }
 
+  /**
+   * Adds a dynamic resource to the resource server. A dynamic resource is resolved at runtime by invoking the provided resource function.
+   *
+   * @param uri the URI of the dynamic resource
+   * @param name the name of the dynamic resource
+   * @param title the title of the dynamic resource
+   * @param description the description of the dynamic resource
+   * @param resourceFunction a function that takes a map of template variables and returns a future resolving to the resource
+   */
   public void addDynamicResource(String uri, String name, String title, String description, Function<Map<String, String>, Future<Resource>> resourceFunction) {
     addDynamicResource(uri, name, title, description, resourceFunction, null);
   }
 
+  /**
+   * Adds a dynamic resource to the resource server with custom handling for resource creation and completion functionality.
+   *
+   * @param uri the unique URI identifying the resource
+   * @param name the name of the resource
+   * @param title the title of the resource
+   * @param description a brief description of the resource
+   * @param resourceFunction a function that generates the resource content dynamically given a map of URI template variables
+   * @param completionFunction a function handling completion tasks associated with the resource, where the completion data is based on the provided arguments and context
+   */
   public void addDynamicResource(String uri, String name, String title, String description, Function<Map<String, String>, Future<Resource>> resourceFunction,
     BiFunction<CompletionArgument, CompletionContext, Future<Completion>> completionFunction) {
     addDynamicResource(DynamicResourceHandler.create(uri, name, title, description, resourceFunction, completionFunction));
   }
 
+  /**
+   * Registers a dynamic resource handler that provides resources based on URI patterns.
+   *
+   * @param handler the dynamic resource handler to be added. The handler contains the URI pattern and logic for producing resources dynamically based on extracted URI variables.
+   */
   public void addDynamicResource(DynamicResourceHandler handler) {
     dynamicHandlers.put(handler.uri(), handler);
+  }
+
+  /**
+   * Retrieves a list of static resource handlers managed by this feature.
+   *
+   * @return a list of {@link StaticResourceHandler} instances representing the static resources.
+   */
+  public List<StaticResourceHandler> staticResources() {
+    return new ArrayList<>(this.staticHandlers.values());
+  }
+
+  /**
+   * Retrieves a list of dynamic resource handlers managed by this feature.
+   *
+   * @return a list of {@link DynamicResourceHandler} instances representing the dynamic resources.
+   */
+  public List<DynamicResourceHandler> dynamicResources() {
+    return new ArrayList<>(this.dynamicHandlers.values());
   }
 }

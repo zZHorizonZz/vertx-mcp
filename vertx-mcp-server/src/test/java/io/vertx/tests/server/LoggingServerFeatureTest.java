@@ -4,6 +4,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.mcp.common.LogLevel;
 import io.vertx.mcp.common.request.InitializeRequest;
 import io.vertx.mcp.common.request.SetLevelRequest;
 import io.vertx.mcp.common.rpc.JsonError;
@@ -217,11 +218,11 @@ public class LoggingServerFeatureTest extends ServerFeatureTestBase<LoggingServe
   public void testDefaultLogLevel(TestContext context) {
     feature.init(vertx);
 
-    // Default should be "info"
-    context.assertEquals("info", feature.getLogLevel("nonexistent-session"));
+    // Default should be INFO
+    context.assertEquals(LogLevel.INFO, feature.getLogLevel("nonexistent-session"));
 
     // Can change default
-    feature.setDefaultLogLevel("error");
-    context.assertEquals("error", feature.getLogLevel("nonexistent-session"));
+    feature.setDefaultLogLevel(LogLevel.ERROR);
+    context.assertEquals(LogLevel.ERROR, feature.getLogLevel("nonexistent-session"));
   }
 }

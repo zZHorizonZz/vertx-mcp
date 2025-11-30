@@ -19,7 +19,9 @@ import io.vertx.mcp.server.UnstructuredToolHandler;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
 import io.vertx.mcp.server.impl.ServerFeatureStorage;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -246,38 +248,20 @@ public class ToolServerFeature extends ServerFeatureBase {
   }
 
   /**
-   * Removes a tool by name.
+   * Retrieves a list of structured tool handlers managed by this feature.
    *
-   * @param name the tool name
-   * @return true if the tool was removed, false if it didn't exist
+   * @return a list of {@link StructuredToolHandler} instances representing the structured tools.
    */
-  public boolean removeTool(String name) {
-    boolean removed = structuredTools.remove(name) != null;
-    if (!removed) {
-      removed = unstructuredTools.remove(name) != null;
-    }
-    return removed;
+  public List<StructuredToolHandler> structuredTools() {
+    return new ArrayList<>(this.structuredTools.values());
   }
 
   /**
-   * Checks if a tool is registered.
+   * Retrieves a list of unstructured tool handlers managed by this feature.
    *
-   * @param name the tool name
-   * @return true if the tool exists
+   * @return a list of {@link UnstructuredToolHandler} instances representing the unstructured tools.
    */
-  public boolean hasTool(String name) {
-    return structuredTools.containsKey(name) || unstructuredTools.containsKey(name);
-  }
-
-  /**
-   * Gets the names of all registered tools.
-   *
-   * @return set of tool names
-   */
-  public Set<String> getToolNames() {
-    Set<String> names = new HashSet<>();
-    names.addAll(structuredTools.keySet());
-    names.addAll(unstructuredTools.keySet());
-    return names;
+  public List<UnstructuredToolHandler> unstructuredTools() {
+    return new ArrayList<>(this.unstructuredTools.values());
   }
 }

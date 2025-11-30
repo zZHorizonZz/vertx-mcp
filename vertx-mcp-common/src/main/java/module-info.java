@@ -4,6 +4,7 @@ module io.vertx.mcp.common {
 
   requires io.vertx.codegen.json;
   requires io.vertx.core;
+  requires java.logging;
 
   exports io.vertx.mcp.common;
   exports io.vertx.mcp.common.capabilities;

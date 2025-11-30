@@ -16,6 +16,7 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.CompletionProvider;
+import io.vertx.mcp.server.DynamicResourceHandler;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
@@ -96,7 +97,7 @@ public class PromptServerFeature extends ServerFeatureBase implements Completion
 
     ListPromptsResult result = new ListPromptsResult().setPrompts(promptsList);
 
-    // TODO: Handle cursor/pagination if needed
+    // TODO: Handle cursor/pagination
 
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));
   }
@@ -207,22 +208,11 @@ public class PromptServerFeature extends ServerFeatureBase implements Completion
   }
 
   /**
-   * Removes the prompt associated with the specified name from the collection of prompts.
+   * Retrieves a list of prompt handlers managed by this feature.
    *
-   * @param name the name of the prompt to be removed
-   * @return true if the prompt was successfully removed, false if no prompt with the given name exists
+   * @return a list of {@link PromptHandler} instances representing the prompts.
    */
-  public boolean removePrompt(String name) {
-    return prompts.remove(name) != null;
-  }
-
-  /**
-   * Checks if a prompt with the specified name is registered in the system.
-   *
-   * @param name the name of the prompt to check for existence
-   * @return true if the prompt with the given name exists, false otherwise
-   */
-  public boolean hasPrompt(String name) {
-    return prompts.containsKey(name);
+  public List<PromptHandler> prompts() {
+    return new ArrayList<>(this.prompts.values());
   }
 }
