@@ -20,7 +20,6 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
 import io.vertx.mcp.server.impl.ServerFeatureStorage;
-import io.vertx.mcp.server.impl.SessionManagerImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -168,7 +167,7 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
 
       if (isSubscribed) {
         DeliveryOptions options = new DeliveryOptions().addHeader("Mcp-Session-Id", sessionId);
-        vertx.eventBus().send(SessionManagerImpl.NOTIFICATION_ADDRESS, notification.toNotification().toJson(), options);
+        vertx.eventBus().send(SessionManager.NOTIFICATION_ADDRESS, notification.toNotification().toJson(), options);
       }
     }
   }

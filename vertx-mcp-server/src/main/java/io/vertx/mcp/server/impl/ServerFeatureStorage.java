@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.server.ServerFeatureHandler;
 import io.vertx.mcp.server.ServerNotification;
+import io.vertx.mcp.server.SessionManager;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -107,6 +108,6 @@ public class ServerFeatureStorage<T extends ServerFeatureHandler<?, ?, ?>> imple
     }
 
     JsonNotification notification = new JsonNotification(notificationMethod, new JsonObject());
-    vertx.eventBus().send(SessionManagerImpl.NOTIFICATION_ADDRESS, new ServerNotification().setNotification(notification).setBroadcast(true).toJson());
+    vertx.eventBus().send(SessionManager.NOTIFICATION_ADDRESS, new ServerNotification().setNotification(notification).setBroadcast(true).toJson());
   }
 }

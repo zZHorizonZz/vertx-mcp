@@ -11,18 +11,18 @@ import io.vertx.mcp.common.LoggingLevel;
 public interface Logging {
 
   /**
-   * Sets the default logging level for the application. This determines the minimum severity of log messages that will be handled.
-   *
-   * @param level the logging level to set as the default. It must be one of the predefined levels in {@link LoggingLevel}, such as DEBUG, INFO, WARNING, or ERROR.
-   */
-  void setLoggingLevel(LoggingLevel level);
-
-  /**
    * Retrieves the current log level configuration.
    *
    * @return the current log level
    */
   LoggingLevel getLoggingLevel();
+
+  /**
+   * Sets the default logging level for the application. This determines the minimum severity of log messages that will be handled.
+   *
+   * @param level the logging level to set as the default. It must be one of the predefined levels in {@link LoggingLevel}, such as DEBUG, INFO, WARNING, or ERROR.
+   */
+  void setLoggingLevel(LoggingLevel level);
 
   /**
    * Logs a message with a specific logging level, logger identifier, and additional data.

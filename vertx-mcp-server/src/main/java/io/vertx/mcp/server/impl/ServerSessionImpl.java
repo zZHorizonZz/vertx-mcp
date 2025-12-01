@@ -89,13 +89,13 @@ public class ServerSessionImpl implements ServerSession {
   }
 
   @Override
-  public void setLoggingLevel(LoggingLevel level) {
-    this.loggingLevel = level;
+  public LoggingLevel getLoggingLevel() {
+    return this.loggingLevel;
   }
 
   @Override
-  public LoggingLevel getLoggingLevel() {
-    return this.loggingLevel;
+  public void setLoggingLevel(LoggingLevel level) {
+    this.loggingLevel = level;
   }
 
   @Override

@@ -19,11 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionManagerImpl implements SessionManager {
 
-  /**
-   * Event bus address for sending notifications to sessions.
-   */
-  public static final String NOTIFICATION_ADDRESS = "io.vertx.mcp.server.notification";
-
   private final Vertx vertx;
   private final ServerOptions options;
   private final Map<String, Long> sessionLastPing = new ConcurrentHashMap<>();

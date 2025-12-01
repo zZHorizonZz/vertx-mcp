@@ -16,7 +16,6 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.CompletionProvider;
-import io.vertx.mcp.server.DynamicResourceHandler;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.impl.ServerFeatureBase;

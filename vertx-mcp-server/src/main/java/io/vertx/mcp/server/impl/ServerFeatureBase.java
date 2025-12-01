@@ -8,6 +8,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerRequest;
+import io.vertx.mcp.server.SessionManager;
 
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +66,6 @@ public abstract class ServerFeatureBase implements ServerFeature {
       return;
     }
 
-    vertx.eventBus().send(SessionManagerImpl.NOTIFICATION_ADDRESS, notification.toNotification().toJson());
+    vertx.eventBus().send(SessionManager.NOTIFICATION_ADDRESS, notification.toNotification().toJson());
   }
 }

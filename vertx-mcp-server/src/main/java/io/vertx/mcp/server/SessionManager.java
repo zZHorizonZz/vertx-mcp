@@ -9,6 +9,12 @@ import io.vertx.mcp.common.capabilities.ClientCapabilities;
  */
 @VertxGen
 public interface SessionManager {
+
+  /**
+   * Event bus address for sending notifications to sessions.
+   */
+  String NOTIFICATION_ADDRESS = "io.vertx.mcp.server.notification";
+
   /**
    * Create and register a new session.
    *

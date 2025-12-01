@@ -7,6 +7,7 @@ module io.vertx.mcp.server {
 
   requires io.vertx.mcp.common;
   requires java.logging;
+  requires io.vertx.mcp.server;
 
   exports io.vertx.mcp.server;
   exports io.vertx.mcp.server.feature;
