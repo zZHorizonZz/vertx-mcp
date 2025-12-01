@@ -86,8 +86,8 @@ public class StreamableHttpServerTransport implements Handler<HttpServerRequest>
     ContextInternal context = ((HttpServerRequestInternal) httpRequest).context();
     String sessionId = httpRequest.getHeader(MCP_SESSION_ID_HEADER);
 
-    StreamableHttpServerRequestImpl serverRequest = new StreamableHttpServerRequestImpl(context, httpRequest, sessionManager, options);
-    StreamableHttpServerResponseImpl serverResponse = new StreamableHttpServerResponseImpl(context, httpRequest.response());
+    StreamableHttpServerRequest serverRequest = new StreamableHttpServerRequest(context, httpRequest, sessionManager, options);
+    StreamableHttpServerResponse serverResponse = new StreamableHttpServerResponse(context, httpRequest.response());
 
     ServerSession session = null;
 

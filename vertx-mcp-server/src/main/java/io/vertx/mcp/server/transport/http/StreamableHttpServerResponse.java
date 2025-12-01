@@ -12,7 +12,7 @@ import io.vertx.mcp.common.rpc.JsonProtocol;
 import io.vertx.mcp.server.ServerResponse;
 import io.vertx.mcp.server.ServerSession;
 
-public class StreamableHttpServerResponseImpl implements ServerResponse {
+public class StreamableHttpServerResponse implements ServerResponse {
 
   private final ContextInternal context;
   private final HttpServerResponse httpResponse;
@@ -22,7 +22,7 @@ public class StreamableHttpServerResponseImpl implements ServerResponse {
   private Object requestId;
   private ServerSession session;
 
-  public StreamableHttpServerResponseImpl(ContextInternal context, HttpServerResponse httpResponse) {
+  public StreamableHttpServerResponse(ContextInternal context, HttpServerResponse httpResponse) {
     this.context = context;
     this.httpResponse = httpResponse;
   }

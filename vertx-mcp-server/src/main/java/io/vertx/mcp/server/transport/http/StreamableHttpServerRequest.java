@@ -19,21 +19,21 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.*;
 import io.vertx.mcp.server.impl.ServerSessionImpl;
 
-public class StreamableHttpServerRequestImpl implements ServerRequest {
+public class StreamableHttpServerRequest implements ServerRequest {
 
   private final ContextInternal context;
   private final HttpServerRequest httpRequest;
   private final SessionManager sessionManager;
   private final ServerOptions options;
 
-  private StreamableHttpServerResponseImpl response;
+  private StreamableHttpServerResponse response;
   private Handler<Void> requestHandler;
   private Handler<Throwable> exceptionHandler;
 
   private JsonRequest jsonRequest;
   private ServerSession session;
 
-  public StreamableHttpServerRequestImpl(Context context, HttpServerRequest httpRequest, SessionManager sessionManager, ServerOptions options) {
+  public StreamableHttpServerRequest(Context context, HttpServerRequest httpRequest, SessionManager sessionManager, ServerOptions options) {
     this.context = (ContextInternal) context;
     this.httpRequest = httpRequest;
     this.sessionManager = sessionManager;
@@ -62,11 +62,11 @@ public class StreamableHttpServerRequestImpl implements ServerRequest {
   public void init(ServerSession session, ServerResponse response) {
     this.session = session;
 
-    if (!(response instanceof StreamableHttpServerResponseImpl)) {
-      throw new IllegalArgumentException("Response must be an instance of StreamableHttpServerResponseImpl");
+    if (!(response instanceof StreamableHttpServerResponse)) {
+      throw new IllegalArgumentException("Response must be an instance of StreamableHttpServerResponse");
     }
 
-    this.response = (StreamableHttpServerResponseImpl) response;
+    this.response = (StreamableHttpServerResponse) response;
 
     response.init(session);
 
