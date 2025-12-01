@@ -1,10 +1,15 @@
 package io.vertx.mcp.client;
 
 import io.vertx.codegen.annotations.Fluent;
+import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.mcp.client.impl.ModelContextProtocolClientImpl;
+import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
+import io.vertx.mcp.common.capabilities.ClientCapabilities;
 
 import java.util.List;
 
@@ -66,4 +71,33 @@ public interface ModelContextProtocolClient extends Handler<ClientResponse> {
    * @return a list of registered client features
    */
   List<ClientFeature> features();
+
+  /**
+   * Connects to an MCP server via HTTP transport.
+   *
+   * @param baseUrl the base URL of the server (e.g., "http://localhost:8080")
+   * @param capabilities the client capabilities to advertise
+   * @return a future that completes with the established session
+   */
+  @GenIgnore
+  Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities);
+
+  /**
+   * Connects to an MCP server via HTTP transport with custom HTTP options.
+   *
+   * @param baseUrl the base URL of the server (e.g., "http://localhost:8080")
+   * @param capabilities the client capabilities to advertise
+   * @param httpOptions HTTP client options
+   * @return a future that completes with the established session
+   */
+  @GenIgnore
+  Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities, HttpClientOptions httpOptions);
+
+  /**
+   * Gets the transport for a connected session.
+   *
+   * @return the transport, or null if not connected via HTTP
+   */
+  @GenIgnore
+  StreamableHttpClientTransport getTransport();
 }

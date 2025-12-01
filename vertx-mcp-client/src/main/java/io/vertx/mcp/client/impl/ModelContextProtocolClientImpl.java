@@ -1,12 +1,15 @@
 package io.vertx.mcp.client.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.mcp.client.ClientFeature;
 import io.vertx.mcp.client.ClientOptions;
 import io.vertx.mcp.client.ClientResponse;
+import io.vertx.mcp.client.ClientSession;
 import io.vertx.mcp.client.ModelContextProtocolClient;
-import io.vertx.mcp.common.rpc.JsonError;
-import io.vertx.mcp.common.rpc.JsonNotification;
+import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
+import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.ArrayList;
@@ -18,6 +21,7 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   private final Vertx vertx;
   private final List<ClientFeature> features = new ArrayList<>();
   private final ClientOptions options;
+  private StreamableHttpClientTransport transport;
 
   /**
    * Creates a new MCP client instance with default options.
@@ -60,7 +64,6 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
 
       if (isNotification) {
         // Extract method from notification metadata if available
-        // This is a simplified version - you may need to adjust based on your notification structure
         String method = extractMethodFromNotification(jsonResponse);
         if (method != null) {
           Optional<ClientFeature> feature = features.stream()
@@ -73,7 +76,6 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
         }
       } else {
         // Handle regular response - delegate to appropriate feature based on the original request
-        // This requires tracking pending requests, which would typically be done in a request manager
         Optional<ClientFeature> feature = findFeatureForResponse(response);
         if (feature.isPresent()) {
           feature.get().handle(response);
@@ -81,7 +83,6 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
       }
     } catch (Exception e) {
       // Log or handle the exception appropriately
-      // In a real implementation, you'd want proper error handling here
     }
   }
 
@@ -102,6 +103,25 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
     return List.copyOf(features);
   }
 
+  @Override
+  public Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities) {
+    return connect(baseUrl, capabilities, new HttpClientOptions());
+  }
+
+  @Override
+  public Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities, HttpClientOptions httpOptions) {
+    // Create transport
+    this.transport = new StreamableHttpClientTransport(vertx, baseUrl, this, options, httpOptions);
+
+    // Connect to server
+    return transport.connect(capabilities);
+  }
+
+  @Override
+  public StreamableHttpClientTransport getTransport() {
+    return transport;
+  }
+
   /**
    * Extracts the method name from a notification response.
    * This is a helper method that should be implemented based on your notification structure.
@@ -110,8 +130,11 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
    * @return the method name, or null if not found
    */
   private String extractMethodFromNotification(JsonResponse jsonResponse) {
-    // This is a placeholder - implement based on your notification structure
-    // You might need to look at the result or error fields to determine the method
+    // Extract method from the notification
+    // In MCP, notifications typically have a "method" field in their structure
+    if (jsonResponse.getResult() != null && jsonResponse.getResult().containsKey("method")) {
+      return jsonResponse.getResult().getString("method");
+    }
     return null;
   }
 
@@ -123,7 +146,7 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
    * @return the feature that should handle this response, if found
    */
   private Optional<ClientFeature> findFeatureForResponse(ClientResponse response) {
-    // This is a placeholder - in a real implementation, you'd track pending requests
+    // In a real implementation, you'd track pending requests
     // and match responses to the features that initiated the requests
     return Optional.empty();
   }
