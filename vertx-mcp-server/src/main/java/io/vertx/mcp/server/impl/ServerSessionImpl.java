@@ -5,7 +5,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.WriteStream;
+import io.vertx.mcp.common.LoggingLevel;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
+import io.vertx.mcp.common.notification.LoggingMessageNotification;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.server.ServerSession;
@@ -25,7 +27,7 @@ public class ServerSessionImpl implements ServerSession {
   private final Map<Object, Promise<JsonObject>> pendingRequests = new ConcurrentHashMap<>();
 
   private WriteStream<JsonObject> stream;
-  private volatile String minLogLevel;
+  private LoggingLevel loggingLevel = LoggingLevel.INFO;
 
   public ServerSessionImpl(String id, boolean streaming, ClientCapabilities capabilities) {
     this.id = id;
@@ -87,6 +89,29 @@ public class ServerSessionImpl implements ServerSession {
   }
 
   @Override
+  public void setLoggingLevel(LoggingLevel level) {
+    this.loggingLevel = level;
+  }
+
+  @Override
+  public LoggingLevel getLoggingLevel() {
+    return this.loggingLevel;
+  }
+
+  @Override
+  public void log(LoggingLevel level, String logger, Object data) {
+    if (level == null) {
+      return;
+    }
+
+    if (!level.shouldLog(this.loggingLevel)) {
+      return;
+    }
+
+    this.sendNotification(new LoggingMessageNotification().setLevel(level).setLogger(logger).setData(data));
+  }
+
+  @Override
   public void close(Completable<Void> completable) {
     if (active.compareAndSet(true, false)) {
       completable.succeed();
@@ -104,16 +129,5 @@ public class ServerSessionImpl implements ServerSession {
   @Override
   public boolean isActive() {
     return active.get();
-  }
-
-  @Override
-  public String minLogLevel() {
-    return minLogLevel;
-  }
-
-  @Override
-  public ServerSession setMinLogLevel(String level) {
-    this.minLogLevel = level;
-    return this;
   }
 }

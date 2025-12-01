@@ -79,7 +79,7 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
   @Override
   public ModelContextProtocolServer addServerFeature(ServerFeature feature) {
     if (this.features.stream().anyMatch(f -> feature.getCapabilities().stream().anyMatch(f::hasCapability))) {
-      throw new IllegalArgumentException("Feature already registered for " + feature.getCapabilities());
+      throw new IllegalStateException("Feature already registered for " + feature.getCapabilities());
     }
 
     this.features.add(feature);

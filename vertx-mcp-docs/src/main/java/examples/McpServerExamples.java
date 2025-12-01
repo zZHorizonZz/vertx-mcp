@@ -1,17 +1,22 @@
 package examples;
 
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.LoggingLevel;
+import io.vertx.mcp.common.Meta;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
+import io.vertx.mcp.common.notification.LoggingMessageNotification;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.resources.TextResourceContent;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
+import io.vertx.mcp.server.ServerSession;
 import io.vertx.mcp.server.feature.LoggingServerFeature;
 import io.vertx.mcp.server.feature.PromptServerFeature;
 import io.vertx.mcp.server.feature.ResourceServerFeature;
@@ -289,22 +294,6 @@ public class McpServerExamples {
     );
   }
 
-  public void addLogging(ModelContextProtocolServer mcpServer) {
-    LoggingServerFeature loggingFeature = new LoggingServerFeature();
-    mcpServer.addServerFeature(loggingFeature);
-
-    // Send a log message to all clients
-    loggingFeature.log("info", "server", "Operation completed successfully");
-
-    // Send with additional data
-    loggingFeature.log(
-      "error",
-      "database",
-      "Connection failed to database " +
-        new JsonObject().put("host", "localhost").put("port", 5432).encodePrettily()
-    );
-  }
-
   public void completeExample(Vertx vertx) {
     // Create server with options
     ServerOptions options = new ServerOptions()
@@ -354,5 +343,71 @@ public class McpServerExamples {
       .onFailure(err ->
         System.err.println("Failed to start server: " + err.getMessage())
       );
+  }
+
+  public void accessSession() {
+    Context ctx = Vertx.currentContext();
+    ServerSession session = ServerSession.fromContext(ctx);
+  }
+
+  public void useSessionInTool(ToolServerFeature toolFeature) {
+    toolFeature.addStructuredTool(
+      "session-aware-tool",
+      "Session Aware Tool",
+      "A tool that uses the session",
+      objectSchema(),
+      objectSchema().requiredProperty("sessionId", stringSchema()),
+      args -> {
+        Context ctx = Vertx.currentContext();
+        ServerSession session = ServerSession.fromContext(ctx);
+
+        if (session != null) {
+          // Send a notification to the client
+          LoggingMessageNotification notification = new LoggingMessageNotification()
+            .setLevel(LoggingLevel.INFO)
+            .setLogger("session-aware-tool")
+            .setData("Processing your request");
+
+          session.sendNotification(notification);
+
+          return Future.succeededFuture(
+            new JsonObject().put("sessionId", session.id())
+          );
+        }
+
+        return Future.succeededFuture(
+          new JsonObject().put("sessionId", "no-session")
+        );
+      }
+    );
+  }
+
+  public void accessMeta() {
+    Context ctx = Vertx.currentContext();
+    JsonObject meta = Meta.fromContext(ctx);
+  }
+
+  public void useMetaInTool(ToolServerFeature toolFeature) {
+    toolFeature.addStructuredTool(
+      "metadata-tool",
+      "Metadata Tool",
+      "A tool that uses request metadata",
+      objectSchema(),
+      objectSchema().requiredProperty("received", booleanSchema()),
+      args -> {
+        Context ctx = Vertx.currentContext();
+        JsonObject requestMeta = Meta.fromContext(ctx);
+
+        boolean hasMetadata = requestMeta != null;
+        if (hasMetadata) {
+          String requestId = requestMeta.getString("requestId");
+          // Use metadata for logging or correlation
+        }
+
+        return Future.succeededFuture(
+          new JsonObject().put("received", hasMetadata)
+        );
+      }
+    );
   }
 }

@@ -1,9 +1,10 @@
 package io.vertx.mcp.common.notification;
 
 import io.vertx.codegen.annotations.DataObject;
+import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mcp.common.LogLevel;
+import io.vertx.mcp.common.LoggingLevel;
 
 @DataObject
 @JsonGen(publicConverter = false)
@@ -11,7 +12,7 @@ public class LoggingMessageNotification extends Notification {
 
   private static final String METHOD = "notifications/message";
 
-  private LogLevel level;
+  private LoggingLevel level;
   private String logger;
   private Object data;
 
@@ -24,15 +25,17 @@ public class LoggingMessageNotification extends Notification {
     LoggingMessageNotificationConverter.fromJson(json, this);
 
     if (json.containsKey("level")) {
-      level = LogLevel.valueOf(json.getString("level").toUpperCase());
+      level = LoggingLevel.valueOf(json.getString("level").toUpperCase());
     }
   }
 
-  public LogLevel getLevel() {
+  @GenIgnore
+  public LoggingLevel getLevel() {
     return level;
   }
 
-  public LoggingMessageNotification setLevel(LogLevel level) {
+  @GenIgnore
+  public LoggingMessageNotification setLevel(LoggingLevel level) {
     this.level = level;
     return this;
   }

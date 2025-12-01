@@ -32,6 +32,10 @@ public abstract class ServerFeatureTestBase<T extends ServerFeature> extends Htt
 
     feature = createFeature();
 
-    super.mcpServer.addServerFeature(feature);
+    try {
+      super.mcpServer.addServerFeature(feature);
+    } catch (IllegalStateException e) {
+      // ignore, feature already added
+    }
   }
 }

@@ -8,7 +8,7 @@ import java.util.logging.Level;
  *
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/logging">Server Utilities - Logging</a>
  */
-public enum LogLevel {
+public enum LoggingLevel {
   DEBUG("debug", Level.FINE),
   INFO("info", Level.INFO),
   NOTICE("notice", Level.INFO),
@@ -21,7 +21,7 @@ public enum LogLevel {
   private final String value;
   private final Level javaLevel;
 
-  LogLevel(String value, Level javaLevel) {
+  LoggingLevel(String value, Level javaLevel) {
     this.value = value;
     this.javaLevel = javaLevel;
   }
@@ -59,22 +59,22 @@ public enum LogLevel {
    * @param minLevel the minimum level threshold
    * @return true if this level meets or exceeds the minimum level
    */
-  public boolean shouldLog(LogLevel minLevel) {
+  public boolean shouldLog(LoggingLevel minLevel) {
     return this.ordinal() >= minLevel.ordinal();
   }
 
   /**
-   * Parses a string value into a LogLevel.
+   * Parses a string value into a LoggingLevel.
    *
    * @param value the string value (case-insensitive)
-   * @return the LogLevel, or null if invalid
+   * @return the LoggingLevel, or null if invalid
    */
-  public static LogLevel fromValue(String value) {
+  public static LoggingLevel fromValue(String value) {
     if (value == null) {
       return null;
     }
     String lowerValue = value.toLowerCase();
-    for (LogLevel level : values()) {
+    for (LoggingLevel level : values()) {
       if (level.value.equals(lowerValue)) {
         return level;
       }

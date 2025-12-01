@@ -1,8 +1,10 @@
 package io.vertx.mcp.common.request;
 
 import io.vertx.codegen.annotations.DataObject;
+import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mcp.common.LoggingLevel;
 import io.vertx.mcp.common.Meta;
 
 @DataObject
@@ -11,7 +13,7 @@ public class SetLevelRequest extends Request {
 
   private static final String METHOD = "logging/setLevel";
 
-  private String level;
+  private LoggingLevel level;
 
   public SetLevelRequest() {
     super(METHOD, null);
@@ -20,13 +22,19 @@ public class SetLevelRequest extends Request {
   public SetLevelRequest(JsonObject json) {
     super(METHOD, json.getJsonObject(Meta.META_KEY, new JsonObject()));
     SetLevelRequestConverter.fromJson(json, this);
+
+    if (json.containsKey("level")) {
+      level = LoggingLevel.valueOf(json.getString("level").toUpperCase());
+    }
   }
 
-  public String getLevel() {
+  @GenIgnore
+  public LoggingLevel getLevel() {
     return level;
   }
 
-  public SetLevelRequest setLevel(String level) {
+  @GenIgnore
+  public SetLevelRequest setLevel(LoggingLevel level) {
     this.level = level;
     return this;
   }
@@ -35,6 +43,11 @@ public class SetLevelRequest extends Request {
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     SetLevelRequestConverter.toJson(this, json);
+
+    if (this.level != null) {
+      json.put("level", this.level.getValue());
+    }
+
     return json;
   }
 

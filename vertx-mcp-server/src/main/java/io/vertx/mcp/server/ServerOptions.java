@@ -47,6 +47,11 @@ public class ServerOptions {
   public static final boolean DEFAULT_NOTIFICATIONS_ENABLED = true;
 
   /**
+   * Whether logging is enabled by default = {@code true}
+   */
+  public static final boolean DEFAULT_LOGGING_ENABLED = true;
+
+  /**
    * The default session timeout in milliseconds = {@code 30 minutes}
    */
   public static final long DEFAULT_SESSION_TIMEOUT_MS = 30 * 60 * 1000L;
@@ -61,6 +66,7 @@ public class ServerOptions {
   private boolean sessionsEnabled;
   private boolean streamingEnabled;
   private boolean notificationsEnabled;
+  private boolean loggingEnabled;
   private long sessionTimeoutMs;
   private int maxSessions;
 
@@ -70,6 +76,7 @@ public class ServerOptions {
     sessionsEnabled = DEFAULT_SESSIONS_ENABLED;
     streamingEnabled = DEFAULT_STREAMING_ENABLED;
     notificationsEnabled = DEFAULT_NOTIFICATIONS_ENABLED;
+    loggingEnabled = DEFAULT_LOGGING_ENABLED;
     sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
     maxSessions = DEFAULT_MAX_SESSIONS;
   }
@@ -80,6 +87,7 @@ public class ServerOptions {
     sessionsEnabled = other.sessionsEnabled;
     streamingEnabled = other.streamingEnabled;
     notificationsEnabled = other.notificationsEnabled;
+    loggingEnabled = other.loggingEnabled;
     sessionTimeoutMs = other.sessionTimeoutMs;
     maxSessions = other.maxSessions;
   }
@@ -167,10 +175,13 @@ public class ServerOptions {
    * @return a reference to this, so the API can be used fluently
    */
   public ServerOptions setSessionsEnabled(boolean sessionsEnabled) {
-    if (!sessionsEnabled && streamingEnabled) {
-      throw new IllegalArgumentException("Cannot disable sessions while streaming is enabled. Disable streaming first.");
-    }
     this.sessionsEnabled = sessionsEnabled;
+
+    if (!sessionsEnabled) {
+      setStreamingEnabled(false);
+      setLoggingEnabled(false);
+    }
+
     return this;
   }
 
@@ -231,6 +242,42 @@ public class ServerOptions {
    */
   public ServerOptions setNotificationsEnabled(boolean notificationsEnabled) {
     this.notificationsEnabled = notificationsEnabled;
+    return this;
+  }
+
+  /**
+   * Gets whether logging is enabled.
+   * <p>
+   * Logging allows clients to set their desired log level and receive log messages as notifications.
+   *
+   * @return true if logging is enabled
+   */
+  public boolean getLoggingEnabled() {
+    return loggingEnabled;
+  }
+
+  /**
+   * Sets whether logging is enabled.
+   * <p>
+   * When logging is enabled:
+   * <ul>
+   *   <li>The server will automatically add the logging feature</li>
+   *   <li>Clients can set their desired log level using {@code logging/setLevel}</li>
+   *   <li>Servers can send log messages as notifications</li>
+   * </ul>
+   * <p>
+   * <strong>Note:</strong> Logging requires sessions to be enabled. Attempting to enable logging
+   * without sessions will throw an {@link IllegalArgumentException}.
+   *
+   * @param loggingEnabled true to enable logging
+   * @return a reference to this, so the API can be used fluently
+   * @throws IllegalArgumentException if sessions are not enabled
+   */
+  public ServerOptions setLoggingEnabled(boolean loggingEnabled) {
+    if (loggingEnabled && !sessionsEnabled) {
+      throw new IllegalArgumentException("Cannot enable logging without sessions. Enable sessions first.");
+    }
+    this.loggingEnabled = loggingEnabled;
     return this;
   }
 

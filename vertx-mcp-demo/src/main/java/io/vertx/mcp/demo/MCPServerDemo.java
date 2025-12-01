@@ -7,7 +7,7 @@ import io.vertx.core.http.*;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.Schemas;
-import io.vertx.mcp.common.LogLevel;
+import io.vertx.mcp.common.LoggingLevel;
 import io.vertx.mcp.common.Meta;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.content.Content;
@@ -314,7 +314,7 @@ public class MCPServerDemo {
 
         // Log the action
         return session.sendNotification(new LoggingMessageNotification()
-            .setLevel(LogLevel.INFO)
+            .setLevel(LoggingLevel.INFO)
             .setLogger("task-manager")
             .setData("Requesting task summary via sampling"))
           .compose(v -> {

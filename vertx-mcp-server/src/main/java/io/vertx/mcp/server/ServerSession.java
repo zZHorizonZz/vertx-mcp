@@ -13,7 +13,7 @@ import io.vertx.mcp.common.request.Request;
  * Represents a session between the client and server. Sessions are used to manage SSE (Server-Sent Events) connections and streaming state.
  */
 @VertxGen
-public interface ServerSession extends Closeable {
+public interface ServerSession extends Logging, Closeable {
 
   String MCP_SESSION_CONTEXT_KEY = "mcp.session";
 
@@ -70,19 +70,4 @@ public interface ServerSession extends Closeable {
    * @return true if the session is active
    */
   boolean isActive();
-
-  /**
-   * Gets the minimum log level for this session.
-   *
-   * @return the minimum log level, or null if not set
-   */
-  String minLogLevel();
-
-  /**
-   * Sets the minimum log level for this session.
-   *
-   * @param level the minimum log level
-   * @return this session for fluent API
-   */
-  ServerSession setMinLogLevel(String level);
 }

@@ -172,6 +172,10 @@ The `ServerOptions` class provides configuration for the MCP server:
 |`true`
 |Enable processing of client notifications
 
+|`loggingEnabled`
+|`true`
+|Automatically add LoggingServerFeature when sessions are enabled
+
 |`sessionTimeoutMs`
 |`1800000` (30 min)
 |Session inactivity timeout in milliseconds
@@ -228,6 +232,62 @@ When sessions are enabled, the server tracks client connections and supports:
 Sessions are identified by the `Mcp-Session-Id` header.
 The session ID is returned in the initialize response and must be included in subsequent requests.
 
+=== Context, Sessions, and Metadata
+
+The MCP server uses Vert.x's `Context` to make session and metadata available throughout your request handlers without passing them around as parameters.
+
+==== Accessing the Current Session
+
+Retrieve the session from the Vert.x context in your tool handlers:
+
+[source,java]
+----
+{@link examples.McpServerExamples#accessSession}
+----
+
+The session gives you access to:
+
+- Session ID and client capabilities
+- Methods to send requests and notifications back to the client
+- Logging methods (debug, info, warning, error) to send log notifications
+- Streaming state and log level management
+
+[source,java]
+----
+{@link examples.McpServerExamples#useSessionInTool}
+----
+
+NOTE: Sessions are only available when enabled in `ServerOptions` and when the client provides a valid session ID. Always check for null.
+
+==== Working with Metadata
+
+Request metadata is also stored in the context and can be accessed similarly:
+
+[source,java]
+----
+{@link examples.McpServerExamples#accessMeta}
+----
+
+Use metadata to pass custom information between client and server:
+
+[source,java]
+----
+{@link examples.McpServerExamples#useMetaInTool}
+----
+
+==== Context Keys
+
+[cols="1,1"]
+|===
+|Key |Purpose
+
+|`ServerSession.MCP_SESSION_CONTEXT_KEY`
+|Current session
+
+|`Meta.MCP_META_CONTEXT_KEY`
+|Request metadata
+|===
+
 === Completions
 
 Resources and prompts can provide argument completions to help AI applications with autocomplete functionality.
@@ -241,14 +301,15 @@ For the full specification, see https://modelcontextprotocol.io/specification/20
 
 === Logging
 
-The MCP server can send log messages to clients using the `LoggingServerFeature`.
+The MCP server supports sending log messages to clients.
+Logging is enabled by default through the `loggingEnabled` option in `ServerOptions`.
+When enabled and sessions are enabled, the server automatically adds `LoggingServerFeature`, which provides the `logging/setLevel` capability.
+
+Logging methods are available on `ServerSession` and can be called from within your request handlers (tools, resources, etc.) to send log notifications to the client.
 
 For the full specification, see https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/logging[MCP Logging].
 
-[source,java]
-----
-{@link examples.McpServerExamples#addLogging}
-----
+NOTE: Logging requires sessions to be enabled. The logging feature will only be added if both `loggingEnabled` and `sessionsEnabled` are true.
 
 === Example: Complete MCP Server
 

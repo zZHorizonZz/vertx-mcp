@@ -95,6 +95,13 @@ public class StreamableHttpServerResponseImpl implements ServerResponse {
 
     ended = true;
 
+    // If response headers already written (SSE stream active), write as SSE and close
+    if (httpResponse.headWritten()) {
+      return httpResponse.write("data: " + data.encode() + "\n\n")
+        .compose(v -> httpResponse.end());
+    }
+
+    // Non-streaming response - set headers and send JSON
     if (session != null) {
       httpResponse.putHeader(StreamableHttpServerTransport.MCP_SESSION_ID_HEADER, session.id());
     }

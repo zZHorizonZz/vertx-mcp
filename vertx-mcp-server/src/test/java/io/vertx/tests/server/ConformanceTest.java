@@ -18,7 +18,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.Schemas;
-import io.vertx.mcp.common.LogLevel;
+import io.vertx.mcp.common.LoggingLevel;
 import io.vertx.mcp.common.Meta;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.content.*;
@@ -64,7 +64,6 @@ public class ConformanceTest extends TestContainerTestBase {
     ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(super.vertx);
 
     setupTools(mcpServer);
-    setupLogging(mcpServer);
     setupPrompts(mcpServer);
     setupResources(mcpServer);
     setupCompletions(mcpServer);
@@ -75,11 +74,6 @@ public class ConformanceTest extends TestContainerTestBase {
 
     File dockerfile = new File("src/test/resources/conformance.Dockerfile");
     conformanceImage = new ImageFromDockerfile().withFileFromFile("Dockerfile", dockerfile);
-  }
-
-  private void setupLogging(ModelContextProtocolServer mcpServer) {
-    LoggingServerFeature loggingFeature = new LoggingServerFeature();
-    mcpServer.addServerFeature(loggingFeature);
   }
 
   private void setupTools(ModelContextProtocolServer mcpServer) {
@@ -182,7 +176,7 @@ public class ConformanceTest extends TestContainerTestBase {
 
         // Send 3 log notifications
         return session.sendNotification(new LoggingMessageNotification()
-            .setLevel(LogLevel.INFO)
+            .setLevel(LoggingLevel.INFO)
             .setLogger("test_tool")
             .setData("Tool execution started"))
           .compose(v -> {
@@ -190,7 +184,7 @@ public class ConformanceTest extends TestContainerTestBase {
             return Future.future(promise -> Vertx.currentContext().owner().setTimer(50, id -> promise.complete()));
           })
           .compose(v -> session.sendNotification(new LoggingMessageNotification()
-            .setLevel(LogLevel.INFO)
+            .setLevel(LoggingLevel.INFO)
             .setLogger("test_tool")
             .setData("Tool processing data")))
           .compose(v -> {
@@ -198,7 +192,7 @@ public class ConformanceTest extends TestContainerTestBase {
             return Future.future(promise -> Vertx.currentContext().owner().setTimer(50, id -> promise.complete()));
           })
           .compose(v -> session.sendNotification(new LoggingMessageNotification()
-            .setLevel(LogLevel.INFO)
+            .setLevel(LoggingLevel.INFO)
             .setLogger("test_tool")
             .setData("Tool execution completed")))
           .map(v -> new Content[] {
