@@ -3,6 +3,7 @@ package io.vertx.mcp.client;
 import io.vertx.codegen.annotations.CacheReturn;
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
+import io.vertx.core.Future;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
@@ -36,6 +37,29 @@ public interface ClientRequest {
    */
   @CacheReturn
   JsonRequest getJsonRequest();
+
+  ClientRequest setJsonRequest(JsonRequest jsonRequest);
+
+  /**
+   * Sends the JSON-RPC request to the server.
+   *
+   * @return a future that completes when the request has been sent
+   */
+  Future<Void> send();
+
+  /**
+   * Sends the request and returns the response future.
+   *
+   * @return a future that completes with the client response
+   */
+  Future<ClientResponse> sendRequest();
+
+  /**
+   * Gets the response future. The response future is only available after calling send().
+   *
+   * @return the response future, or null if send() has not been called yet
+   */
+  Future<ClientResponse> response();
 
   /**
    * Retrieves the current session associated with the client request.

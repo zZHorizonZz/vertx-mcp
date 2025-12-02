@@ -73,7 +73,6 @@ public class MCPServerDemo {
     mcpServer.addServerFeature(setupTools());
     mcpServer.addServerFeature(setupResources());
     mcpServer.addServerFeature(setupPrompts());
-    mcpServer.addServerFeature(new LoggingServerFeature());
     mcpServer.addServerFeature(new CompletionServerFeature(mcpServer));
 
     // Create and start HTTP server
@@ -82,7 +81,7 @@ public class MCPServerDemo {
 
     HttpServer server = vertx.createHttpServer(new HttpServerOptions()
       .setPort(port)
-      .setHost("localhost"));
+      .setHost("0.0.0.0"));
 
     server.requestHandler(req -> {
       HttpServerResponse response = req.response();

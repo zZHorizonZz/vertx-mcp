@@ -6,10 +6,10 @@ import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.RequestOptions;
 import io.vertx.mcp.client.impl.ModelContextProtocolClientImpl;
-import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
+import io.vertx.mcp.common.request.Request;
+import io.vertx.mcp.common.result.Result;
 
 import java.util.List;
 
@@ -28,8 +28,8 @@ public interface ModelContextProtocolClient {
    * @param vertx the Vert.x instance
    * @return a new instance of ModelContextProtocolClient with default configuration.
    */
-  static ModelContextProtocolClient create(Vertx vertx) {
-    return create(vertx, new ClientOptions());
+  static ModelContextProtocolClient create(Vertx vertx, ClientTransport transport) {
+    return create(vertx, transport, new ClientOptions());
   }
 
   /**
@@ -40,8 +40,8 @@ public interface ModelContextProtocolClient {
    * @param clientVersion the version of the client
    * @return a new instance of ModelContextProtocolClient configured with the specified client name and version
    */
-  static ModelContextProtocolClient create(Vertx vertx, String clientName, String clientVersion) {
-    return create(vertx, new ClientOptions().setClientName(clientName).setClientVersion(clientVersion));
+  static ModelContextProtocolClient create(Vertx vertx, ClientTransport transport, String clientName, String clientVersion) {
+    return create(vertx, transport, new ClientOptions().setClientName(clientName).setClientVersion(clientVersion));
   }
 
   /**
@@ -51,8 +51,8 @@ public interface ModelContextProtocolClient {
    * @param options the {@code ClientOptions} object containing configuration details for the client
    * @return a new instance of {@code ModelContextProtocolClient} initialized with the provided options
    */
-  static ModelContextProtocolClient create(Vertx vertx, ClientOptions options) {
-    return new ModelContextProtocolClientImpl(vertx, options);
+  static ModelContextProtocolClient create(Vertx vertx, ClientTransport transport, ClientOptions options) {
+    return new ModelContextProtocolClientImpl(vertx, transport, options);
   }
 
   /**
@@ -96,11 +96,5 @@ public interface ModelContextProtocolClient {
   @GenIgnore
   Future<ClientRequest> request();
 
-  /**
-   * Gets the transport for a connected session.
-   *
-   * @return the transport, or null if not connected via HTTP
-   */
-  @GenIgnore
-  StreamableHttpClientTransport getTransport();
+  Future<Result> request(Request request);
 }

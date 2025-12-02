@@ -3,37 +3,32 @@ package io.vertx.mcp.client.impl;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.RequestOptions;
 import io.vertx.mcp.client.*;
-import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
-import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.mcp.common.request.Request;
+import io.vertx.mcp.common.result.Result;
+import io.vertx.mcp.common.rpc.JsonCodec;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ModelContextProtocolClientImpl implements ModelContextProtocolClient {
 
   private final Vertx vertx;
   private final List<ClientFeature> features = new ArrayList<>();
   private final ClientOptions options;
-  private StreamableHttpClientTransport transport;
+  private final ClientTransport transport;
 
-  /**
-   * Creates a new MCP client instance with default options.
-   */
-  public ModelContextProtocolClientImpl(Vertx vertx) {
-    this(vertx, new ClientOptions());
+  private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
+
+  public ModelContextProtocolClientImpl(Vertx vertx, ClientTransport transport) {
+    this(vertx, transport, new ClientOptions());
   }
 
-  /**
-   * Creates a new MCP client instance with specified options.
-   *
-   * @param options the client options
-   */
-  public ModelContextProtocolClientImpl(Vertx vertx, ClientOptions options) {
+  public ModelContextProtocolClientImpl(Vertx vertx, ClientTransport transport, ClientOptions options) {
     this.vertx = vertx;
+    this.transport = transport;
     this.options = options;
   }
 
@@ -61,10 +56,6 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
 
   @Override
   public Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities, HttpClientOptions httpOptions) {
-    // Create transport
-    this.transport = new StreamableHttpClientTransport(vertx, baseUrl, this, options, httpOptions);
-
-    // Connect to server
     return transport.connect(capabilities);
   }
 
@@ -74,7 +65,13 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   }
 
   @Override
-  public StreamableHttpClientTransport getTransport() {
-    return transport;
+  public Future<Result> request(Request request) {
+    return request().compose(clientRequest -> {
+      clientRequest.setJsonRequest(request.toRequest(requestIdGenerator.incrementAndGet()));
+      return clientRequest.sendRequest();
+    }).compose(response -> Future.future(promise -> {
+      response.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
+      response.exceptionHandler(promise::fail);
+    }));
   }
 }
