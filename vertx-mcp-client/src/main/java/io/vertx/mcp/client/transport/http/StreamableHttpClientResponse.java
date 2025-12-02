@@ -14,7 +14,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
  * Parses SSE data and dispatches individual responses to the client.
  * This is only used for streaming connections (GET with text/event-stream).
  */
-public class StreamableHttpClientResponse implements Handler<Buffer> {
+public class StreamableHttpClientResponse implements ClientResponse{
 
   private final ContextInternal context;
   private final io.vertx.core.http.HttpClientResponse httpResponse;

@@ -1,5 +1,6 @@
 package io.vertx.mcp.client.impl;
 
+import io.vertx.core.Completable;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
@@ -80,19 +81,13 @@ public class ClientSessionImpl implements ClientSession {
   }
 
   @Override
-  public Future<Void> close() {
+  public void close(Completable<Void> completable) {
     active.set(false);
 
-    // Fail all pending requests
-    pendingRequests.values().forEach(promise -> {
-      if (!promise.future().isComplete()) {
-        promise.fail("Session closed");
-      }
-    });
-
+    pendingRequests.values().forEach(promise -> promise.fail("Session closed"));
     pendingRequests.clear();
 
-    return Future.succeededFuture();
+    completable.succeed();
   }
 
   /**

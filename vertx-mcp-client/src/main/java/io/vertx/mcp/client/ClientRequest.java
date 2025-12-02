@@ -14,14 +14,6 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 public interface ClientRequest {
 
   /**
-   * Initializes the client request with the specified session. This method associates the request with a session, enabling subsequent operations to link client-server
-   * communication through the session.
-   *
-   * @param session the session representing the client-server connection context
-   */
-  void init(ClientSession session);
-
-  /**
    * Retrieves the path associated with this client request. The path typically represents the requested resource or endpoint.
    *
    * @return the path of the client request

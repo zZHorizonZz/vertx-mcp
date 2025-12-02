@@ -2,36 +2,36 @@ package io.vertx.mcp.client.transport.http;
 
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.internal.ContextInternal;
-import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.ClientRequest;
+import io.vertx.mcp.client.ClientResponse;
 import io.vertx.mcp.client.ClientSession;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
 /**
- * HTTP client request implementation for MCP client.
- * Implements the ClientRequest interface for HTTP transport.
+ * HTTP client request implementation for MCP client. Implements the ClientRequest interface for HTTP transport.
  */
 public class StreamableHttpClientRequest implements ClientRequest {
 
   private final ContextInternal context;
-  private final HttpClientRequest httpRequest;
+
   private final JsonRequest jsonRequest;
-  private ClientSession session;
+  private final HttpClientRequest httpRequest;
 
-  public StreamableHttpClientRequest(
-    ContextInternal context,
-    HttpClientRequest httpRequest,
-    JsonRequest jsonRequest
-  ) {
+  private final ClientSession session;
+  private final Future<ClientResponse> response;
+
+  public StreamableHttpClientRequest(ContextInternal context, JsonRequest jsonRequest, HttpClientRequest httpRequest, ClientSession session) {
     this.context = context;
-    this.httpRequest = httpRequest;
     this.jsonRequest = jsonRequest;
-  }
-
-  @Override
-  public void init(ClientSession session) {
+    this.httpRequest = httpRequest;
     this.session = session;
+    this.response = httpRequest
+      .response()
+      .compose(httpResponse -> {
+
+      });
   }
 
   @Override
@@ -64,10 +64,10 @@ public class StreamableHttpClientRequest implements ClientRequest {
    *
    * @return a future that completes with the response
    */
-  public Future<JsonObject> send() {
+  public Future<Void> send() {
     // Set content type
-    httpRequest.putHeader("Content-Type", "application/json");
-    httpRequest.putHeader("Accept", "application/json");
+    httpRequest.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+    httpRequest.putHeader(HttpHeaders.ACCEPT, "application/json, text/event-stream");
 
     // Add session ID if available
     if (session != null) {
@@ -80,9 +80,7 @@ public class StreamableHttpClientRequest implements ClientRequest {
     );
 
     // Send the request
-    return httpRequest.send(jsonRequest.toJson().encode())
-      .compose(response -> response.body())
-      .map(body -> new JsonObject(body.toString()));
+    return httpRequest.write(jsonRequest.toJson().encode());
   }
 
   /**

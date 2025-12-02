@@ -118,6 +118,9 @@ public class ServerSessionImpl implements ServerSession {
       return;
     }
 
+    pendingRequests.values().forEach(promise -> promise.fail("Session closed"));
+    pendingRequests.clear();
+
     this.stream.end().onComplete(completable);
   }
 

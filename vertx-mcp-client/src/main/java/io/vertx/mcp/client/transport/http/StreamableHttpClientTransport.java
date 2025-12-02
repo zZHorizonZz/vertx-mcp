@@ -1,19 +1,17 @@
 package io.vertx.mcp.client.transport.http;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.ClientOptions;
 import io.vertx.mcp.client.ClientSession;
+import io.vertx.mcp.client.ClientTransport;
 import io.vertx.mcp.client.ModelContextProtocolClient;
 import io.vertx.mcp.client.impl.ClientSessionImpl;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
@@ -24,12 +22,11 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
 /**
- * HTTP transport for MCP client that supports streaming via Server-Sent Events.
- * Implements the Streamable HTTP transport as specified in the MCP specification.
+ * HTTP transport for MCP client that supports streaming via Server-Sent Events. Implements the Streamable HTTP transport as specified in the MCP specification.
  *
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http">Client Transports - Streamable HTTP</a>
  */
-public class StreamableHttpClientTransport {
+public class StreamableHttpClientTransport implements ClientTransport {
 
   public static final String MCP_SESSION_ID_HEADER = "Mcp-Session-Id";
   public static final String MCP_PROTOCOL_VERSION_HEADER = "Mcp-Protocol-Version";
@@ -200,15 +197,8 @@ public class StreamableHttpClientTransport {
         httpRequest.putHeader(MCP_PROTOCOL_VERSION_HEADER, DEFAULT_PROTOCOL_VERSION);
         return httpRequest.send();
       })
-      .onSuccess(httpResponse -> {
-        session.close()
-          .onComplete(ar -> promise.complete());
-      })
-      .onFailure(err -> {
-        // Even if the DELETE fails, close the session locally
-        session.close()
-          .onComplete(ar -> promise.fail(err));
-      });
+      .onSuccess(httpResponse -> session.close(promise))
+      .onFailure(err -> session.close(promise));
 
     return promise.future();
   }

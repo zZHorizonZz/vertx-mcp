@@ -4,9 +4,9 @@ import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.mcp.client.impl.ModelContextProtocolClientImpl;
 import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
@@ -15,11 +15,11 @@ import java.util.List;
 
 /**
  * The {@code ModelContextProtocolClient} interface defines a protocol client for managing Model Context Protocol operations. It extends the {@code Handler<ClientResponse>}
- * interface to handle client responses within the JSON-RPC framework. This client provides functionalities such as protocol handling, feature registration, and
- * interaction with server responses.
+ * interface to handle client responses within the JSON-RPC framework. This client provides functionalities such as protocol handling, feature registration, and interaction with
+ * server responses.
  */
 @VertxGen
-public interface ModelContextProtocolClient extends Handler<ClientResponse> {
+public interface ModelContextProtocolClient {
 
   /**
    * Creates a new instance of the ModelContextProtocolClient with default client options. This method initializes a protocol client that supports the core features of the Model
@@ -92,6 +92,9 @@ public interface ModelContextProtocolClient extends Handler<ClientResponse> {
    */
   @GenIgnore
   Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities, HttpClientOptions httpOptions);
+
+  @GenIgnore
+  Future<ClientRequest> request();
 
   /**
    * Gets the transport for a connected session.
