@@ -110,7 +110,7 @@ public class MCPClientDemo {
         return Future.succeededFuture();
       })
       .onFailure(err -> {
-        System.err.println("✗ Failed to list tools: " + err.getMessage());
+        System.err.println("  Failed to list tools: " + err.getMessage());
         err.printStackTrace();
       }).mapEmpty();
   }
@@ -147,7 +147,7 @@ public class MCPClientDemo {
         return Future.succeededFuture();
       })
       .onFailure(err -> {
-        System.err.println("✗ Failed to call tool: " + err.getMessage());
+        System.err.println("  Failed to call tool: " + err.getMessage());
         err.printStackTrace();
       }).mapEmpty();
   }
@@ -184,7 +184,7 @@ public class MCPClientDemo {
         return Future.succeededFuture();
       })
       .onFailure(err -> {
-        System.err.println("✗ Failed to list resources: " + err.getMessage());
+        System.err.println("  Failed to list resources: " + err.getMessage());
         err.printStackTrace();
       }).mapEmpty();
   }
@@ -231,7 +231,7 @@ public class MCPClientDemo {
         return Future.succeededFuture();
       })
       .onFailure(err -> {
-        System.err.println("✗ Failed to read resource: " + err.getMessage());
+        System.err.println("  Failed to read resource: " + err.getMessage());
         err.printStackTrace();
       }).mapEmpty();
   }
@@ -279,7 +279,7 @@ public class MCPClientDemo {
         return Future.succeededFuture();
       })
       .onFailure(err -> {
-        System.err.println("✗ Failed to get prompt: " + err.getMessage());
+        System.err.println("  Failed to get prompt: " + err.getMessage());
         err.printStackTrace();
       }).mapEmpty();
   }
