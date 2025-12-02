@@ -43,7 +43,11 @@ public interface ClientRequest {
    *
    * @return a future that completes when the request has been sent
    */
-  Future<ClientResponse> send(JsonRequest request);
+  Future<Void> send(JsonRequest request);
+
+  Future<Void> end(JsonRequest request);
+
+  Future<Void> end();
 
   /**
    * Gets the response future. The response future is only available after calling send().

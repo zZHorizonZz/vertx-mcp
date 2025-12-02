@@ -67,29 +67,25 @@ public class StreamableHttpClientTransport implements ClientTransport {
     // Per spec: "Every JSON-RPC message sent from the client MUST be a new HTTP POST request"
     // The initialize request is sent as a POST, and the server can respond with either
     // application/json or text/event-stream
-    request().compose(request -> request.send(jsonRequest))
-      .onSuccess(response -> {
-        // Set up handler to process the initialization response
-        response.handler(json -> {
-          try {
-            InitializeResult result = new InitializeResult(json);
-            ServerCapabilities serverCaps = result.getCapabilities();
+    request().compose(request -> request.end(jsonRequest).compose(v -> request.response())).onSuccess(response -> {
+      // Set up handler to process the initialization response
+      response.handler(json -> {
+        try {
+          InitializeResult result = new InitializeResult(json);
+          ServerCapabilities serverCaps = result.getCapabilities();
 
-            // Create session
-            ClientSessionImpl session = new ClientSessionImpl(
-              clientOptions.getStreamingEnabled(),
-              serverCaps
-            );
+          // Create session
+          ClientSessionImpl session = new ClientSessionImpl(
+            clientOptions.getStreamingEnabled(),
+            serverCaps
+          );
 
-            promise.complete(session);
-          } catch (Exception e) {
-            promise.fail(e);
-          }
-        });
-
-        response.exceptionHandler(promise::fail);
-      })
-      .onFailure(promise::fail);
+          promise.complete(session);
+        } catch (Exception e) {
+          promise.fail(e);
+        }
+      });
+    }).onFailure(promise::fail);
 
     return promise.future();
   }

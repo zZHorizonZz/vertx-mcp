@@ -82,7 +82,7 @@ public class StreamableHttpClientRequest implements ClientRequest {
   }
 
   @Override
-  public Future<ClientResponse> send(JsonRequest request) {
+  public Future<Void> send(JsonRequest request) {
     if (headersSent) {
       return Future.failedFuture("Request already sent");
     }
@@ -100,7 +100,17 @@ public class StreamableHttpClientRequest implements ClientRequest {
 
     headersSent = true;
 
-    return httpRequest.write(requestBody).compose(v -> httpRequest.end()).compose(v -> response);
+    return httpRequest.write(requestBody);
+  }
+
+  @Override
+  public Future<Void> end(JsonRequest request) {
+    return send(request).compose(v -> httpRequest.end());
+  }
+
+  @Override
+  public Future<Void> end() {
+    return httpRequest.end();
   }
 
   @Override

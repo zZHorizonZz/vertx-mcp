@@ -1,6 +1,7 @@
 package io.vertx.mcp.client.impl;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.mcp.client.*;
@@ -66,11 +67,13 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
 
   @Override
   public Future<Result> request(Request request) {
+    Promise<Result> promise = Promise.promise();
     return request()
-      .compose(clientRequest -> clientRequest.send(request.toRequest(requestIdGenerator.incrementAndGet())))
-      .compose(response -> Future.future(promise -> {
+      .compose(clientRequest -> clientRequest.response().onSuccess(response -> {
         response.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
         response.exceptionHandler(promise::fail);
-      }));
+      }).map(v -> clientRequest))
+      .compose(clientRequest -> clientRequest.send(request.toRequest(requestIdGenerator.incrementAndGet())).compose(v -> clientRequest.end()))
+      .compose(v -> promise.future());
   }
 }
