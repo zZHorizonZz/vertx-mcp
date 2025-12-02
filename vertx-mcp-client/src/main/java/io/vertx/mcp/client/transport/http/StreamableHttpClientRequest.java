@@ -35,8 +35,7 @@ public class StreamableHttpClientRequest implements ClientRequest {
         }
 
         if (contentType == null || (!contentType.contains("application/json") && !contentType.contains("text/event-stream"))) {
-          httpResponse.request().reset();
-          return context.failedFuture("Invalid HTTP response content-type header: " + contentType);
+          return Future.failedFuture("Invalid HTTP response content type: " + contentType);
         }
 
         StreamableHttpClientResponse mcpResponse = new StreamableHttpClientResponse(
@@ -89,7 +88,7 @@ public class StreamableHttpClientRequest implements ClientRequest {
     }
 
     if (request == null) {
-      return Future.failedFuture("JSON-RPC request not set. Call setJsonRequest() before sending.");
+      return Future.failedFuture("Request cannot be null");
     }
 
     this.jsonRequest = request;
