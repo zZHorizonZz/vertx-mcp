@@ -67,14 +67,7 @@ public class StreamableHttpClientTransport implements ClientTransport {
     // Per spec: "Every JSON-RPC message sent from the client MUST be a new HTTP POST request"
     // The initialize request is sent as a POST, and the server can respond with either
     // application/json or text/event-stream
-    request().compose(request -> {
-        // Set the initialize request and send it
-        request.setJsonRequest(jsonRequest);
-
-        // Send the request and get the response (which handles both JSON and SSE)
-        // We need to use flatMap here to properly chain the futures
-        return request.sendRequest();
-      })
+    request().compose(request -> request.send(jsonRequest))
       .onSuccess(response -> {
         // Set up handler to process the initialization response
         response.handler(json -> {

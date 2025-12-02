@@ -60,7 +60,7 @@ public class MCPClientDemo {
       ClientCapabilities capabilities = new ClientCapabilities();
       ClientSession session = client.connect(serverUrl, capabilities).await();
 
-      System.out.println("✓ Connected to server");
+      System.out.println("  Connected to server");
       System.out.println("  Session ID: " + session.id());
       System.out.println();
 
@@ -98,7 +98,7 @@ public class MCPClientDemo {
     return client.request(new ListToolsRequest())
       .expecting(result -> result instanceof ListToolsResult)
       .compose(result -> {
-        System.out.println("✓ Received tools list:");
+        System.out.println("  Received tools list:");
         ListToolsResult listToolsResult = (ListToolsResult) result;
 
         for (Tool tool : listToolsResult.getTools()) {
@@ -131,7 +131,7 @@ public class MCPClientDemo {
     return client.request(callToolRequest)
       .expecting(result -> result instanceof CallToolResult)
       .compose(result -> {
-        System.out.println("✓ Tool executed successfully");
+        System.out.println("  Tool executed successfully");
         CallToolResult callToolResult = (CallToolResult) result;
 
         JsonArray content = callToolResult.getContent();
@@ -164,7 +164,7 @@ public class MCPClientDemo {
     return client.request(new ListResourcesRequest())
       .expecting(result -> result instanceof ListResourcesResult)
       .compose(result -> {
-        System.out.println("✓ Received resources list:");
+        System.out.println("  Received resources list:");
         ListResourcesResult listResourcesResult = (ListResourcesResult) result;
 
         JsonArray resources = listResourcesResult.getResources();
@@ -204,7 +204,7 @@ public class MCPClientDemo {
     return client.request(readResourceRequest)
       .expecting(result -> result instanceof ReadResourceResult)
       .compose(result -> {
-        System.out.println("✓ Resource read successfully");
+        System.out.println("  Resource read successfully");
         ReadResourceResult readResourceResult = (ReadResourceResult) result;
 
         JsonArray contents = readResourceResult.getContents();
@@ -252,7 +252,7 @@ public class MCPClientDemo {
     return client.request(getPromptRequest)
       .expecting(result -> result instanceof GetPromptResult)
       .compose(result -> {
-        System.out.println("✓ Prompt retrieved successfully");
+        System.out.println("  Prompt retrieved successfully");
         GetPromptResult getPromptResult = (GetPromptResult) result;
 
         if (getPromptResult.getMessages() != null) {

@@ -66,12 +66,11 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
 
   @Override
   public Future<Result> request(Request request) {
-    return request().compose(clientRequest -> {
-      clientRequest.setJsonRequest(request.toRequest(requestIdGenerator.incrementAndGet()));
-      return clientRequest.sendRequest();
-    }).compose(response -> Future.future(promise -> {
-      response.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
-      response.exceptionHandler(promise::fail);
-    }));
+    return request()
+      .compose(clientRequest -> clientRequest.send(request.toRequest(requestIdGenerator.incrementAndGet())))
+      .compose(response -> Future.future(promise -> {
+        response.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
+        response.exceptionHandler(promise::fail);
+      }));
   }
 }

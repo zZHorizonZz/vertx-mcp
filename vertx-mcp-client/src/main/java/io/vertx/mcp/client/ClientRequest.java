@@ -38,21 +38,12 @@ public interface ClientRequest {
   @CacheReturn
   JsonRequest getJsonRequest();
 
-  ClientRequest setJsonRequest(JsonRequest jsonRequest);
-
   /**
    * Sends the JSON-RPC request to the server.
    *
    * @return a future that completes when the request has been sent
    */
-  Future<Void> send();
-
-  /**
-   * Sends the request and returns the response future.
-   *
-   * @return a future that completes with the client response
-   */
-  Future<ClientResponse> sendRequest();
+  Future<ClientResponse> send(JsonRequest request);
 
   /**
    * Gets the response future. The response future is only available after calling send().

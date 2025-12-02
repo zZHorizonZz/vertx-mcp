@@ -18,7 +18,7 @@ public class StreamableHttpClientRequest implements ClientRequest {
   private JsonRequest jsonRequest;
   private final HttpClientRequest httpRequest;
   private final ClientSession session;
-  private Future<ClientResponse> response;
+  private final Future<ClientResponse> response;
   private boolean headersSent = false;
 
   public StreamableHttpClientRequest(HttpClientRequest httpRequest, ClientSession session) {
@@ -83,42 +83,25 @@ public class StreamableHttpClientRequest implements ClientRequest {
   }
 
   @Override
-  public StreamableHttpClientRequest setJsonRequest(JsonRequest jsonRequest) {
-    if (headersSent) {
-      throw new IllegalStateException("Request already sent");
-    }
-    this.jsonRequest = jsonRequest;
-    return this;
-  }
-
-  @Override
-  public Future<Void> send() {
+  public Future<ClientResponse> send(JsonRequest request) {
     if (headersSent) {
       return Future.failedFuture("Request already sent");
     }
 
-    if (jsonRequest == null) {
+    if (request == null) {
       return Future.failedFuture("JSON-RPC request not set. Call setJsonRequest() before sending.");
     }
 
+    this.jsonRequest = request;
+
     setHeaders();
 
-    Buffer requestBody = Buffer.buffer(jsonRequest.toJson().encode());
+    Buffer requestBody = Buffer.buffer(request.toJson().encode());
     httpRequest.putHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(requestBody.length()));
 
     headersSent = true;
 
-    return httpRequest.write(requestBody).compose(v -> httpRequest.end());
-  }
-
-  @Override
-  public Future<ClientResponse> sendRequest() {
-    return send().compose(v -> {
-      if (response == null) {
-        return Future.failedFuture("Response not available");
-      }
-      return response;
-    });
+    return httpRequest.write(requestBody).compose(v -> httpRequest.end()).compose(v -> response);
   }
 
   @Override
@@ -140,7 +123,6 @@ public class StreamableHttpClientRequest implements ClientRequest {
       StreamableHttpClientTransport.DEFAULT_PROTOCOL_VERSION
     );
   }
-
 
   public Future<Void> cancel() {
     return httpRequest.reset();
