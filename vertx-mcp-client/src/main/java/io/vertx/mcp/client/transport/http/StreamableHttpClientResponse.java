@@ -14,10 +14,6 @@ import io.vertx.mcp.client.ClientSession;
 import io.vertx.mcp.client.impl.ClientSessionImpl;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
-/**
- * Handles HTTP responses from the MCP server, including both regular JSON responses and Server-Sent Events (SSE) streams. This class is inspired by the Vert.x gRPC client
- * implementation.
- */
 public class StreamableHttpClientResponse implements ClientResponse {
 
   private final ContextInternal context;
@@ -61,13 +57,10 @@ public class StreamableHttpClientResponse implements ClientResponse {
     }
   }
 
-  /**
-   * Sets up the handler for streaming (SSE) responses.
-   */
   private void setupStreamingHandler() {
     httpResponse.handler(buffer -> {
       if (messageHandler != null) {
-        handleSSEData(buffer);
+        handleServerSentEvent(buffer);
       }
     });
 
@@ -84,9 +77,6 @@ public class StreamableHttpClientResponse implements ClientResponse {
     });
   }
 
-  /**
-   * Sets up the handler for regular JSON responses.
-   */
   private void setupRegularHandler() {
     httpResponse.body()
       .onSuccess(body -> {
@@ -111,16 +101,10 @@ public class StreamableHttpClientResponse implements ClientResponse {
       });
   }
 
-  /**
-   * Handles incoming SSE data by parsing and emitting complete messages.
-   *
-   * @param buffer the incoming data buffer
-   */
-  private void handleSSEData(Buffer buffer) {
+  private void handleServerSentEvent(Buffer buffer) {
     String data = buffer.toString();
     sseBuffer.append(data);
 
-    // Process complete SSE messages
     String buffered = sseBuffer.toString();
     String[] lines = buffered.split("\n");
 
@@ -131,21 +115,17 @@ public class StreamableHttpClientResponse implements ClientResponse {
       String line = lines[i];
 
       if (line.isEmpty() || line.equals("\r")) {
-        // End of SSE message
         if (currentMessage.length() > 0) {
-          emitSSEMessage(currentMessage.toString());
+          emitServerSentEventMessage(currentMessage.toString());
           currentMessage.setLength(0);
           lastProcessedIndex = i;
         }
       } else if (line.startsWith("data:")) {
-        // SSE data line
         String messageData = line.substring(5).trim();
         currentMessage.append(messageData);
       }
-      // Ignore other SSE fields like event:, id:, retry:
     }
 
-    // Keep unprocessed data in buffer
     if (lastProcessedIndex >= 0 && lastProcessedIndex < lines.length - 1) {
       sseBuffer.setLength(0);
       for (int i = lastProcessedIndex + 1; i < lines.length; i++) {
@@ -159,20 +139,13 @@ public class StreamableHttpClientResponse implements ClientResponse {
     }
   }
 
-  /**
-   * Emits a complete SSE message to the handler.
-   *
-   * @param message the message data
-   */
-  private void emitSSEMessage(String message) {
+  private void emitServerSentEventMessage(String message) {
     try {
       JsonObject json = new JsonObject(message);
 
-      // Handle as a JSON response if it contains RPC fields
       if (json.containsKey("id") || json.containsKey("result") || json.containsKey("error")) {
         JsonResponse response = JsonResponse.fromJson(json);
 
-        // If this is a response to a pending request, complete it
         Object requestId = response.getId();
         if (requestId != null && session instanceof ClientSessionImpl) {
           ClientSessionImpl sessionImpl = (ClientSessionImpl) session;
@@ -188,19 +161,15 @@ public class StreamableHttpClientResponse implements ClientResponse {
         }
       }
 
-      // Emit the JSON object to the message handler
       if (messageHandler != null) {
         messageHandler.handle(json);
       }
-
     } catch (Exception e) {
       if (exceptionHandler != null) {
         exceptionHandler.handle(e);
       }
     }
   }
-
-  // ReadStream implementation
 
   @Override
   public StreamableHttpClientResponse handler(Handler<JsonObject> handler) {
@@ -268,20 +237,10 @@ public class StreamableHttpClientResponse implements ClientResponse {
     return request;
   }
 
-  /**
-   * Gets the underlying HTTP client response.
-   *
-   * @return the HTTP client response
-   */
   public HttpClientResponse getHttpResponse() {
     return httpResponse;
   }
 
-  /**
-   * Checks if this is a streaming (SSE) response.
-   *
-   * @return true if this is a streaming response
-   */
   public boolean isStreaming() {
     return isStreaming;
   }

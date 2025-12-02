@@ -39,8 +39,6 @@ public class StreamableHttpClientTransport implements ClientTransport {
   private final String baseUrl;
   private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
 
-  private ClientSessionImpl activeSession;
-
   public StreamableHttpClientTransport(Vertx vertx, String baseUrl, ClientOptions clientOptions) {
     this(vertx, baseUrl, clientOptions, new HttpClientOptions());
   }
@@ -90,7 +88,6 @@ public class StreamableHttpClientTransport implements ClientTransport {
               serverCaps
             );
 
-            this.activeSession = session;
             promise.complete(session);
           } catch (Exception e) {
             promise.fail(e);
@@ -109,21 +106,6 @@ public class StreamableHttpClientTransport implements ClientTransport {
     return httpClient.request(new RequestOptions().setMethod(HttpMethod.POST).setAbsoluteURI(baseUrl)).map(httpRequest -> new StreamableHttpClientRequest(httpRequest, null));
   }
 
-  /**
-   * Generates a new request ID.
-   *
-   * @return the generated request ID
-   */
-  public int generateRequestId() {
-    return requestIdGenerator.incrementAndGet();
-  }
-
-  /**
-   * Closes a session.
-   *
-   * @param session the session to close
-   * @return a future that completes when the session is closed
-   */
   public Future<Void> closeSession(ClientSession session) {
     Promise<Void> promise = Promise.promise();
     String fullUrl = baseUrl + "/mcp";
@@ -134,67 +116,10 @@ public class StreamableHttpClientTransport implements ClientTransport {
         httpRequest.putHeader(MCP_PROTOCOL_VERSION_HEADER, DEFAULT_PROTOCOL_VERSION);
         return httpRequest.send();
       })
-      .onSuccess(httpResponse -> {
-        session.close(promise);
-        if (activeSession == session) {
-          activeSession = null;
-        }
-      })
-      .onFailure(err -> {
-        session.close(promise);
-        if (activeSession == session) {
-          activeSession = null;
-        }
-      });
+      .onSuccess(httpResponse -> session.close(promise))
+      .onFailure(err -> session.close(promise));
 
     return promise.future();
-  }
-
-  /**
-   * Closes the HTTP client and any active sessions.
-   *
-   * @return a future that completes when the client is closed
-   */
-  public Future<Void> close() {
-    Promise<Void> promise = Promise.promise();
-
-    // Close active session first if exists
-    if (activeSession != null && activeSession.isActive()) {
-      closeSession(activeSession)
-        .eventually(() -> httpClient.close())
-        .onComplete(promise);
-    } else {
-      httpClient.close().onComplete(promise);
-    }
-
-    return promise.future();
-  }
-
-  /**
-   * Gets the active session.
-   *
-   * @return the active session, or null if no session is active
-   */
-  public ClientSession getActiveSession() {
-    return activeSession;
-  }
-
-  /**
-   * Gets the HTTP client.
-   *
-   * @return the HTTP client
-   */
-  public HttpClient getHttpClient() {
-    return httpClient;
-  }
-
-  /**
-   * Gets the base URL for the MCP server.
-   *
-   * @return the base URL
-   */
-  public String getBaseUrl() {
-    return baseUrl;
   }
 }
 

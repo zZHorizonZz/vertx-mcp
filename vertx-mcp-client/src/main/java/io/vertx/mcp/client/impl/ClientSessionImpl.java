@@ -64,8 +64,7 @@ public class ClientSessionImpl implements ClientSession {
     Promise<JsonObject> promise = Promise.promise();
     pendingRequests.put(requestId, promise);
 
-    // The actual sending will be handled by the transport layer
-    // This is a placeholder that needs to be integrated with the transport
+    // TODO: Send request
 
     return promise.future();
   }

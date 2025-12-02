@@ -12,9 +12,6 @@ import io.vertx.mcp.client.ClientResponse;
 import io.vertx.mcp.client.ClientSession;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
-/**
- * HTTP client request implementation for MCP client. Implements the ClientRequest interface for HTTP transport. This class is inspired by the Vert.x gRPC client implementation.
- */
 public class StreamableHttpClientRequest implements ClientRequest {
 
   private final ContextInternal context;
@@ -37,13 +34,11 @@ public class StreamableHttpClientRequest implements ClientRequest {
           return Future.failedFuture("Invalid HTTP response status code: " + httpResponse.statusCode() + " " + httpResponse.statusMessage());
         }
 
-        // Validate content type
         if (contentType == null || (!contentType.contains("application/json") && !contentType.contains("text/event-stream"))) {
           httpResponse.request().reset();
           return context.failedFuture("Invalid HTTP response content-type header: " + contentType);
         }
 
-        // Create the StreamableHttpClientResponse
         StreamableHttpClientResponse mcpResponse = new StreamableHttpClientResponse(
           context,
           httpResponse,
@@ -51,12 +46,10 @@ public class StreamableHttpClientRequest implements ClientRequest {
           this
         );
 
-        // Initialize the response
         mcpResponse.init(session, this);
 
         return Future.succeededFuture(mcpResponse);
       }, err -> {
-        // Handle stream reset exceptions
         if (err instanceof StreamResetException) {
           return Future.failedFuture("Stream was reset: " + err.getMessage());
         }
@@ -89,12 +82,7 @@ public class StreamableHttpClientRequest implements ClientRequest {
     return jsonRequest != null ? jsonRequest.getId() : null;
   }
 
-  /**
-   * Sets the JSON-RPC request to send.
-   *
-   * @param jsonRequest the JSON-RPC request (must have an ID already set)
-   * @return this request for fluent API
-   */
+  @Override
   public StreamableHttpClientRequest setJsonRequest(JsonRequest jsonRequest) {
     if (headersSent) {
       throw new IllegalStateException("Request already sent");
@@ -103,11 +91,7 @@ public class StreamableHttpClientRequest implements ClientRequest {
     return this;
   }
 
-  /**
-   * Sends the JSON-RPC request to the server.
-   *
-   * @return a future that completes when the request has been sent
-   */
+  @Override
   public Future<Void> send() {
     if (headersSent) {
       return Future.failedFuture("Request already sent");
@@ -124,14 +108,10 @@ public class StreamableHttpClientRequest implements ClientRequest {
 
     headersSent = true;
 
-    return httpRequest.write(requestBody);
+    return httpRequest.write(requestBody).compose(v -> httpRequest.end());
   }
 
-  /**
-   * Sends the request and returns the response future.
-   *
-   * @return a future that completes with the client response
-   */
+  @Override
   public Future<ClientResponse> sendRequest() {
     return send().compose(v -> {
       if (response == null) {
@@ -141,18 +121,11 @@ public class StreamableHttpClientRequest implements ClientRequest {
     });
   }
 
-  /**
-   * Gets the response future. The response future is only available after calling send().
-   *
-   * @return the response future, or null if send() has not been called yet
-   */
+  @Override
   public Future<ClientResponse> response() {
     return response;
   }
 
-  /**
-   * Sets the HTTP headers for the request.
-   */
   private void setHeaders() {
     httpRequest.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     httpRequest.putHeader(HttpHeaders.ACCEPT, "application/json, text/event-stream");
@@ -168,29 +141,15 @@ public class StreamableHttpClientRequest implements ClientRequest {
     );
   }
 
-  /**
-   * Cancels the request by resetting the HTTP stream.
-   *
-   * @return a future that completes when the request is cancelled
-   */
+
   public Future<Void> cancel() {
     return httpRequest.reset();
   }
 
-  /**
-   * Checks if the request headers have been sent.
-   *
-   * @return true if headers have been sent
-   */
   public boolean isHeadersSent() {
     return headersSent;
   }
 
-  /**
-   * Gets the underlying HTTP client request.
-   *
-   * @return the HTTP client request
-   */
   public HttpClientRequest getHttpRequest() {
     return httpRequest;
   }
