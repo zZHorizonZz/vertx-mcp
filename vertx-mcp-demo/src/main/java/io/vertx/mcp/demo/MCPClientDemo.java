@@ -40,7 +40,7 @@ public class MCPClientDemo {
     ClientOptions clientOptions = new ClientOptions()
       .setClientName("mcp-client-demo")
       .setClientVersion("1.0.0")
-      .setStreamingEnabled(true); // Enable streaming for session support
+      .setStreamingEnabled(true);
 
     // Server URL
     String serverUrl = System.getProperty("server.url", "http://localhost:8080/mcp");
