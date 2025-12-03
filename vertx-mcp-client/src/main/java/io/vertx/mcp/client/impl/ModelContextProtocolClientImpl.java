@@ -57,7 +57,7 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
 
   @Override
   public Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities, HttpClientOptions httpOptions) {
-    return transport.connect(capabilities);
+    return transport.subscribe(capabilities);
   }
 
   @Override
@@ -68,12 +68,14 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   @Override
   public Future<Result> request(Request request) {
     Promise<Result> promise = Promise.promise();
+
     return request()
-      .compose(clientRequest -> clientRequest.response().onSuccess(response -> {
-        response.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
-        response.exceptionHandler(promise::fail);
-      }).map(v -> clientRequest))
-      .compose(clientRequest -> clientRequest.send(request.toRequest(requestIdGenerator.incrementAndGet())).compose(v -> clientRequest.end()))
+      .compose(req -> req.end(request.toRequest(requestIdGenerator.incrementAndGet()))
+        .compose(v -> req.response().onSuccess(resp -> {
+          resp.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
+          resp.exceptionHandler(promise::fail);
+        }))
+      )
       .compose(v -> promise.future());
   }
 }

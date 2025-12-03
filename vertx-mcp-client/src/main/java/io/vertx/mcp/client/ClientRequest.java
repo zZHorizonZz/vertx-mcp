@@ -1,10 +1,9 @@
 package io.vertx.mcp.client;
 
 import io.vertx.codegen.annotations.CacheReturn;
-import io.vertx.codegen.annotations.GenIgnore;
+import io.vertx.codegen.annotations.Nullable;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
-import io.vertx.core.internal.ContextInternal;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
 /**
@@ -12,7 +11,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
  * context, session, and other associated information required to handle client-server interactions.
  */
 @VertxGen
-public interface ClientRequest {
+public interface ClientRequest extends MessageWriteStream {
 
   /**
    * Retrieves the path associated with this client request. The path typically represents the requested resource or endpoint.
@@ -23,20 +22,13 @@ public interface ClientRequest {
   String path();
 
   /**
-   * Provides access to the internal context associated with the client request.
+   * Retrieves the current session associated with the client request.
    *
-   * @return the internal context linked to this client request
+   * @return the current session, or null if no session is associated with the request
    */
-  @GenIgnore
-  ContextInternal context();
-
-  /**
-   * Provides access to the JSON-RPC request associated with this client request.
-   *
-   * @return the {@code JsonRequest} instance associated with this request
-   */
+  @Nullable
   @CacheReturn
-  JsonRequest getJsonRequest();
+  ClientSession session();
 
   /**
    * Sends the JSON-RPC request to the server.
@@ -47,26 +39,10 @@ public interface ClientRequest {
 
   Future<Void> end(JsonRequest request);
 
-  Future<Void> end();
-
   /**
    * Gets the response future. The response future is only available after calling send().
    *
    * @return the response future, or null if send() has not been called yet
    */
   Future<ClientResponse> response();
-
-  /**
-   * Retrieves the current session associated with the client request.
-   *
-   * @return the current session, or null if no session is associated with the request
-   */
-  ClientSession session();
-
-  /**
-   * Retrieves the request identifier associated with the current client request.
-   *
-   * @return the request identifier, typically associated with a JSON-RPC request
-   */
-  Object requestId();
 }

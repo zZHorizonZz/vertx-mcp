@@ -5,6 +5,7 @@ module io.vertx.mcp.client {
   requires io.vertx.core;
   requires io.vertx.mcp.common;
   requires java.logging;
+  requires io.netty.codec.http;
 
   exports io.vertx.mcp.client;
   exports io.vertx.mcp.client.impl;

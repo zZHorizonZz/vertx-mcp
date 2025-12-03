@@ -26,10 +26,6 @@ public class ClientSessionImpl implements ClientSession {
 
   private ReadStream<JsonObject> stream;
 
-  public ClientSessionImpl(boolean streaming, ServerCapabilities serverCapabilities) {
-    this(UUID.randomUUID().toString(), streaming, serverCapabilities);
-  }
-
   public ClientSessionImpl(String id, boolean streaming, ServerCapabilities serverCapabilities) {
     this.id = id;
     this.streaming = streaming;

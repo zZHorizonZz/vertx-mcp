@@ -2,6 +2,10 @@ package io.vertx.mcp.demo;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.ClientOptions;
@@ -17,6 +21,8 @@ import io.vertx.mcp.common.request.*;
 import io.vertx.mcp.common.result.*;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.tool.Tool;
+import io.vertx.mcp.client.handler.ProgressNotificationHandler;
+import io.vertx.mcp.client.handler.LoggingNotificationHandler;
 
 /**
  * A comprehensive MCP client demo showcasing the client API features.
@@ -25,6 +31,7 @@ import io.vertx.mcp.common.tool.Tool;
  * <ul>
  *   <li><b>Connection</b> - Connecting to an MCP server via HTTP</li>
  *   <li><b>Tools</b> - Listing and calling tools</li>
+ *   <li><b>Bulk Import</b> - Calling tools with progress and logging notifications</li>
  *   <li><b>Resources</b> - Listing and reading resources</li>
  *   <li><b>Prompts</b> - Getting prompts</li>
  * </ul>
@@ -49,6 +56,10 @@ public class MCPClientDemo {
     ClientTransport transport = new StreamableHttpClientTransport(vertx, serverUrl, clientOptions);
     ModelContextProtocolClient client = new ModelContextProtocolClientImpl(vertx, transport, clientOptions);
 
+    // Register notification handlers to receive progress and logging updates
+    //client.addNotificationHandler(ProgressNotificationHandler.defaultHandler());
+    //client.addNotificationHandler(LoggingNotificationHandler.defaultHandler());
+
     System.out.println("=".repeat(60));
     System.out.println("MCP Client Demo");
     System.out.println("=".repeat(60));
@@ -67,6 +78,7 @@ public class MCPClientDemo {
       // Run demos sequentially
       demonstrateListTools(client, session).await();
       demonstrateCallTool(client, session).await();
+      demonstrateBulkImport(client, session).await();
       demonstrateListResources(client, session).await();
       demonstrateReadResource(client, session).await();
       demonstrateGetPrompt(client, session).await();
@@ -157,7 +169,7 @@ public class MCPClientDemo {
    */
   private static Future<Void> demonstrateListResources(ModelContextProtocolClient client, ClientSession session) {
     System.out.println("-".repeat(60));
-    System.out.println("3. Listing Resources");
+    System.out.println("4. Listing Resources");
     System.out.println("-".repeat(60));
 
     // Create list resources request
@@ -194,7 +206,7 @@ public class MCPClientDemo {
    */
   private static Future<Void> demonstrateReadResource(ModelContextProtocolClient client, ClientSession session) {
     System.out.println("-".repeat(60));
-    System.out.println("4. Reading Resource: tasks://all");
+    System.out.println("5. Reading Resource: tasks://all");
     System.out.println("-".repeat(60));
 
     // Create read resource request
@@ -208,7 +220,7 @@ public class MCPClientDemo {
         ReadResourceResult readResourceResult = (ReadResourceResult) result;
 
         JsonArray contents = readResourceResult.getContents();
-        if (contents != null && contents.size() > 0) {
+        if (contents != null && !contents.isEmpty()) {
           JsonObject content = contents.getJsonObject(0);
           String text = content.getString("text");
           if (text != null) {
@@ -237,11 +249,84 @@ public class MCPClientDemo {
   }
 
   /**
+   * Demonstrates calling the bulk import tool with progress notifications.
+   * This showcases how the client can receive real-time progress updates
+   * during long-running operations.
+   */
+  private static Future<Void> demonstrateBulkImport(ModelContextProtocolClient client, ClientSession session) {
+    System.out.println("-".repeat(60));
+    System.out.println("3. Bulk Import with Progress Notifications");
+    System.out.println("-".repeat(60));
+
+    // Create sample tasks to import
+    JsonArray tasks = new JsonArray()
+      .add(new JsonObject()
+        .put("title", "Implement JWT authentication")
+        .put("description", "Add JWT token-based authentication to the API")
+        .put("priority", "high")
+        .put("assignee", "alice@example.com"))
+      .add(new JsonObject()
+        .put("title", "Add rate limiting")
+        .put("description", "Implement rate limiting middleware")
+        .put("priority", "medium")
+        .put("assignee", "bob@example.com"))
+      .add(new JsonObject()
+        .put("title", "Write API documentation")
+        .put("description", "Document all REST endpoints")
+        .put("priority", "low")
+        .put("assignee", "carol@example.com"))
+      .add(new JsonObject()
+        .put("title", "Setup CI/CD pipeline")
+        .put("description", "Configure GitHub Actions for automated testing and deployment")
+        .put("priority", "critical")
+        .put("assignee", "dave@example.com"))
+      .add(new JsonObject()
+        .put("title", "Optimize database queries")
+        .put("description", "Add indexes and optimize slow queries")
+        .put("priority", "high")
+        .put("assignee", "eve@example.com"));
+
+    System.out.println("  Importing " + tasks.size() + " tasks...");
+    System.out.println("  Watch for progress notifications below:");
+    System.out.println();
+
+    // Create call tool request with progress token
+    CallToolRequest callToolRequest = new CallToolRequest()
+      .setName("bulk_import")
+      .setArguments(new JsonObject().put("tasks", tasks));
+      //.setProgressToken("bulk-import-" + System.currentTimeMillis());
+
+    return client.request(callToolRequest)
+      .expecting(result -> result instanceof CallToolResult)
+      .compose(result -> {
+        System.out.println();
+        System.out.println("  Bulk import completed successfully");
+        CallToolResult callToolResult = (CallToolResult) result;
+
+        JsonArray content = callToolResult.getContent();
+        if (content != null) {
+          for (int i = 0; i < content.size(); i++) {
+            JsonObject item = content.getJsonObject(i);
+            if ("text".equals(item.getString("type"))) {
+              System.out.println("  Result: " + item.getString("text"));
+            }
+          }
+        }
+        System.out.println();
+        return Future.succeededFuture();
+      })
+      .onFailure(err -> {
+        System.err.println("  Failed to bulk import: " + err.getMessage());
+        err.printStackTrace();
+      }).mapEmpty();
+  }
+
+  /**
    * Demonstrates getting a prompt from the server.
    */
   private static Future<Void> demonstrateGetPrompt(ModelContextProtocolClient client, ClientSession session) {
     System.out.println("-".repeat(60));
-    System.out.println("5. Getting Prompt: daily_standup");
+    System.out.println("6. Getting Prompt: daily_standup");
     System.out.println("-".repeat(60));
 
     // Create get prompt request

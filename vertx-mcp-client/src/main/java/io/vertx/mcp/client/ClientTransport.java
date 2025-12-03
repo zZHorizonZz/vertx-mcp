@@ -15,7 +15,7 @@ public interface ClientTransport {
    * @param capabilities the client capabilities
    * @return a future that completes with the initialized session
    */
-  Future<ClientSession> connect(ClientCapabilities capabilities);
+  Future<ClientSession> subscribe(ClientCapabilities capabilities);
 
   /**
    * Creates a new request for sending a JSON-RPC message to the server.

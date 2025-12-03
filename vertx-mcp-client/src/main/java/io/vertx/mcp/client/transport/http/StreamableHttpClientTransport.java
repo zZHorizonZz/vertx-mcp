@@ -3,10 +3,8 @@ package io.vertx.mcp.client.transport.http;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.RequestOptions;
+import io.vertx.core.http.*;
+import io.vertx.core.internal.ContextInternal;
 import io.vertx.mcp.client.ClientOptions;
 import io.vertx.mcp.client.ClientRequest;
 import io.vertx.mcp.client.ClientSession;
@@ -17,7 +15,6 @@ import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.request.InitializeRequest;
 import io.vertx.mcp.common.result.InitializeResult;
-import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -51,7 +48,7 @@ public class StreamableHttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Future<ClientSession> connect(ClientCapabilities capabilities) {
+  public Future<ClientSession> subscribe(ClientCapabilities capabilities) {
     Promise<ClientSession> promise = Promise.promise();
 
     // Create initialize request
@@ -62,37 +59,54 @@ public class StreamableHttpClientTransport implements ClientTransport {
         .setVersion(clientOptions.getClientVersion()))
       .setCapabilities(capabilities);
 
-    JsonRequest jsonRequest = initRequest.toRequest(requestIdGenerator.incrementAndGet());
-
-    // Per spec: "Every JSON-RPC message sent from the client MUST be a new HTTP POST request"
-    // The initialize request is sent as a POST, and the server can respond with either
-    // application/json or text/event-stream
-    request().compose(request -> request.end(jsonRequest).compose(v -> request.response())).onSuccess(response -> {
-      // Set up handler to process the initialization response
-      response.handler(json -> {
+    request()
+      .compose(request -> request.end(initRequest.toRequest(requestIdGenerator.incrementAndGet())).compose(v -> request.response()))
+      .onSuccess(response -> response.handler(json -> {
         try {
+          StreamableHttpClientResponse httpResponse = (StreamableHttpClientResponse) response;
           InitializeResult result = new InitializeResult(json);
-          ServerCapabilities serverCaps = result.getCapabilities();
+          ServerCapabilities serverCapabilities = result.getCapabilities();
 
           // Create session
-          ClientSessionImpl session = new ClientSessionImpl(
+          ClientSession session = new ClientSessionImpl(
+            httpResponse.headers().get(MCP_SESSION_ID_HEADER),
             clientOptions.getStreamingEnabled(),
-            serverCaps
+            serverCapabilities
           );
 
           promise.complete(session);
         } catch (Exception e) {
           promise.fail(e);
         }
-      });
-    }).onFailure(promise::fail);
+      })).onFailure(promise::fail);
 
-    return promise.future();
+    return promise.future().compose(session -> httpClient
+      .request(new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(baseUrl).addHeader(MCP_SESSION_ID_HEADER, session.id()))
+      .map(httpRequest -> {
+        ClientRequest request = new StreamableHttpClientRequest(httpRequest, 256 * 1024, true, null);
+        configureTimeout(request);
+
+        httpRequest.putHeader(HttpHeaders.ACCEPT, "text/event-stream");
+
+        return request;
+      })
+      .compose(request -> ((StreamableHttpClientRequest) request).sendEnd().compose(v -> request.response()))
+      .onSuccess(response -> ((ClientSessionImpl) session).init(response))
+      .map(v -> session));
   }
 
   @Override
   public Future<ClientRequest> request() {
-    return httpClient.request(new RequestOptions().setMethod(HttpMethod.POST).setAbsoluteURI(baseUrl)).map(httpRequest -> new StreamableHttpClientRequest(httpRequest, null));
+    return httpClient.request(new RequestOptions().setMethod(HttpMethod.POST).setAbsoluteURI(baseUrl))
+      .map(httpRequest -> {
+        ClientRequest request = new StreamableHttpClientRequest(httpRequest, 256 * 1024, true, null);
+        configureTimeout(request);
+        return request;
+      });
+  }
+
+  private void configureTimeout(ClientRequest request) {
+    ContextInternal current = (ContextInternal) vertx.getOrCreateContext();
   }
 
   public Future<Void> closeSession(ClientSession session) {

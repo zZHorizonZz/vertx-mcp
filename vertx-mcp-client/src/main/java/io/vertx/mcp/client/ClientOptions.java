@@ -57,7 +57,7 @@ public class ClientOptions {
   public static final long DEFAULT_REQUEST_TIMEOUT_MS = 30 * 1000L;
 
   /**
-   * The default connect timeout in milliseconds = {@code 10 seconds}
+   * The default subscribe timeout in milliseconds = {@code 10 seconds}
    */
   public static final long DEFAULT_CONNECT_TIMEOUT_MS = 10 * 1000L;
 

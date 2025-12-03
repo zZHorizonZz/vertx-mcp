@@ -16,6 +16,7 @@ import io.vertx.mcp.server.SessionManager;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class SessionManagerImpl implements SessionManager {
 
@@ -70,7 +71,7 @@ public class SessionManagerImpl implements SessionManager {
   }
 
   private Future<Void> sendNotification(Notification notification) {
-    return Future.join(sessions.values().stream().map(session -> session.sendNotification(notification)).toArray(Future[]::new)).mapEmpty();
+    return Future.join(sessions.values().stream().map(session -> session.sendNotification(notification)).collect(Collectors.toList())).mapEmpty();
   }
 
   @Override

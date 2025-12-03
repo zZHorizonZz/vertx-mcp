@@ -1,30 +1,38 @@
 package io.vertx.mcp.client.transport.http;
 
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import io.vertx.core.Timer;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.StreamResetException;
-import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.internal.PromiseInternal;
 import io.vertx.mcp.client.ClientRequest;
 import io.vertx.mcp.client.ClientResponse;
 import io.vertx.mcp.client.ClientSession;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
-public class StreamableHttpClientRequest implements ClientRequest {
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
-  private final ContextInternal context;
-  private JsonRequest jsonRequest;
+public class StreamableHttpClientRequest extends MessageWriteStreamBase<StreamableHttpClientRequest> implements ClientRequest {
+
   private final HttpClientRequest httpRequest;
-  private final ClientSession session;
-  private final Future<ClientResponse> response;
-  private boolean headersSent = false;
+  private final boolean scheduleDeadline;
+  private Future<ClientResponse> response;
+  private long timeout;
+  private TimeUnit timeoutUnit;
+  private String timeoutHeader;
+  private Timer deadline;
 
-  public StreamableHttpClientRequest(HttpClientRequest httpRequest, ClientSession session) {
-    this.context = ((PromiseInternal<?>) httpRequest.response()).context();
+  private final ClientSession session;
+
+  public StreamableHttpClientRequest(HttpClientRequest httpRequest, long maxMessageSize, boolean scheduleDeadline, ClientSession session) {
+    super(((PromiseInternal<?>) httpRequest.response()).context(), httpRequest);
     this.httpRequest = httpRequest;
     this.session = session;
+    this.scheduleDeadline = scheduleDeadline;
     this.response = httpRequest
       .response()
       .compose(httpResponse -> {
@@ -42,7 +50,8 @@ public class StreamableHttpClientRequest implements ClientRequest {
           context,
           httpResponse,
           session,
-          this
+          this,
+          contentType.contains("text/event-stream") ? new EventStreamDecoder() : new JsonMessageDecoder()
         );
 
         mcpResponse.init(session, this);
@@ -62,63 +71,34 @@ public class StreamableHttpClientRequest implements ClientRequest {
   }
 
   @Override
-  public ContextInternal context() {
-    return context;
-  }
-
-  @Override
-  public JsonRequest getJsonRequest() {
-    return jsonRequest;
-  }
-
-  @Override
   public ClientSession session() {
     return session;
   }
 
   @Override
-  public Object requestId() {
-    return jsonRequest != null ? jsonRequest.getId() : null;
-  }
-
-  @Override
   public Future<Void> send(JsonRequest request) {
-    if (headersSent) {
-      return Future.failedFuture("Request already sent");
-    }
-
-    if (request == null) {
-      return Future.failedFuture("Request cannot be null");
-    }
-
-    this.jsonRequest = request;
-
-    setHeaders();
-
-    Buffer requestBody = Buffer.buffer(request.toJson().encode());
-    httpRequest.putHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(requestBody.length()));
-
-    headersSent = true;
-
-    return httpRequest.write(requestBody);
+    return this.writeMessage(request.toJson());
   }
 
   @Override
   public Future<Void> end(JsonRequest request) {
-    return send(request).compose(v -> httpRequest.end());
+    return this.endMessage(request.toJson());
   }
 
   @Override
-  public Future<Void> end() {
-    return httpRequest.end();
+  protected Future<Void> sendHead() {
+    return httpRequest.sendHead();
   }
 
   @Override
-  public Future<ClientResponse> response() {
-    return response;
-  }
+  protected void setHeaders(MultiMap headers) {
+    if (headers != null) {
+      MultiMap requestHeaders = httpRequest.headers();
+      for (Map.Entry<String, String> header : headers) {
+        requestHeaders.add(header.getKey(), header.getValue());
+      }
+    }
 
-  private void setHeaders() {
     httpRequest.putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     httpRequest.putHeader(HttpHeaders.ACCEPT, "application/json, text/event-stream");
 
@@ -131,18 +111,74 @@ public class StreamableHttpClientRequest implements ClientRequest {
       StreamableHttpClientTransport.MCP_PROTOCOL_VERSION_HEADER,
       StreamableHttpClientTransport.DEFAULT_PROTOCOL_VERSION
     );
+    /*ServiceName serviceName = this.serviceName;
+    String methodName = this.methodName;
+    if (serviceName == null) {
+      throw new IllegalStateException();
+    }
+    if (methodName == null) {
+      throw new IllegalStateException();
+    }
+    if (headers != null) {
+      MultiMap requestHeaders = httpRequest.headers();
+      for (Map.Entry<String, String> header : headers) {
+        requestHeaders.add(header.getKey(), header.getValue());
+      }
+    }
+    if (timeout > 0L) {
+      httpRequest.putHeader(GrpcHeaderNames.GRPC_TIMEOUT, timeoutHeader);
+    }
+    String uri = serviceName.pathOf(methodName);
+    httpRequest.putHeader(HttpHeaders.CONTENT_TYPE, contentType);
+    if (encoding != null) {
+      httpRequest.putHeader(GrpcHeaderNames.GRPC_ENCODING, encoding);
+    }
+    httpRequest.putHeader(GrpcHeaderNames.GRPC_ACCEPT_ENCODING, "gzip");
+    httpRequest.putHeader(HttpHeaderNames.TE, "trailers");
+    httpRequest.setChunked(true);
+    httpRequest.setURI(uri);
+    if (scheduleDeadline && timeout > 0L) {
+      Timer timer = context.timer(timeout, timeoutUnit);
+      deadline = timer;
+      timer.onSuccess(v -> {
+        cancel();
+      });
+    }*/
   }
 
-  public Future<Void> cancel() {
-    return httpRequest.reset();
+  @Override
+  protected void setTrailers(MultiMap trailers) {
   }
 
-  public boolean isHeadersSent() {
-    return headersSent;
+  @Override
+  protected Future<Void> sendMessage(Buffer message) {
+    httpRequest.putHeader(HttpHeaders.CONTENT_LENGTH, Integer.toString(message.length()));
+    return httpRequest.write(message);
   }
 
-  public HttpClientRequest getHttpRequest() {
-    return httpRequest;
+  @Override
+  protected Future<Void> sendEnd() {
+    return httpRequest.end();
+  }
+
+  void cancelTimeout() {
+    Timer timer = deadline;
+    if (timer != null && timer.cancel()) {
+      deadline = null;
+    }
+  }
+
+  @Override
+  public Future<ClientResponse> response() {
+    return response;
+  }
+
+  @Override
+  protected boolean sendCancel() {
+    httpRequest
+      .reset();
+    //.onSuccess(v -> handleError(GrpcError.CANCELLED));
+    return true;
   }
 }
 

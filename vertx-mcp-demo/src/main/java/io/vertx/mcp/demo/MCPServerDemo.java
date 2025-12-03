@@ -23,7 +23,10 @@ import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerSession;
-import io.vertx.mcp.server.feature.*;
+import io.vertx.mcp.server.feature.CompletionServerFeature;
+import io.vertx.mcp.server.feature.PromptServerFeature;
+import io.vertx.mcp.server.feature.ResourceServerFeature;
+import io.vertx.mcp.server.feature.ToolServerFeature;
 import io.vertx.mcp.server.transport.http.StreamableHttpServerTransport;
 
 import java.time.LocalDateTime;
@@ -364,10 +367,7 @@ public class MCPServerDemo {
     });
   }
 
-  private static Future<Content[]> importWithProgress(
-    ServerSession session, String token, JsonArray taskList,
-    int index, int total, List<String> imported) {
-
+  private static Future<Content[]> importWithProgress(ServerSession session, String token, JsonArray taskList, int index, int total, List<String> imported) {
     if (index >= total) {
       return Future.succeededFuture(new Content[] {
         new TextContent("Imported " + imported.size() + " tasks: " + String.join(", ", imported))
