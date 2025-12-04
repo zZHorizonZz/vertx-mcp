@@ -13,7 +13,7 @@ import java.util.function.BiFunction;
 
 /**
  * The SamplingClientFeature class implements the ClientFeatureBase and provides functionality to handle sampling-related operations.
- * This feature allows the client to respond to sampling/createMessage requests from the server, enabling the server to request
+ * This feature allows the client to respond to sampling/createMessage requests from the server, enabling the server to sendRequest
  * LLM completions from the client.
  *
  * @version 2025-06-18
@@ -46,7 +46,7 @@ public class SamplingClientFeature extends ClientFeatureBase {
       return Future.failedFuture("No sampling handler registered");
     }
 
-    CreateMessageRequest createMessageRequest = new CreateMessageRequest(request.getParams());
+    CreateMessageRequest createMessageRequest = new CreateMessageRequest(request.getNamedParams());
     return samplingHandler.apply(createMessageRequest).map(result -> JsonResponse.success(request, result.toJson()));
   }
 }

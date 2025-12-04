@@ -10,11 +10,11 @@ import io.vertx.codegen.annotations.VertxGen;
 public interface ClientResponse extends MessageReadStream {
 
   /**
-   * Initializes the client response with the given session and client request. This method associates the response with a specific session and request, allowing state and
+   * Initializes the client response with the given session and client sendRequest. This method associates the response with a specific session and sendRequest, allowing state and
    * connections to be managed.
    *
    * @param session the session to associate with the client response
-   * @param request the client request associated with this response
+   * @param request the client sendRequest associated with this response
    */
   void init(ClientSession session, ClientRequest request);
 
@@ -26,7 +26,7 @@ public interface ClientResponse extends MessageReadStream {
   ClientSession session();
 
   /**
-   * Retrieves the client request associated with this response.
+   * Retrieves the client sendRequest associated with this response.
    *
    * @return the associated {@link ClientRequest} object
    */

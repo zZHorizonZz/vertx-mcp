@@ -22,7 +22,7 @@ public interface SamplingHandler extends ClientFeatureHandler<CreateMessageReque
    * Creates a new instance of a {@code SamplingHandler} with the specified function.
    *
    * @param name the name of the sampling handler
-   * @param function the function that processes the create message request and returns a future result
+   * @param function the function that processes the create message sendRequest and returns a future result
    * @return a new {@code SamplingHandler} instance initialized with the provided parameters
    */
   @GenIgnore

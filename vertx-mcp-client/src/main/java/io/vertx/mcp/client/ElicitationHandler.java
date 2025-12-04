@@ -22,7 +22,7 @@ public interface ElicitationHandler extends ClientFeatureHandler<ElicitRequest, 
    * Creates a new instance of an {@code ElicitationHandler} with the specified function.
    *
    * @param name the name of the elicitation handler
-   * @param function the function that processes the elicit request and returns a future result
+   * @param function the function that processes the elicit sendRequest and returns a future result
    * @return a new {@code ElicitationHandler} instance initialized with the provided parameters
    */
   @GenIgnore

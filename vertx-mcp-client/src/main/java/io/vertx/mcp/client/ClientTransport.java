@@ -23,17 +23,19 @@ public interface ClientTransport {
   Future<ClientSession> subscribe(ClientCapabilities capabilities);
 
   /**
-   * Creates a new request for sending a JSON-RPC message to the server. The returned ClientRequest can be configured and then sent by the caller.
+   * Creates a new sendRequest for sending a JSON-RPC message to the server. The returned ClientRequest can be configured and then sent by the caller.
    *
-   * @return a future that completes with the client request
+   * @return a future that completes with the client sendRequest
    */
   Future<ClientRequest> request();
+
+  Future<ClientRequest> request(ClientSession session);
 
   /**
    * Processes a JSON-RPC response received from the server and associates it with the corresponding session.
    *
    * @param session the session associated with the response, enabling bidirectional communication
-   * @param response the JSON-RPC 2.0 response containing details such as result or error and linking to the original request
+   * @param response the JSON-RPC 2.0 response containing details such as result or error and linking to the original sendRequest
    * @return a future that will be completed once the response has been successfully processed or will fail if an error occurs
    */
   Future<Void> response(ClientSession session, JsonResponse response);

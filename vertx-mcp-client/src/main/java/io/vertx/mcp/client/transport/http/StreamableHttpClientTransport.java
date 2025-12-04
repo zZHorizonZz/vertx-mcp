@@ -60,7 +60,7 @@ public class StreamableHttpClientTransport implements ClientTransport {
   public Future<ClientSession> subscribe(ClientCapabilities capabilities) {
     Promise<ClientSession> promise = Promise.promise();
 
-    // Create initialize request
+    // Create initialize sendRequest
     InitializeRequest initRequest = new InitializeRequest()
       .setProtocolVersion(DEFAULT_PROTOCOL_VERSION)
       .setClientInfo(new Implementation()
@@ -101,7 +101,7 @@ public class StreamableHttpClientTransport implements ClientTransport {
       })
       .compose(request -> ((StreamableHttpClientRequest) request).sendEnd().compose(v -> request.response()))
       .onSuccess(response -> {
-        ((ClientSessionImpl) session).init(response);
+        ((ClientSessionImpl) session).init(response, new StreamableHttpClientSessionStream(session.id(), httpClient, baseUrl));
         response.handler(this::handleServerMessage);
       })
       .map(v -> session));
@@ -109,9 +109,14 @@ public class StreamableHttpClientTransport implements ClientTransport {
 
   @Override
   public Future<ClientRequest> request() {
+    return request(null);
+  }
+
+  @Override
+  public Future<ClientRequest> request(ClientSession session) {
     return httpClient.request(new RequestOptions().setMethod(HttpMethod.POST).setAbsoluteURI(baseUrl))
       .map(httpRequest -> {
-        ClientRequest request = new StreamableHttpClientRequest(httpRequest, 256 * 1024, true, null);
+        ClientRequest request = new StreamableHttpClientRequest(httpRequest, 256 * 1024, true, session);
         configureTimeout(request);
         return request;
       });
@@ -130,9 +135,9 @@ public class StreamableHttpClientTransport implements ClientTransport {
   }
 
   private void handleServerMessage(JsonObject message) {
-    if(message.containsKey("id")) {
+    if (message.containsKey("id")) {
       Request request = JsonCodec.decodeRequest(message.getString("method"), message.getJsonObject("params"));
-      System.out.println("Received request: " + request);
+      System.out.println("Received sendRequest: " + request);
       return;
     }
 

@@ -5,9 +5,9 @@ import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.mcp.client.impl.ModelContextProtocolClientImpl;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
+import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.Result;
 
@@ -75,26 +75,21 @@ public interface ModelContextProtocolClient {
   /**
    * Connects to an MCP server via HTTP transport.
    *
-   * @param baseUrl the base URL of the server (e.g., "http://localhost:8080")
    * @param capabilities the client capabilities to advertise
    * @return a future that completes with the established session
    */
   @GenIgnore
-  Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities);
-
-  /**
-   * Connects to an MCP server via HTTP transport with custom HTTP options.
-   *
-   * @param baseUrl the base URL of the server (e.g., "http://localhost:8080")
-   * @param capabilities the client capabilities to advertise
-   * @param httpOptions HTTP client options
-   * @return a future that completes with the established session
-   */
-  @GenIgnore
-  Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities, HttpClientOptions httpOptions);
+  Future<ClientSession> connect(ClientCapabilities capabilities);
 
   @GenIgnore
   Future<ClientRequest> request();
 
-  Future<Result> request(Request request);
+  @GenIgnore
+  Future<ClientRequest> request(ClientSession session);
+
+  Future<Result> sendRequest(Request request);
+
+  Future<Result> sendRequest(Request request, ClientSession session);
+
+  Future<Void> sendNotification(Notification notification, ClientSession session);
 }

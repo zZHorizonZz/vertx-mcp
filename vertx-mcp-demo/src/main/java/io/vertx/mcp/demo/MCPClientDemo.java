@@ -2,10 +2,6 @@ package io.vertx.mcp.demo;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.ClientOptions;
@@ -13,16 +9,12 @@ import io.vertx.mcp.client.ClientSession;
 import io.vertx.mcp.client.ClientTransport;
 import io.vertx.mcp.client.ModelContextProtocolClient;
 import io.vertx.mcp.client.impl.ModelContextProtocolClientImpl;
-import io.vertx.mcp.client.transport.http.StreamableHttpClientRequest;
 import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.*;
 import io.vertx.mcp.common.result.*;
-import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.tool.Tool;
-import io.vertx.mcp.client.handler.ProgressNotificationHandler;
-import io.vertx.mcp.client.handler.LoggingNotificationHandler;
 
 /**
  * A comprehensive MCP client demo showcasing the client API features.
@@ -69,7 +61,7 @@ public class MCPClientDemo {
     try {
       // Connect to server
       ClientCapabilities capabilities = new ClientCapabilities();
-      ClientSession session = client.connect(serverUrl, capabilities).await();
+      ClientSession session = client.connect(capabilities).await();
 
       System.out.println("  Connected to server");
       System.out.println("  Session ID: " + session.id());
@@ -106,8 +98,8 @@ public class MCPClientDemo {
     System.out.println("1. Listing Tools");
     System.out.println("-".repeat(60));
 
-    // Create list tools request
-    return client.request(new ListToolsRequest())
+    // Create list tools sendRequest
+    return client.sendRequest(new ListToolsRequest())
       .expecting(result -> result instanceof ListToolsResult)
       .compose(result -> {
         System.out.println("  Received tools list:");
@@ -135,12 +127,12 @@ public class MCPClientDemo {
     System.out.println("2. Calling Tool: list_tasks");
     System.out.println("-".repeat(60));
 
-    // Create call tool request
+    // Create call tool sendRequest
     CallToolRequest callToolRequest = new CallToolRequest()
       .setName("list_tasks")
       .setArguments(new JsonObject().put("status", "in_progress"));
 
-    return client.request(callToolRequest)
+    return client.sendRequest(callToolRequest)
       .expecting(result -> result instanceof CallToolResult)
       .compose(result -> {
         System.out.println("  Tool executed successfully");
@@ -172,8 +164,8 @@ public class MCPClientDemo {
     System.out.println("4. Listing Resources");
     System.out.println("-".repeat(60));
 
-    // Create list resources request
-    return client.request(new ListResourcesRequest())
+    // Create list resources sendRequest
+    return client.sendRequest(new ListResourcesRequest())
       .expecting(result -> result instanceof ListResourcesResult)
       .compose(result -> {
         System.out.println("  Received resources list:");
@@ -209,11 +201,11 @@ public class MCPClientDemo {
     System.out.println("5. Reading Resource: tasks://all");
     System.out.println("-".repeat(60));
 
-    // Create read resource request
+    // Create read resource sendRequest
     ReadResourceRequest readResourceRequest = new ReadResourceRequest()
       .setUri("tasks://all");
 
-    return client.request(readResourceRequest)
+    return client.sendRequest(readResourceRequest)
       .expecting(result -> result instanceof ReadResourceResult)
       .compose(result -> {
         System.out.println("  Resource read successfully");
@@ -249,9 +241,7 @@ public class MCPClientDemo {
   }
 
   /**
-   * Demonstrates calling the bulk import tool with progress notifications.
-   * This showcases how the client can receive real-time progress updates
-   * during long-running operations.
+   * Demonstrates calling the bulk import tool with progress notifications. This showcases how the client can receive real-time progress updates during long-running operations.
    */
   private static Future<Void> demonstrateBulkImport(ModelContextProtocolClient client, ClientSession session) {
     System.out.println("-".repeat(60));
@@ -290,15 +280,15 @@ public class MCPClientDemo {
     System.out.println("  Watch for progress notifications below:");
     System.out.println();
 
-    // Create call tool request with progress token
+    // Create call tool sendRequest with progress token
     CallToolRequest callToolRequest = new CallToolRequest()
       .setName("bulk_import")
       .setArguments(new JsonObject().put("tasks", tasks));
-      //.setProgressToken("bulk-import-" + System.currentTimeMillis());
+    //.setProgressToken("bulk-import-" + System.currentTimeMillis());
 
     callToolRequest.setMeta(new JsonObject().put("progressToken", true));
 
-    return client.request(callToolRequest)
+    return client.sendRequest(callToolRequest)
       .expecting(result -> result instanceof CallToolResult)
       .compose(result -> {
         System.out.println();
@@ -331,12 +321,12 @@ public class MCPClientDemo {
     System.out.println("6. Getting Prompt: daily_standup");
     System.out.println("-".repeat(60));
 
-    // Create get prompt request
+    // Create get prompt sendRequest
     GetPromptRequest getPromptRequest = new GetPromptRequest()
       .setName("daily_standup")
       .setArguments(new JsonObject().put("assignee", "julien@vertx.io"));
 
-    return client.request(getPromptRequest)
+    return client.sendRequest(getPromptRequest)
       .expecting(result -> result instanceof GetPromptResult)
       .compose(result -> {
         System.out.println("  Prompt retrieved successfully");

@@ -51,7 +51,7 @@ public class StreamableHttpClientResponse extends MessageReadStreamBase<Streamab
   }
 
   protected void handleEnd() {
-    //request.cancelTimeout();
+    //sendRequest.cancelTimeout();
     /*if (status == null) {
       String responseStatus = httpResponse.getTrailer("grpc-status");
       if (responseStatus != null) {
@@ -61,9 +61,9 @@ public class StreamableHttpClientResponse extends MessageReadStreamBase<Streamab
       }
     }*/
     super.handleEnd();
-    /*request.handleStatus(status);
-    if (!request.isTrailersSent()) {
-      request.cancel();
+    /*sendRequest.handleStatus(status);
+    if (!sendRequest.isTrailersSent()) {
+      sendRequest.cancel();
     }*/
   }
 

@@ -3,15 +3,19 @@ package io.vertx.mcp.client.impl;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.*;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
+import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.Result;
 import io.vertx.mcp.common.rpc.JsonCodec;
+import io.vertx.mcp.common.rpc.JsonNotification;
+import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ModelContextProtocolClientImpl implements ModelContextProtocolClient {
@@ -31,6 +35,8 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
     this.vertx = vertx;
     this.transport = transport;
     this.options = options;
+
+    this.transport.handler(this::handle);
   }
 
   @Override
@@ -51,12 +57,7 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   }
 
   @Override
-  public Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities) {
-    return connect(baseUrl, capabilities, new HttpClientOptions());
-  }
-
-  @Override
-  public Future<ClientSession> connect(String baseUrl, ClientCapabilities capabilities, HttpClientOptions httpOptions) {
+  public Future<ClientSession> connect(ClientCapabilities capabilities) {
     return transport.subscribe(capabilities);
   }
 
@@ -66,10 +67,20 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   }
 
   @Override
-  public Future<Result> request(Request request) {
+  public Future<ClientRequest> request(ClientSession session) {
+    return transport.request(session);
+  }
+
+  @Override
+  public Future<Result> sendRequest(Request request) {
+    return sendRequest(request, null);
+  }
+
+  @Override
+  public Future<Result> sendRequest(Request request, ClientSession session) {
     Promise<Result> promise = Promise.promise();
 
-    return request()
+    return request(session)
       .compose(req -> req.end(request.toRequest(requestIdGenerator.incrementAndGet()))
         .compose(v -> req.response().onSuccess(resp -> {
           resp.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
@@ -77,5 +88,24 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
         }))
       )
       .compose(v -> promise.future());
+  }
+
+  @Override
+  public Future<Void> sendNotification(Notification notification, ClientSession session) {
+    return request(session).compose(req -> req.end(notification.toNotification()));
+  }
+
+  private void handle(JsonRequest request) {
+    if(request instanceof JsonNotification) {
+      }
+
+    String method = request.getMethod();
+    Optional<ClientFeature> feature = features.stream().filter(f -> f.hasCapability(method)).findFirst();
+    if(feature.isEmpty()) {
+      //promise.fail(new ClientException("No feature found for method: " + method));
+      return;
+    }
+
+    feature.get().
   }
 }

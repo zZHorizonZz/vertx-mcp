@@ -4,6 +4,8 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.ClientFeature;
 import io.vertx.mcp.client.ClientResponse;
+import io.vertx.mcp.client.ModelContextProtocolClient;
+import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
@@ -17,7 +19,7 @@ public abstract class ClientFeatureBase implements ClientFeature {
   public abstract Map<String, BiFunction<ClientResponse, JsonRequest, Future<JsonResponse>>> getHandlers();
 
   @Override
-  public void handle(ClientResponse clientResponse) {
+  public void handle(JsonRequest request) {
     clientResponse.handler(json -> {
       JsonRequest request = new JsonRequest(json);
 
@@ -35,7 +37,7 @@ public abstract class ClientFeatureBase implements ClientFeature {
       handler.apply(clientResponse, request).onComplete(ar -> {
         if (ar.succeeded()) {
           // Send response back to server
-          clientResponse.session().sendRequest(new io.vertx.mcp.common.request.Request(method, null) {
+          clientResponse.session().sendRequest(new Request(method, null) {
             @Override
             public JsonObject toJson() {
               return ar.result().toJson();
@@ -43,7 +45,7 @@ public abstract class ClientFeatureBase implements ClientFeature {
           });
         } else {
           // Send error response back to server
-          clientResponse.session().sendRequest(new io.vertx.mcp.common.request.Request(method, null) {
+          clientResponse.session().sendRequest(new Request(method, null) {
             @Override
             public JsonObject toJson() {
               return JsonResponse.error(request, JsonError.internalError(ar.cause().getMessage())).toJson();

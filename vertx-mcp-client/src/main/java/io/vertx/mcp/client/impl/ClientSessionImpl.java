@@ -5,12 +5,13 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.mcp.client.ClientSession;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.request.Request;
+import io.vertx.mcp.common.result.Result;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,7 +25,8 @@ public class ClientSessionImpl implements ClientSession {
   private final AtomicBoolean active = new AtomicBoolean(true);
   private final Map<Object, Promise<JsonObject>> pendingRequests = new ConcurrentHashMap<>();
 
-  private ReadStream<JsonObject> stream;
+  private ReadStream<JsonObject> readStream;
+  private WriteStream<JsonObject> writeStream;
 
   public ClientSessionImpl(String id, boolean streaming, ServerCapabilities serverCapabilities) {
     this.id = id;
@@ -32,8 +34,9 @@ public class ClientSessionImpl implements ClientSession {
     this.serverCapabilities = serverCapabilities;
   }
 
-  public void init(ReadStream<JsonObject> stream) {
-    this.stream = stream;
+  public void init(ReadStream<JsonObject> readStream, WriteStream<JsonObject> writeStream) {
+    this.readStream = readStream;
+    this.writeStream = writeStream;
   }
 
   public Map<Object, Promise<JsonObject>> getPendingRequests() {
@@ -57,12 +60,13 @@ public class ClientSessionImpl implements ClientSession {
     }
 
     int requestId = requestCount.incrementAndGet();
-    Promise<JsonObject> promise = Promise.promise();
-    pendingRequests.put(requestId, promise);
 
-    // TODO: Send request
+    return writeStream.write()
+  }
 
-    return promise.future();
+  @Override
+  public Future<Void> sendResult(Request request, Result result) {
+
   }
 
   @Override
@@ -86,9 +90,9 @@ public class ClientSessionImpl implements ClientSession {
   }
 
   /**
-   * Completes a pending request with the given result.
+   * Completes a pending sendRequest with the given result.
    *
-   * @param requestId the request ID
+   * @param requestId the sendRequest ID
    * @param result the result
    */
   public void completeRequest(Object requestId, JsonObject result) {
@@ -99,9 +103,9 @@ public class ClientSessionImpl implements ClientSession {
   }
 
   /**
-   * Fails a pending request with the given error.
+   * Fails a pending sendRequest with the given error.
    *
-   * @param requestId the request ID
+   * @param requestId the sendRequest ID
    * @param error the error
    */
   public void failRequest(Object requestId, Throwable error) {

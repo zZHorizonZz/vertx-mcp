@@ -3,6 +3,7 @@ package io.vertx.mcp.client;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.Set;
 
@@ -11,7 +12,7 @@ import java.util.Set;
  * and retrieve the capabilities associated with the client feature.
  */
 @VertxGen
-public interface ClientFeature extends Handler<ClientResponse> {
+public interface ClientFeature extends Handler<JsonRequest> {
 
   /**
    * Initializes the client feature with the provided Vert.x instance. This method is used to set up the client feature and prepare it for handling responses within the Vert.x

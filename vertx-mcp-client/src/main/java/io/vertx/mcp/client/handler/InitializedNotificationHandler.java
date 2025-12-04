@@ -7,7 +7,7 @@ import io.vertx.mcp.common.notification.Notification;
 
 /**
  * Handler for initialized notifications from the server.
- * Called after the server has completed initialization following the initialize request.
+ * Called after the server has completed initialization following the initialize sendRequest.
  */
 public class InitializedNotificationHandler implements ClientNotificationHandler {
 

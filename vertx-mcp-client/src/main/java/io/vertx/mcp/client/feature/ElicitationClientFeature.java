@@ -13,7 +13,7 @@ import java.util.function.BiFunction;
 
 /**
  * The ElicitationClientFeature class implements the ClientFeatureBase and provides functionality to handle elicitation-related operations.
- * This feature allows the client to respond to elicitation/create requests from the server, enabling the server to request
+ * This feature allows the client to respond to elicitation/create requests from the server, enabling the server to sendRequest
  * structured user input from the client.
  *
  * @version 2025-06-18

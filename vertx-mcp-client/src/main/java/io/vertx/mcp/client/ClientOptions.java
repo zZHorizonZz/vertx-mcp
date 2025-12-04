@@ -52,7 +52,7 @@ public class ClientOptions {
   public static final boolean DEFAULT_LOGGING_ENABLED = true;
 
   /**
-   * The default request timeout in milliseconds = {@code 30 seconds}
+   * The default sendRequest timeout in milliseconds = {@code 30 seconds}
    */
   public static final long DEFAULT_REQUEST_TIMEOUT_MS = 30 * 1000L;
 
@@ -98,7 +98,7 @@ public class ClientOptions {
   }
 
   /**
-   * Gets the client name used in the initialize request.
+   * Gets the client name used in the initialize sendRequest.
    *
    * @return the client name
    */
@@ -107,7 +107,7 @@ public class ClientOptions {
   }
 
   /**
-   * Sets the client name used in the initialize request.
+   * Sets the client name used in the initialize sendRequest.
    *
    * @param clientName the client name
    * @return a reference to this, so the API can be used fluently
@@ -121,7 +121,7 @@ public class ClientOptions {
   }
 
   /**
-   * Gets the client version used in the initialize request.
+   * Gets the client version used in the initialize sendRequest.
    *
    * @return the client version
    */
@@ -130,7 +130,7 @@ public class ClientOptions {
   }
 
   /**
-   * Sets the client version used in the initialize request.
+   * Sets the client version used in the initialize sendRequest.
    *
    * @param clientVersion the client version
    * @return a reference to this, so the API can be used fluently
@@ -168,7 +168,7 @@ public class ClientOptions {
    * <ul>
    *   <li>Subscribe/unsubscribe operations will fail</li>
    *   <li>Streaming cannot be enabled</li>
-   *   <li>Each request is handled independently</li>
+   *   <li>Each sendRequest is handled independently</li>
    * </ul>
    *
    * @param sessionsEnabled true to enable sessions
@@ -188,7 +188,7 @@ public class ClientOptions {
   /**
    * Gets whether streaming (Server-Sent Events) is enabled.
    * <p>
-   * Streaming allows the client to receive multiple responses for a single request.
+   * Streaming allows the client to receive multiple responses for a single sendRequest.
    *
    * @return true if streaming is enabled
    */
@@ -281,18 +281,18 @@ public class ClientOptions {
   }
 
   /**
-   * Gets the request timeout in milliseconds.
+   * Gets the sendRequest timeout in milliseconds.
    * <p>
    * After this period without a response, requests will fail with a timeout error.
    *
-   * @return the request timeout in milliseconds
+   * @return the sendRequest timeout in milliseconds
    */
   public long getRequestTimeoutMs() {
     return requestTimeoutMs;
   }
 
   /**
-   * Sets the request timeout in milliseconds.
+   * Sets the sendRequest timeout in milliseconds.
    * <p>
    * Requests that don't receive a response within this duration will fail with a timeout error.
    *
