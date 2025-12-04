@@ -51,7 +51,8 @@ public class StreamableHttpClientRequest extends MessageWriteStreamBase<Streamab
           httpResponse,
           session,
           this,
-          contentType.contains("text/event-stream") ? new EventStreamDecoder() : new JsonMessageDecoder()
+          contentType.contains("text/event-stream") ? new EventMessageDeframer() : new JsonMessageDeframer(),
+          new JsonMessageDecoder()
         );
 
         mcpResponse.init(session, this);

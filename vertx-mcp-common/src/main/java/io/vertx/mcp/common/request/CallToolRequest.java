@@ -45,6 +45,11 @@ public class CallToolRequest extends Request {
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     CallToolRequestConverter.toJson(this, json);
+
+    if (getMeta() != null) {
+      json.put(Meta.META_KEY, getMeta());
+    }
+
     return json;
   }
 

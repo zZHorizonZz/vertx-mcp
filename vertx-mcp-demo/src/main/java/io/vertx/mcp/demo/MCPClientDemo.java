@@ -296,6 +296,8 @@ public class MCPClientDemo {
       .setArguments(new JsonObject().put("tasks", tasks));
       //.setProgressToken("bulk-import-" + System.currentTimeMillis());
 
+    callToolRequest.setMeta(new JsonObject().put("progressToken", true));
+
     return client.request(callToolRequest)
       .expecting(result -> result instanceof CallToolResult)
       .compose(result -> {

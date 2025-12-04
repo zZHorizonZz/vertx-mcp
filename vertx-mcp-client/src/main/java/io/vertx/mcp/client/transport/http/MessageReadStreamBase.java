@@ -28,11 +28,12 @@ public abstract class MessageReadStreamBase<S extends MessageReadStreamBase<S>> 
   private Handler<Void> endHandler;
   private JsonObject last;
   private final Promise<Void> end;
-  private final MessageDeframer deframer = new JsonMessageDeframer();
+  private final MessageDeframer deframer;
   private final MessageDecoder decoder;
 
   protected MessageReadStreamBase(Context context,
     ReadStream<Buffer> stream,
+    MessageDeframer deframer,
     MessageDecoder decoder) {
     ContextInternal ctx = (ContextInternal) context;
     this.context = ctx;
@@ -57,6 +58,7 @@ public abstract class MessageReadStreamBase<S extends MessageReadStreamBase<S>> 
         //}
       }
     };
+    this.deframer = deframer;
     this.decoder = decoder;
     this.end = ctx.promise();
   }

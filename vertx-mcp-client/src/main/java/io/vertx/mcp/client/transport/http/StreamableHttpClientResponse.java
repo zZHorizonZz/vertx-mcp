@@ -7,10 +7,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mcp.client.ClientRequest;
-import io.vertx.mcp.client.ClientResponse;
-import io.vertx.mcp.client.ClientSession;
-import io.vertx.mcp.client.MessageDecoder;
+import io.vertx.mcp.client.*;
 
 public class StreamableHttpClientResponse extends MessageReadStreamBase<StreamableHttpClientResponse> implements ClientResponse, Handler<Buffer> {
 
@@ -24,9 +21,10 @@ public class StreamableHttpClientResponse extends MessageReadStreamBase<Streamab
     HttpClientResponse httpResponse,
     ClientSession session,
     ClientRequest request,
+    MessageDeframer deframer,
     MessageDecoder decoder
   ) {
-    super(context, httpResponse, decoder);
+    super(context, httpResponse, deframer, decoder);
     this.httpResponse = httpResponse;
     this.session = session;
     this.request = request;
