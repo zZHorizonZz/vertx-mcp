@@ -4,16 +4,17 @@ import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Closeable;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
+import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
-import io.vertx.mcp.common.result.Result;
 
 /**
  * Represents a session between the client and server. Sessions are used to manage SSE (Server-Sent Events) connections and streaming state.
  */
 @VertxGen
-public interface ClientSession extends Closeable {
+public interface ClientSession extends Handler<JsonObject>, Closeable {
 
   String MCP_SESSION_CONTEXT_KEY = "mcp.client.session";
 
@@ -50,14 +51,12 @@ public interface ClientSession extends Closeable {
   Future<JsonObject> sendRequest(Request request);
 
   /**
-   * Sends the result of a request to the server. This method is typically used in scenarios involving Server-Sent Events (SSE) connections or streaming where a result needs to be
-   * sent in response to a specific request.
+   * Sends a notification to the server. This method is typically used to deliver an asynchronous notification without expecting any response from the server.
    *
-   * @param request the request object that originated the need to send the result
-   * @param result the result object containing the response data to be sent
-   * @return a future that completes once the result is successfully sent
+   * @param notification the notification to be sent, containing the method name and associated metadata
+   * @return a future that completes when the notification has been sent successfully
    */
-  Future<Void> sendResult(Request request, Result result);
+  Future<Void> sendNotification(Notification notification);
 
   /**
    * Checks if the session is currently in a streaming state.

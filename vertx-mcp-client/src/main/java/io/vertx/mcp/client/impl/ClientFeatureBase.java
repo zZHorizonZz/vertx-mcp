@@ -13,47 +13,22 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public abstract class ClientFeatureBase implements ClientFeature {
 
-  public abstract Map<String, BiFunction<ClientResponse, JsonRequest, Future<JsonResponse>>> getHandlers();
+  public abstract Map<String, Function<JsonRequest, Future<JsonObject>>> getHandlers();
 
   @Override
-  public void handle(JsonRequest request) {
-    clientResponse.handler(json -> {
-      JsonRequest request = new JsonRequest(json);
+  public Future<JsonObject> apply(JsonRequest jsonRequest) {
+    String method = jsonRequest.getMethod();
+    Function<JsonRequest, Future<JsonObject>> handler = getHandlers().get(method);
 
-      if (request.getMethod() == null) {
-        return;
-      }
+    if (handler == null) {
+      return Future.failedFuture(new IllegalArgumentException("No handler found for method: " + method));
+    }
 
-      String method = request.getMethod();
-      BiFunction<ClientResponse, JsonRequest, Future<JsonResponse>> handler = getHandlers().get(method);
-
-      if (handler == null) {
-        return;
-      }
-
-      handler.apply(clientResponse, request).onComplete(ar -> {
-        if (ar.succeeded()) {
-          // Send response back to server
-          clientResponse.session().sendRequest(new Request(method, null) {
-            @Override
-            public JsonObject toJson() {
-              return ar.result().toJson();
-            }
-          });
-        } else {
-          // Send error response back to server
-          clientResponse.session().sendRequest(new Request(method, null) {
-            @Override
-            public JsonObject toJson() {
-              return JsonResponse.error(request, JsonError.internalError(ar.cause().getMessage())).toJson();
-            }
-          });
-        }
-      });
-    });
+    return handler.apply(jsonRequest);
   }
 
   @Override

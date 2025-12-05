@@ -11,6 +11,7 @@ import io.vertx.mcp.client.ModelContextProtocolClient;
 import io.vertx.mcp.client.impl.ModelContextProtocolClientImpl;
 import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
+import io.vertx.mcp.common.notification.ProgressNotification;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.*;
 import io.vertx.mcp.common.result.*;
@@ -47,6 +48,11 @@ public class MCPClientDemo {
     // Create MCP client
     ClientTransport transport = new StreamableHttpClientTransport(vertx, serverUrl, clientOptions);
     ModelContextProtocolClient client = new ModelContextProtocolClientImpl(vertx, transport, clientOptions);
+
+    client.addNotificationHandler("notifications/progress", notification -> {
+      ProgressNotification progress = (ProgressNotification) notification;
+      System.out.println("  Progress: " + (progress.getProgress() + 1) + "/5");
+    });
 
     // Register notification handlers to receive progress and logging updates
     //client.addNotificationHandler(ProgressNotificationHandler.defaultHandler());

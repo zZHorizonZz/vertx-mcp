@@ -12,6 +12,7 @@ import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.Result;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * The {@code ModelContextProtocolClient} interface defines a protocol client for managing Model Context Protocol operations. It extends the {@code Handler<ClientResponse>}
@@ -71,6 +72,11 @@ public interface ModelContextProtocolClient {
    * @return a list of registered client features
    */
   List<ClientFeature> features();
+
+  @Fluent
+  ModelContextProtocolClient addNotificationHandler(String notificationType, ClientNotificationHandler handler);
+
+  Map<String, ClientNotificationHandler> notificationHandlers();
 
   /**
    * Connects to an MCP server via HTTP transport.

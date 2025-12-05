@@ -2,13 +2,12 @@ package io.vertx.mcp.client.feature;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mcp.client.ClientResponse;
 import io.vertx.mcp.client.impl.ClientFeatureBase;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * The ProtocolClientFeature class implements the ClientFeatureBase and provides functionality to handle core MCP protocol operations like ping. This is a required
@@ -20,13 +19,13 @@ import java.util.function.BiFunction;
 public class ProtocolClientFeature extends ClientFeatureBase {
 
   @Override
-  public Map<String, BiFunction<ClientResponse, JsonRequest, Future<JsonResponse>>> getHandlers() {
+  public Map<String, Function<JsonRequest, Future<JsonObject>>> getHandlers() {
     return Map.of(
       "ping", this::handlePing
     );
   }
 
-  private Future<JsonResponse> handlePing(ClientResponse clientResponse, JsonRequest request) {
-    return Future.succeededFuture(JsonResponse.success(request, new JsonObject()));
+  private Future<JsonObject> handlePing(JsonRequest request) {
+    return Future.succeededFuture(JsonResponse.success(request, new JsonObject()).toJson());
   }
 }

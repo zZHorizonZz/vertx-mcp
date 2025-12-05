@@ -3,27 +3,29 @@ package io.vertx.mcp.client.impl;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.*;
+import io.vertx.mcp.client.feature.ProtocolClientFeature;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.Result;
 import io.vertx.mcp.common.rpc.JsonCodec;
-import io.vertx.mcp.common.rpc.JsonNotification;
-import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ModelContextProtocolClientImpl implements ModelContextProtocolClient {
 
   private final Vertx vertx;
-  private final List<ClientFeature> features = new ArrayList<>();
+
   private final ClientOptions options;
   private final ClientTransport transport;
+
+  private final List<ClientFeature> features = new ArrayList<>();
+  private final Map<String, ClientNotificationHandler> notificationHandlers = new HashMap<>();
 
   private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
 
@@ -35,8 +37,8 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
     this.vertx = vertx;
     this.transport = transport;
     this.options = options;
-
-    this.transport.handler(this::handle);
+    
+    this.features.add(new ProtocolClientFeature());
   }
 
   @Override
@@ -57,8 +59,19 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   }
 
   @Override
+  public ModelContextProtocolClient addNotificationHandler(String notificationType, ClientNotificationHandler handler) {
+    notificationHandlers.put(notificationType, handler);
+    return this;
+  }
+
+  @Override
+  public Map<String, ClientNotificationHandler> notificationHandlers() {
+    return Map.copyOf(notificationHandlers);
+  }
+
+  @Override
   public Future<ClientSession> connect(ClientCapabilities capabilities) {
-    return transport.subscribe(capabilities);
+    return transport.subscribe(this, capabilities);
   }
 
   @Override
@@ -93,19 +106,5 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   @Override
   public Future<Void> sendNotification(Notification notification, ClientSession session) {
     return request(session).compose(req -> req.end(notification.toNotification()));
-  }
-
-  private void handle(JsonRequest request) {
-    if(request instanceof JsonNotification) {
-      }
-
-    String method = request.getMethod();
-    Optional<ClientFeature> feature = features.stream().filter(f -> f.hasCapability(method)).findFirst();
-    if(feature.isEmpty()) {
-      //promise.fail(new ClientException("No feature found for method: " + method));
-      return;
-    }
-
-    feature.get().
   }
 }

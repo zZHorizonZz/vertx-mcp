@@ -21,10 +21,9 @@ public class StreamableHttpClientResponse extends MessageReadStreamBase<Streamab
     HttpClientResponse httpResponse,
     ClientSession session,
     ClientRequest request,
-    MessageDeframer deframer,
-    MessageDecoder decoder
+    MessageDeframer deframer
   ) {
-    super(context, httpResponse, deframer, decoder);
+    super(context, httpResponse, deframer);
     this.httpResponse = httpResponse;
     this.session = session;
     this.request = request;

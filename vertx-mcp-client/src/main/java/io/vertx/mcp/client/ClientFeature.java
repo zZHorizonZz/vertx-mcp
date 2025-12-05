@@ -1,18 +1,20 @@
 package io.vertx.mcp.client;
 
 import io.vertx.codegen.annotations.VertxGen;
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.Set;
+import java.util.function.Function;
 
 /**
- * The {@code ClientFeature} interface represents a client feature in a JSON-RPC framework. It serves as a handler for processing client responses and provides a mechanism to define
- * and retrieve the capabilities associated with the client feature.
+ * The {@code ClientFeature} interface represents a client feature in a JSON-RPC framework. It serves as a handler for processing client responses and provides a mechanism to
+ * define and retrieve the capabilities associated with the client feature.
  */
 @VertxGen
-public interface ClientFeature extends Handler<JsonRequest> {
+public interface ClientFeature extends Function<JsonRequest, Future<JsonObject>> {
 
   /**
    * Initializes the client feature with the provided Vert.x instance. This method is used to set up the client feature and prepare it for handling responses within the Vert.x

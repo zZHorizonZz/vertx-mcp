@@ -1,27 +1,17 @@
 package io.vertx.mcp.client.transport.http;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.core.internal.ContextInternal;
-import io.vertx.core.json.JsonObject;
-import io.vertx.mcp.client.ClientOptions;
-import io.vertx.mcp.client.ClientRequest;
-import io.vertx.mcp.client.ClientSession;
-import io.vertx.mcp.client.ClientTransport;
+import io.vertx.mcp.client.*;
 import io.vertx.mcp.client.impl.ClientSessionImpl;
 import io.vertx.mcp.common.Implementation;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
-import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.InitializeRequest;
-import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.InitializeResult;
-import io.vertx.mcp.common.rpc.JsonCodec;
-import io.vertx.mcp.common.rpc.JsonRequest;
-import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -43,8 +33,6 @@ public class StreamableHttpClientTransport implements ClientTransport {
   private final String baseUrl;
   private final AtomicInteger requestIdGenerator = new AtomicInteger(0);
 
-  private Handler<JsonRequest> handler;
-
   public StreamableHttpClientTransport(Vertx vertx, String baseUrl, ClientOptions clientOptions) {
     this(vertx, baseUrl, clientOptions, new HttpClientOptions());
   }
@@ -57,7 +45,7 @@ public class StreamableHttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Future<ClientSession> subscribe(ClientCapabilities capabilities) {
+  public Future<ClientSession> subscribe(ModelContextProtocolClient client, ClientCapabilities capabilities) {
     Promise<ClientSession> promise = Promise.promise();
 
     // Create initialize sendRequest
@@ -80,7 +68,10 @@ public class StreamableHttpClientTransport implements ClientTransport {
           ClientSession session = new ClientSessionImpl(
             httpResponse.headers().get(MCP_SESSION_ID_HEADER),
             clientOptions.getStreamingEnabled(),
-            serverCapabilities
+            serverCapabilities,
+            this,
+            client.features(),
+            client.notificationHandlers()
           );
 
           promise.complete(session);
@@ -100,10 +91,7 @@ public class StreamableHttpClientTransport implements ClientTransport {
         return request;
       })
       .compose(request -> ((StreamableHttpClientRequest) request).sendEnd().compose(v -> request.response()))
-      .onSuccess(response -> {
-        ((ClientSessionImpl) session).init(response, new StreamableHttpClientSessionStream(session.id(), httpClient, baseUrl));
-        response.handler(this::handleServerMessage);
-      })
+      .onSuccess(response -> ((ClientSessionImpl) session).init(response))
       .map(v -> session));
   }
 
@@ -120,29 +108,6 @@ public class StreamableHttpClientTransport implements ClientTransport {
         configureTimeout(request);
         return request;
       });
-  }
-
-  @Override
-  public Future<Void> response(ClientSession session, JsonResponse response) {
-    return httpClient.request(new RequestOptions().setMethod(HttpMethod.POST).setAbsoluteURI(baseUrl))
-      .compose(request -> request.putHeader(MCP_SESSION_ID_HEADER, session.id()).send(response.toJson().toBuffer()))
-      .mapEmpty();
-  }
-
-  @Override
-  public void handler(Handler<JsonRequest> handler) {
-    this.handler = handler;
-  }
-
-  private void handleServerMessage(JsonObject message) {
-    if (message.containsKey("id")) {
-      Request request = JsonCodec.decodeRequest(message.getString("method"), message.getJsonObject("params"));
-      System.out.println("Received sendRequest: " + request);
-      return;
-    }
-
-    Notification notification = JsonCodec.decodeNotification(message.getString("method"), message.getJsonObject("params"));
-    System.out.println("Received notification: " + notification);
   }
 
   private void configureTimeout(ClientRequest request) {

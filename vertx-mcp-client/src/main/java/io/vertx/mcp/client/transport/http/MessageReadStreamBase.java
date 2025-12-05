@@ -13,7 +13,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.mcp.client.MessageDeframer;
 import io.vertx.mcp.client.MessageReadStream;
-import io.vertx.mcp.client.MessageDecoder;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -29,12 +28,8 @@ public abstract class MessageReadStreamBase<S extends MessageReadStreamBase<S>> 
   private JsonObject last;
   private final Promise<Void> end;
   private final MessageDeframer deframer;
-  private final MessageDecoder decoder;
 
-  protected MessageReadStreamBase(Context context,
-    ReadStream<Buffer> stream,
-    MessageDeframer deframer,
-    MessageDecoder decoder) {
+  protected MessageReadStreamBase(Context context, ReadStream<Buffer> stream, MessageDeframer deframer) {
     ContextInternal ctx = (ContextInternal) context;
     this.context = ctx;
     this.stream = stream;
@@ -59,7 +54,6 @@ public abstract class MessageReadStreamBase<S extends MessageReadStreamBase<S>> 
       }
     };
     this.deframer = deframer;
-    this.decoder = decoder;
     this.end = ctx.promise();
   }
 
@@ -136,7 +130,7 @@ public abstract class MessageReadStreamBase<S extends MessageReadStreamBase<S>> 
         }
       }*/ else {
         Buffer msg = (Buffer) ret;
-        queue.write(decoder.decode(msg));
+        queue.write(msg.toJsonObject());
       }
     }
   }

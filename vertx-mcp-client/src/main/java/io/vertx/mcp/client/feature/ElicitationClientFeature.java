@@ -1,7 +1,7 @@
 package io.vertx.mcp.client.feature;
 
 import io.vertx.core.Future;
-import io.vertx.mcp.client.ClientResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.ElicitationHandler;
 import io.vertx.mcp.client.impl.ClientFeatureBase;
 import io.vertx.mcp.common.request.ElicitRequest;
@@ -9,7 +9,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * The ElicitationClientFeature class implements the ClientFeatureBase and provides functionality to handle elicitation-related operations.
@@ -35,18 +35,18 @@ public class ElicitationClientFeature extends ClientFeatureBase {
   }
 
   @Override
-  public Map<String, BiFunction<ClientResponse, JsonRequest, Future<JsonResponse>>> getHandlers() {
+  public Map<String, Function<JsonRequest, Future<JsonObject>>> getHandlers() {
     return Map.of(
       "elicitation/create", this::handleElicit
     );
   }
 
-  private Future<JsonResponse> handleElicit(ClientResponse clientResponse, JsonRequest request) {
+  private Future<JsonObject> handleElicit(JsonRequest request) {
     if (elicitationHandler == null) {
       return Future.failedFuture("No elicitation handler registered");
     }
 
     ElicitRequest elicitRequest = new ElicitRequest(request.getNamedParams());
-    return elicitationHandler.apply(elicitRequest).map(result -> JsonResponse.success(request, result.toJson()));
+    return elicitationHandler.apply(elicitRequest).map(result -> JsonResponse.success(request, result.toJson()).toJson());
   }
 }

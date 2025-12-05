@@ -1,7 +1,7 @@
 package io.vertx.mcp.client.feature;
 
 import io.vertx.core.Future;
-import io.vertx.mcp.client.ClientResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.client.RootsHandler;
 import io.vertx.mcp.client.impl.ClientFeatureBase;
 import io.vertx.mcp.common.result.ListRootsResult;
@@ -9,11 +9,11 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
- * The RootsClientFeature class implements the ClientFeatureBase and provides functionality to handle roots-related operations.
- * This feature allows the client to respond to roots/list requests from the server.
+ * The RootsClientFeature class implements the ClientFeatureBase and provides functionality to handle roots-related operations. This feature allows the client to respond to
+ * roots/list requests from the server.
  *
  * @version 2025-06-18
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/roots">Client Features - Roots</a>
@@ -34,17 +34,17 @@ public class RootsClientFeature extends ClientFeatureBase {
   }
 
   @Override
-  public Map<String, BiFunction<ClientResponse, JsonRequest, Future<JsonResponse>>> getHandlers() {
+  public Map<String, Function<JsonRequest, Future<JsonObject>>> getHandlers() {
     return Map.of(
       "roots/list", this::handleListRoots
     );
   }
 
-  private Future<JsonResponse> handleListRoots(ClientResponse clientResponse, JsonRequest request) {
+  private Future<JsonObject> handleListRoots(JsonRequest request) {
     if (rootsHandler == null) {
-      return Future.succeededFuture(JsonResponse.success(request, new ListRootsResult().toJson()));
+      return Future.succeededFuture(JsonResponse.success(request, new ListRootsResult().toJson()).toJson());
     }
 
-    return rootsHandler.apply(null).map(result -> JsonResponse.success(request, result.toJson()));
+    return rootsHandler.get().map(result -> JsonResponse.success(request, result.toJson()).toJson());
   }
 }
