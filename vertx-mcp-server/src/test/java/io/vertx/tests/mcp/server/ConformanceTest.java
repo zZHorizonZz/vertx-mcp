@@ -8,12 +8,16 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
-package io.vertx.tests.server;
+package io.vertx.tests.mcp.server;
 
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
@@ -33,7 +37,13 @@ import io.vertx.mcp.common.sampling.SamplingMessage;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerSession;
-import io.vertx.mcp.server.feature.*;
+import io.vertx.mcp.server.feature.CompletionServerFeature;
+import io.vertx.mcp.server.feature.PromptServerFeature;
+import io.vertx.mcp.server.feature.ResourceServerFeature;
+import io.vertx.mcp.server.feature.ToolServerFeature;
+import io.vertx.mcp.server.transport.http.StreamableHttpServerTransport;
+import io.vertx.tests.mcp.common.TestContainerTestBase;
+import junit.framework.AssertionFailedError;
 import org.junit.Test;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
@@ -41,6 +51,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * This test uses Testcontainers to run MCP conformance tests in a Docker container. It requires Docker to be installed and running.
@@ -49,6 +61,9 @@ import java.util.List;
  */
 public class ConformanceTest extends TestContainerTestBase {
 
+  private HttpServer server;
+  private int port = 8080;
+  private ModelContextProtocolServer mcpServer;
   private ImageFromDockerfile conformanceImage;
 
   // Sample 1x1 red pixel PNG (base64)
@@ -61,7 +76,7 @@ public class ConformanceTest extends TestContainerTestBase {
   public void setUp(TestContext context) {
     super.setUp(context);
 
-    ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(super.vertx);
+    mcpServer = ModelContextProtocolServer.create(vertx);
 
     setupTools(mcpServer);
     setupPrompts(mcpServer);
@@ -70,10 +85,47 @@ public class ConformanceTest extends TestContainerTestBase {
 
     startServer(context, mcpServer);
 
-    exposeHostPort();
+    exposeHostPort(port);
 
     File dockerfile = new File("src/test/resources/conformance.Dockerfile");
     conformanceImage = new ImageFromDockerfile().withFileFromFile("Dockerfile", dockerfile);
+  }
+
+  @Override
+  public void tearDown(TestContext context) {
+    if (server != null) {
+      server.close().onComplete(context.asyncAssertSuccess());
+    }
+    super.tearDown(context);
+  }
+
+  private void startServer(TestContext context, ModelContextProtocolServer mcpServer) {
+    StreamableHttpServerTransport transport = new StreamableHttpServerTransport(vertx, mcpServer);
+
+    server = vertx.createHttpServer(new HttpServerOptions().setPort(port).setHost("localhost"));
+    // Add CORS handling before passing to transport
+    server.requestHandler(req -> {
+      req.response()
+        .putHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600")
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, DELETE, OPTIONS")
+        .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, String.join(",", StreamableHttpServerTransport.ACCEPTED_HEADERS))
+        .putHeader(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, String.join(",", StreamableHttpServerTransport.ACCEPTED_HEADERS));
+
+      if (req.method() == HttpMethod.OPTIONS) {
+        req.response().setStatusCode(200).end();
+        return;
+      }
+      transport.handle(req);
+    });
+
+    try {
+      server.listen().onComplete(context.asyncAssertSuccess(s -> port = s.actualPort())).await(20, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      AssertionFailedError afe = new AssertionFailedError();
+      afe.initCause(e);
+      throw afe;
+    }
   }
 
   private void setupTools(ModelContextProtocolServer mcpServer) {

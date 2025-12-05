@@ -1,4 +1,4 @@
-package io.vertx.tests.server;
+package io.vertx.tests.mcp.server;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;

@@ -8,9 +8,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
-package io.vertx.tests.server;
+package io.vertx.tests.mcp.common;
 
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.runner.RunWith;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.ToStringConsumer;
@@ -24,7 +30,20 @@ import java.util.List;
  * Base class for tests that use Testcontainers to run external tools.
  * Provides shared logic for container setup and execution.
  */
-public abstract class TestContainerTestBase extends HttpTransportTestBase {
+@RunWith(VertxUnitRunner.class)
+public abstract class TestContainerTestBase {
+
+  protected Vertx vertx;
+
+  @Before
+  public void setUp(TestContext context) {
+    vertx = Vertx.vertx();
+  }
+
+  @After
+  public void tearDown(TestContext context) {
+    vertx.close().onComplete(context.asyncAssertSuccess());
+  }
 
   /**
    * The hostname to use for connecting from containers to the host.
@@ -33,8 +52,10 @@ public abstract class TestContainerTestBase extends HttpTransportTestBase {
 
   /**
    * Exposes the test server port to containers. Must be called after the server is started and listening.
+   *
+   * @param port the port to expose
    */
-  protected void exposeHostPort() {
+  protected void exposeHostPort(int port) {
     Testcontainers.exposeHostPorts(port);
   }
 

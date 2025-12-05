@@ -1,4 +1,4 @@
-open module io.vertx.tests.mcp.server {
+open module io.vertx.tests.mcp.common {
   requires io.vertx.core;
   requires io.vertx.jsonschema;
   requires io.vertx.testing.unit;
@@ -6,10 +6,8 @@ open module io.vertx.tests.mcp.server {
   requires junit;
   requires testcontainers;
 
-  requires io.vertx.mcp.server;
   requires io.vertx.mcp.common;
-  requires io.vertx.tests.mcp.common;
 
-  exports io.vertx.tests.mcp.server;
+  exports io.vertx.tests.mcp.common;
 }
 
