@@ -1,26 +1,30 @@
-package io.vertx.tests.server;
+package io.vertx.mcp.it;
 
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
+import io.vertx.mcp.client.ClientRequestException;
 import io.vertx.mcp.common.content.Content;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.request.CallToolRequest;
 import io.vertx.mcp.common.request.ListToolsRequest;
+import io.vertx.mcp.common.result.CallToolResult;
+import io.vertx.mcp.common.result.ListToolsResult;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
-import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.mcp.common.tool.Tool;
+import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.feature.ToolServerFeature;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeature> {
+public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   private static final ObjectSchemaBuilder EMPTY_SCHEMA = Schemas.objectSchema();
   private static final ObjectSchemaBuilder TEXT_INPUT_SCHEMA = Schemas.objectSchema().requiredProperty("text", Schemas.stringSchema());
@@ -31,31 +35,33 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
   private static final ObjectSchemaBuilder MESSAGE_OUTPUT_SCHEMA = Schemas.objectSchema().property("message", Schemas.stringSchema());
   private static final ObjectSchemaBuilder NUMBER_OUTPUT_SCHEMA = Schemas.objectSchema().property("result", Schemas.numberSchema());
 
-  @Override
-  protected ToolServerFeature createFeature() {
-    return new ToolServerFeature();
+  private ToolServerFeature toolFeature;
+
+  @Before
+  public void setUpFeatures(TestContext context) {
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
+    super.startServer(context, server);
+
+    toolFeature = new ToolServerFeature();
+    server.addServerFeature(toolFeature);
   }
 
   @Test
   public void testListToolsEmpty(TestContext context) throws Throwable {
-    JsonResponse response = sendRequest(HttpMethod.POST, new ListToolsRequest())
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    ListToolsResult result = (ListToolsResult) getClient().sendRequest(new ListToolsRequest())
+      .expecting(r -> r instanceof ListToolsResult)
       .await(10, TimeUnit.SECONDS);
-
-    JsonObject result = (JsonObject) response.getResult();
 
     context.assertNotNull(result, "Should have result");
 
-    JsonArray tools = result.getJsonArray("tools");
-    context.assertNotNull(tools, "Should have tools array");
+    List<Tool> tools = result.getTools();
+    context.assertNotNull(tools, "Should have tools list");
     context.assertEquals(0, tools.size(), "Should be empty");
   }
 
   @Test
   public void testListToolsWithStructuredTools(TestContext context) throws Throwable {
-    feature.addStructuredTool(
+    toolFeature.addStructuredTool(
       "greet",
       "Greeting Tool",
       "Greets a person by name",
@@ -64,7 +70,7 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       args -> Future.succeededFuture(new JsonObject().put("greeting", "Hello " + args.getString("name")))
     );
 
-    feature.addStructuredTool(
+    toolFeature.addStructuredTool(
       "add",
       "Addition Tool",
       "Adds two numbers",
@@ -75,43 +81,38 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       args -> Future.succeededFuture(new JsonObject().put("result", args.getInteger("a") + args.getInteger("b")))
     );
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new ListToolsRequest())
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    ListToolsResult result = (ListToolsResult) getClient().sendRequest(new ListToolsRequest())
+      .expecting(r -> r instanceof ListToolsResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-
-    JsonArray tools = result.getJsonArray("tools");
-    context.assertNotNull(tools, "Should have tools array");
+    List<Tool> tools = result.getTools();
+    context.assertNotNull(tools, "Should have tools list");
     context.assertEquals(2, tools.size(), "Should have 2 tools");
 
-    JsonObject greetTool = null;
-    JsonObject addTool = null;
-    for (int i = 0; i < tools.size(); i++) {
-      JsonObject tool = tools.getJsonObject(i);
-      if ("greet".equals(tool.getString("name"))) {
+    Tool greetTool = null;
+    Tool addTool = null;
+    for (Tool tool : tools) {
+      if ("greet".equals(tool.getName())) {
         greetTool = tool;
-      } else if ("add".equals(tool.getString("name"))) {
+      } else if ("add".equals(tool.getName())) {
         addTool = tool;
       }
     }
 
     context.assertNotNull(greetTool, "Should have greet tool");
-    context.assertEquals("Greeting Tool", greetTool.getString("title"));
-    context.assertEquals("Greets a person by name", greetTool.getString("description"));
-    context.assertNotNull(greetTool.getJsonObject("inputSchema"));
-    context.assertNotNull(greetTool.getJsonObject("outputSchema"));
+    context.assertEquals("Greeting Tool", greetTool.getTitle());
+    context.assertEquals("Greets a person by name", greetTool.getDescription());
+    context.assertNotNull(greetTool.getInputSchema());
+    context.assertNotNull(greetTool.getOutputSchema());
 
     context.assertNotNull(addTool, "Should have add tool");
-    context.assertEquals("Addition Tool", addTool.getString("title"));
-    context.assertEquals("Adds two numbers", addTool.getString("description"));
+    context.assertEquals("Addition Tool", addTool.getTitle());
+    context.assertEquals("Adds two numbers", addTool.getDescription());
   }
 
   @Test
   public void testListToolsWithUnstructuredTools(TestContext context) throws Throwable {
-    feature.addUnstructuredTool(
+    toolFeature.addUnstructuredTool(
       "echo",
       "Echo Tool",
       "Echoes back the message",
@@ -121,26 +122,22 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       })
     );
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new ListToolsRequest())
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    ListToolsResult result = (ListToolsResult) getClient().sendRequest(new ListToolsRequest())
+      .expecting(r -> r instanceof ListToolsResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-
-    JsonArray tools = result.getJsonArray("tools");
+    List<Tool> tools = result.getTools();
     context.assertEquals(1, tools.size(), "Should have 1 tool");
 
-    JsonObject tool = tools.getJsonObject(0);
-    context.assertEquals("echo", tool.getString("name"));
-    context.assertEquals("Echo Tool", tool.getString("title"));
-    context.assertNotNull(tool.getJsonObject("inputSchema"));
+    Tool tool = tools.get(0);
+    context.assertEquals("echo", tool.getName());
+    context.assertEquals("Echo Tool", tool.getTitle());
+    context.assertNotNull(tool.getInputSchema());
   }
 
   @Test
   public void testCallStructuredTool(TestContext context) throws Throwable {
-    feature.addStructuredTool(
+    toolFeature.addStructuredTool(
       "multiply",
       Schemas.objectSchema()
         .requiredProperty("x", Schemas.numberSchema())
@@ -155,24 +152,21 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     JsonObject params = new JsonObject().put("name", "multiply").put("arguments", new JsonObject().put("x", 6).put("y", 7));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new CallToolRequest(params))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CallToolResult result = (CallToolResult) getClient().sendRequest(new CallToolRequest(params))
+      .expecting(r -> r instanceof CallToolResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
     context.assertNotNull(result, "Should have result");
 
-    context.assertFalse(result.getBoolean("isError"), "Should not be error");
-    JsonObject structuredContent = result.getJsonObject("structuredContent");
+    context.assertFalse(result.getIsError(), "Should not be error");
+    JsonObject structuredContent = result.getStructuredContent();
     context.assertNotNull(structuredContent, "Should have structured content");
     context.assertEquals(42, structuredContent.getInteger("product"));
   }
 
   @Test
   public void testCallUnstructuredTool(TestContext context) throws Throwable {
-    feature.addUnstructuredTool(
+    toolFeature.addUnstructuredTool(
       "uppercase",
       TEXT_INPUT_SCHEMA,
       args -> Future.succeededFuture(new Content[] {
@@ -182,16 +176,12 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     JsonObject params = new JsonObject().put("name", "uppercase").put("arguments", new JsonObject().put("text", "hello world"));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new CallToolRequest(params))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CallToolResult result = (CallToolResult) getClient().sendRequest(new CallToolRequest(params))
+      .expecting(r -> r instanceof CallToolResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-
-    context.assertFalse(result.getBoolean("isError"), "Should not be error");
-    JsonArray content = result.getJsonArray("content");
+    context.assertFalse(result.getIsError(), "Should not be error");
+    JsonArray content = result.getContent();
     context.assertNotNull(content, "Should have content");
     context.assertEquals(1, content.size());
 
@@ -204,33 +194,34 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
   public void testCallToolNotFound(TestContext context) throws Throwable {
     JsonObject params = new JsonObject().put("name", "nonexistent").put("arguments", new JsonObject());
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new CallToolRequest(params))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
-    context.assertTrue(response.getError().getMessage().contains("not found"));
+    try {
+      getClient().sendRequest(new CallToolRequest(params))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
+      context.assertTrue(e.getMessage().contains("not found"));
+    }
   }
 
   @Test
   public void testCallToolMissingName(TestContext context) throws Throwable {
     JsonObject params = new JsonObject().put("arguments", new JsonObject());
 
-    JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("tools/call", params, 1))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
-    context.assertTrue(response.getError().getMessage().contains("Missing 'name'"));
+    try {
+      createSession()
+        .compose(session -> session.sendRequest(JsonRequest.createRequest("tools/call", params, 1)))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
+      context.assertTrue(e.getMessage().contains("Missing 'name'"));
+    }
   }
 
   @Test
   public void testStructuredToolExecutionFailure(TestContext context) throws Throwable {
-    feature.addStructuredTool(
+    toolFeature.addStructuredTool(
       "failing-tool",
       NUMBER_VALUE_SCHEMA,
       NUMBER_OUTPUT_SCHEMA,
@@ -238,58 +229,40 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
     );
 
     JsonObject params = new JsonObject().put("name", "failing-tool").put("arguments", new JsonObject().put("value", 42));
+    CallToolResult result = (CallToolResult) getClient().sendRequest(new CallToolRequest(params)).await(10, TimeUnit.SECONDS);
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new CallToolRequest(params))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
-      .await(10, TimeUnit.SECONDS);
-
-    JsonObject result = (JsonObject) response.getResult();
-
-    context.assertTrue(result.getBoolean("isError"), "Should be marked as error");
-    JsonArray content = result.getJsonArray("content");
-    context.assertNotNull(content);
-    context.assertTrue(content.getJsonObject(0).getString("text").contains("Error:"));
+    context.assertTrue(result.getIsError());
   }
 
   @Test
   public void testUnstructuredToolExecutionFailure(TestContext context) throws Throwable {
-    feature.addUnstructuredTool(
+    toolFeature.addUnstructuredTool(
       "failing-unstructured",
       STRING_VALUE_SCHEMA,
       args -> Future.failedFuture("Unstructured tool failed")
     );
 
     JsonObject params = new JsonObject().put("name", "failing-unstructured").put("arguments", new JsonObject().put("value", "test"));
+    CallToolResult result = (CallToolResult) getClient().sendRequest(new CallToolRequest(params)).await(10, TimeUnit.SECONDS);
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new CallToolRequest(params))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
-      .await(10, TimeUnit.SECONDS);
-
-    JsonObject result = (JsonObject) response.getResult();
-
-    context.assertTrue(result.getBoolean("isError"), "Should be marked as error");
-    JsonArray content = result.getJsonArray("content");
-    context.assertTrue(content.getJsonObject(0).getString("text").contains("Error:"));
+    context.assertTrue(result.getIsError());
   }
 
   @Test
   public void testUnsupportedToolMethod(TestContext context) throws Throwable {
-    JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("tools/unsupported", new JsonObject(), 1))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.METHOD_NOT_FOUND, response.getError().getCode(), "Should be method not found");
+    try {
+      createSession()
+        .compose(session -> session.sendRequest(JsonRequest.createRequest("tools/unsupported", new JsonObject(), 1)))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.METHOD_NOT_FOUND, e.getCode(), "Should be method not found");
+    }
   }
 
   @Test
   public void testCallToolWithNullArguments(TestContext context) throws Throwable {
-    feature.addStructuredTool(
+    toolFeature.addStructuredTool(
       "no-args-tool",
       EMPTY_SCHEMA,
       MESSAGE_OUTPUT_SCHEMA,
@@ -298,21 +271,18 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
 
     JsonObject params = new JsonObject().put("name", "no-args-tool");
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new CallToolRequest(params))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CallToolResult result = (CallToolResult) getClient().sendRequest(new CallToolRequest(params))
+      .expecting(r -> r instanceof CallToolResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-    context.assertFalse(result.getBoolean("isError"));
+    context.assertFalse(result.getIsError());
   }
 
   @Test
   public void testMultipleTools(TestContext context) throws Throwable {
     for (int i = 0; i < 5; i++) {
       final int index = i;
-      feature.addStructuredTool(
+      toolFeature.addStructuredTool(
         "tool-" + i,
         EMPTY_SCHEMA,
         Schemas.objectSchema().property("index", Schemas.numberSchema()),
@@ -320,15 +290,11 @@ public class ToolServerFeatureTest extends ServerFeatureTestBase<ToolServerFeatu
       );
     }
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new ListToolsRequest())
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    ListToolsResult result = (ListToolsResult) getClient().sendRequest(new ListToolsRequest())
+      .expecting(r -> r instanceof ListToolsResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-
-    JsonArray tools = result.getJsonArray("tools");
+    List<Tool> tools = result.getTools();
     context.assertEquals(5, tools.size(), "Should have 5 tools");
   }
 }

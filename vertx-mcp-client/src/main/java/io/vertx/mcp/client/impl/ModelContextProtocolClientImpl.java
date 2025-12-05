@@ -96,7 +96,13 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
     return request(session)
       .compose(req -> req.end(request.toRequest(requestIdGenerator.incrementAndGet()))
         .compose(v -> req.response().onSuccess(resp -> {
-          resp.handler(json -> promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result"))));
+          resp.handler(json -> {
+            if (json.containsKey("error")) {
+              promise.fail(new ClientRequestException(io.vertx.mcp.common.rpc.JsonError.fromJson(json.getJsonObject("error"))));
+            } else {
+              promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result")));
+            }
+          });
           resp.exceptionHandler(promise::fail);
         }))
       )

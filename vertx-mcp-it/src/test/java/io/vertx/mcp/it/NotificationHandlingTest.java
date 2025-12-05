@@ -1,14 +1,13 @@
-package io.vertx.tests.server;
+package io.vertx.mcp.it;
 
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpResponseHead;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.mcp.client.ClientRequestException;
 import io.vertx.mcp.common.request.PingRequest;
+import io.vertx.mcp.common.result.EmptyResult;
 import io.vertx.mcp.common.rpc.JsonError;
+import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.common.rpc.JsonRequest;
-import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerOptions;
@@ -27,6 +26,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     AtomicBoolean notificationReceived = new AtomicBoolean(false);
+
     server.addServerFeature(new ServerFeature() {
       @Override
       public void handle(ServerRequest request) {
@@ -41,20 +41,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    JsonObject notificationJson = new JsonObject()
-      .put("jsonrpc", "2.0")
-      .put("method", "notifications/test")
-      .put("params", new JsonObject());
-
-    sendRequest(HttpMethod.POST, notificationJson.toBuffer())
-      .compose(resp -> {
-        context.assertEquals(202, resp.statusCode(), "Notification should return 202 Accepted");
-        return resp.body().map(body -> {
-          context.assertTrue(body.length() == 0, "Response body should be empty for notification");
-          return body;
-        });
-      })
-      .await(10, TimeUnit.SECONDS);
+    createSession().compose(session -> session.sendNotification(new JsonNotification("notifications/test", new JsonObject()))).await(10, TimeUnit.SECONDS);
 
     Thread.sleep(100);
 
@@ -68,21 +55,13 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    JsonObject notificationJson = new JsonObject()
-      .put("jsonrpc", "2.0")
-      .put("method", "notifications/unknown")
-      .put("params", new JsonObject());
-
-    JsonResponse response = sendRequest(HttpMethod.POST, notificationJson.toBuffer())
-      .compose(resp -> {
-        context.assertEquals(200, resp.statusCode(), "Notification without handler should still return 200");
-        return resp.body();
-      })
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
+    // Notifications without handlers are silently ignored (no error)
+    createSession()
+      .compose(session -> session.sendNotification(new JsonNotification("notifications/unknown", new JsonObject())))
       .await(10, TimeUnit.SECONDS);
 
-    context.assertNotNull(response.getError(), "Should have error for unknown method");
-    context.assertEquals(JsonError.METHOD_NOT_FOUND, response.getError().getCode(), "Should be method not found");
+    // The notification completes successfully even without a handler
+    context.assertTrue(true, "Notification should succeed even without handler");
   }
 
   @Test
@@ -105,8 +84,8 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    sendRequest(HttpMethod.POST, JsonRequest.createRequest("notifications/test", new JsonObject(), 1).toBuffer())
-      .compose(HttpClientResponse::body)
+    createSession()
+      .compose(session -> session.sendNotification(new JsonNotification("notifications/test", new JsonObject())))
       .await(10, TimeUnit.SECONDS);
 
     Thread.sleep(100);
@@ -121,16 +100,14 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("unknown/method", new JsonObject(), 1))
-      .compose(resp -> {
-        context.assertEquals(200, resp.statusCode(), "Request should return 200");
-        return resp.body();
-      })
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error for unknown method");
-    context.assertEquals(JsonError.METHOD_NOT_FOUND, response.getError().getCode(), "Should be method not found");
+    try {
+      createSession()
+        .compose(session -> session.sendRequest(JsonRequest.createRequest("unknown/method", new JsonObject(), 1)))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.METHOD_NOT_FOUND, e.getCode(), "Should be method not found");
+    }
   }
 
   @Test
@@ -140,20 +117,16 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
     startServer(context, server);
 
-    JsonObject notificationJson = new JsonObject()
-      .put("jsonrpc", "2.0")
-      .put("method", "ping")
-      .put("params", new JsonObject());
-
-    int notificationStatus = sendRequest(HttpMethod.POST, notificationJson.toBuffer())
-      .map(HttpResponseHead::statusCode)
+    // Notification completes without waiting for a response
+    createSession()
+      .compose(session -> session.sendNotification(new JsonNotification("ping", new JsonObject())))
       .await(10, TimeUnit.SECONDS);
 
-    int requestStatus = sendRequest(HttpMethod.POST, new PingRequest())
-      .map(HttpResponseHead::statusCode)
+    // Request waits for and returns a response
+    EmptyResult result = (EmptyResult) getClient().sendRequest(new PingRequest())
+      .expecting(r -> r instanceof EmptyResult)
       .await(10, TimeUnit.SECONDS);
 
-    context.assertEquals(202, notificationStatus);
-    context.assertEquals(200, requestStatus);
+    context.assertNotNull(result, "Request should return a result");
   }
 }

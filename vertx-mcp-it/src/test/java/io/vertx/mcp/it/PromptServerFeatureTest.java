@@ -1,23 +1,23 @@
-package io.vertx.tests.server;
+package io.vertx.mcp.it;
 
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
 import io.vertx.json.schema.common.dsl.Schemas;
+import io.vertx.mcp.client.ClientRequestException;
 import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.prompt.Prompt;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.GetPromptRequest;
 import io.vertx.mcp.common.request.ListPromptsRequest;
+import io.vertx.mcp.common.result.GetPromptResult;
 import io.vertx.mcp.common.result.ListPromptsResult;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
-import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.feature.PromptServerFeature;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -25,24 +25,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerFeature> {
+public class PromptServerFeatureTest extends HttpTransportTestBase {
 
   private static final ArraySchemaBuilder CODE_ARGUMENT_SCHEMA = Schemas.arraySchema().items(Schemas.objectSchema().requiredProperty("code", Schemas.stringSchema()));
 
-  @Override
-  protected PromptServerFeature createFeature() {
-    return new PromptServerFeature();
+  private PromptServerFeature promptFeature;
+
+  @Before
+  public void setUpFeatures(TestContext context) {
+    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
+    super.startServer(context, server);
+
+    promptFeature = new PromptServerFeature();
+    server.addServerFeature(promptFeature);
   }
 
   @Test
   public void testListPromptsEmpty(TestContext context) throws Throwable {
-    JsonResponse response = sendRequest(HttpMethod.POST, new ListPromptsRequest())
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    ListPromptsResult result = (ListPromptsResult) getClient().sendRequest(new ListPromptsRequest())
+      .expecting(r -> r instanceof ListPromptsResult)
       .await(10, TimeUnit.SECONDS);
-
-    ListPromptsResult result = new ListPromptsResult((JsonObject) response.getResult());
 
     context.assertNotNull(result.getPrompts(), "Should have prompts array");
     context.assertEquals(0, result.getPrompts().size(), "Should be empty");
@@ -50,7 +52,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testListPromptsWithPrompts(TestContext context) throws Throwable {
-    feature.addPrompt(
+    promptFeature.addPrompt(
       "code_review",
       "Code Review",
       "Reviews code and suggests improvements",
@@ -65,7 +67,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       }
     );
 
-    feature.addPrompt(
+    promptFeature.addPrompt(
       "explain_code",
       "Explain Code",
       "Explains what code does",
@@ -80,13 +82,9 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       }
     );
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new ListPromptsRequest())
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    ListPromptsResult result = (ListPromptsResult) getClient().sendRequest(new ListPromptsRequest())
+      .expecting(r -> r instanceof ListPromptsResult)
       .await(10, TimeUnit.SECONDS);
-
-    ListPromptsResult result = new ListPromptsResult((JsonObject) response.getResult());
 
     context.assertNotNull(result.getPrompts(), "Should have prompts list");
     context.assertEquals(2, result.getPrompts().size(), "Should have 2 prompts");
@@ -104,7 +102,7 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testGetPrompt(TestContext context) throws Throwable {
-    feature.addPrompt(
+    promptFeature.addPrompt(
       "code_review",
       "Code Review",
       "Reviews code and suggests improvements",
@@ -122,26 +120,22 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       }
     );
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(
+    GetPromptResult result = (GetPromptResult) getClient().sendRequest(new GetPromptRequest(
       new JsonObject().put("name", "code_review").put("arguments", new JsonObject().put("code", "def hello():\n    print('world')")))
     )
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+      .expecting(r -> r instanceof GetPromptResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
+    context.assertEquals("Reviews code and suggests improvements", result.getDescription());
 
-    context.assertEquals("Reviews code and suggests improvements", result.getString("description"));
-
-    JsonArray messages = result.getJsonArray("messages");
-    context.assertNotNull(messages, "Should have messages array");
+    List<PromptMessage> messages = result.getMessages();
+    context.assertNotNull(messages, "Should have messages list");
     context.assertEquals(1, messages.size(), "Should have 1 message");
 
-    JsonObject message = messages.getJsonObject(0);
-    context.assertEquals("user", message.getString("role"));
+    PromptMessage message = messages.get(0);
+    context.assertEquals("user", message.getRole());
 
-    JsonObject content = message.getJsonObject("content");
+    JsonObject content = message.getContent();
     context.assertNotNull(content, "Should have content object");
     context.assertEquals("text", content.getString("type"));
     context.assertTrue(content.getString("text").contains("def hello()"));
@@ -149,31 +143,32 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
 
   @Test
   public void testGetPromptNotFound(TestContext context) throws Throwable {
-    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "nonexistent")))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
-    context.assertTrue(response.getError().getMessage().contains("not found"));
+    try {
+      getClient().sendRequest(new GetPromptRequest(new JsonObject().put("name", "nonexistent")))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
+      context.assertTrue(e.getMessage().contains("not found"));
+    }
   }
 
   @Test
   public void testGetPromptMissingName(TestContext context) throws Throwable {
-    JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/get", new JsonObject(), 1))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
-    context.assertTrue(response.getError().getMessage().contains("Missing 'name'"));
+    try {
+      createSession()
+        .compose(session -> session.sendRequest(JsonRequest.createRequest("prompts/get", new JsonObject(), 1)))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
+      context.assertTrue(e.getMessage().contains("Missing 'name'"));
+    }
   }
 
   @Test
   public void testPromptHandlerFailure(TestContext context) throws Throwable {
-    feature.addPrompt(
+    promptFeature.addPrompt(
       "failing_prompt",
       "Failing Prompt",
       "A prompt that fails",
@@ -181,19 +176,19 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       args -> Future.failedFuture("Prompt generation failed")
     );
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "failing_prompt")))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INTERNAL_ERROR, response.getError().getCode(), "Should be internal error");
-    context.assertTrue(response.getError().getMessage().contains("failed"));
+    try {
+      getClient().sendRequest(new GetPromptRequest(new JsonObject().put("name", "failing_prompt")))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INTERNAL_ERROR, e.getCode(), "Should be internal error");
+      context.assertTrue(e.getMessage().contains("failed"));
+    }
   }
 
   @Test
   public void testGetPromptWithMultipleMessages(TestContext context) throws Throwable {
-    feature.addPrompt(
+    promptFeature.addPrompt(
       "conversation",
       "Conversation",
       "A multi-turn conversation prompt",
@@ -209,31 +204,28 @@ public class PromptServerFeatureTest extends ServerFeatureTestBase<PromptServerF
       }
     );
 
-    JsonResponse response = sendRequest(HttpMethod.POST, new GetPromptRequest(new JsonObject().put("name", "conversation")))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    GetPromptResult result = (GetPromptResult) getClient().sendRequest(new GetPromptRequest(new JsonObject().put("name", "conversation")))
+      .expecting(r -> r instanceof GetPromptResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-
-    JsonArray messages = result.getJsonArray("messages");
-    context.assertNotNull(messages, "Should have messages array");
+    List<PromptMessage> messages = result.getMessages();
+    context.assertNotNull(messages, "Should have messages list");
     context.assertEquals(3, messages.size(), "Should have 3 messages");
 
-    context.assertEquals("user", messages.getJsonObject(0).getString("role"));
-    context.assertEquals("assistant", messages.getJsonObject(1).getString("role"));
-    context.assertEquals("user", messages.getJsonObject(2).getString("role"));
+    context.assertEquals("user", messages.get(0).getRole());
+    context.assertEquals("assistant", messages.get(1).getRole());
+    context.assertEquals("user", messages.get(2).getRole());
   }
 
   @Test
   public void testUnsupportedPromptMethod(TestContext context) throws Throwable {
-    JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("prompts/unsupported", new JsonObject(), 1))
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.METHOD_NOT_FOUND, response.getError().getCode(), "Should be method not found");
+    try {
+      createSession()
+        .compose(session -> session.sendRequest(JsonRequest.createRequest("prompts/unsupported", new JsonObject(), 1)))
+        .await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.METHOD_NOT_FOUND, e.getCode(), "Should be method not found");
+    }
   }
 }

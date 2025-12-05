@@ -11,6 +11,7 @@
     <module>vertx-mcp-common</module>
     <module>vertx-mcp-server</module>
     <module>vertx-mcp-client</module>
+    <module>vertx-mcp-it</module>
     <module>vertx-mcp-demo</module>
     <module>vertx-mcp-docs</module>
   </modules>

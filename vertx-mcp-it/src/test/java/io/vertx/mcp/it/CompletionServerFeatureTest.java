@@ -1,12 +1,9 @@
-package io.vertx.tests.server;
+package io.vertx.mcp.it;
 
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.json.schema.common.dsl.Schemas;
+import io.vertx.mcp.client.ClientRequestException;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.completion.CompletionArgument;
 import io.vertx.mcp.common.completion.CompletionContext;
@@ -15,8 +12,8 @@ import io.vertx.mcp.common.content.TextContent;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.CompleteRequest;
 import io.vertx.mcp.common.resources.TextResourceContent;
+import io.vertx.mcp.common.result.CompleteResult;
 import io.vertx.mcp.common.rpc.JsonError;
-import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.feature.CompletionServerFeature;
@@ -47,9 +44,9 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
     promptFeature = new PromptServerFeature();
     resourceFeature = new ResourceServerFeature();
 
-    mcpServer.addServerFeature(completionFeature);
-    mcpServer.addServerFeature(promptFeature);
-    mcpServer.addServerFeature(resourceFeature);
+    server.addServerFeature(completionFeature);
+    server.addServerFeature(promptFeature);
+    server.addServerFeature(resourceFeature);
   }
 
   @Test
@@ -85,19 +82,14 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
         .setName("language")
         .setValue("ja"));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CompleteResult response = (CompleteResult) getClient().sendRequest(request)
+      .expecting(result -> result instanceof CompleteResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-    context.assertNotNull(result, "Should have result");
-
-    JsonObject completion = result.getJsonObject("completion");
+    Completion completion = response.getCompletion();
     context.assertNotNull(completion, "Should have completion");
 
-    JsonArray values = completion.getJsonArray("values");
+    List<String> values = completion.getValues();
     context.assertNotNull(values, "Should have values");
     context.assertEquals(2, values.size(), "Should have 2 matches (java, javascript)");
     context.assertTrue(values.contains("java"));
@@ -139,20 +131,19 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
       .setRef(CompletionReference.resourceRef("resource://user/{id}"))
       .setArgument(new CompletionArgument().setName("id").setValue("user"));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CompleteResult response = (CompleteResult) getClient().sendRequest(request)
+      .expecting(result -> result instanceof CompleteResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-
-    JsonObject completion = result.getJsonObject("completion");
+    Completion completion = response.getCompletion();
     context.assertNotNull(completion, "Should have completion");
 
-    JsonArray values = completion.getJsonArray("values");
+    List<String> values = completion.getValues();
     context.assertNotNull(values, "Should have values");
     context.assertEquals(3, values.size(), "Should have 3 user matches");
+    context.assertTrue(values.contains("user-1"));
+    context.assertTrue(values.contains("user-2"));
+    context.assertTrue(values.contains("user-3"));
   }
 
   @Test
@@ -163,18 +154,14 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
         .setName("arg")
         .setValue(""));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CompleteResult response = (CompleteResult) getClient().sendRequest(request)
+      .expecting(result -> result instanceof CompleteResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
-
-    JsonObject completion = result.getJsonObject("completion");
+    Completion completion = response.getCompletion();
     context.assertNotNull(completion, "Should have completion");
 
-    JsonArray values = completion.getJsonArray("values");
+    List<String> values = completion.getValues();
     context.assertNotNull(values, "Should have values");
     context.assertEquals(0, values.size(), "Should be empty");
   }
@@ -186,14 +173,13 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
         .setName("arg")
         .setValue(""));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
-    context.assertTrue(response.getError().getMessage().contains("ref"));
+    try {
+      getClient().sendRequest(request).await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
+      context.assertTrue(e.getMessage().contains("ref"));
+    }
   }
 
   @Test
@@ -201,14 +187,13 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
     CompleteRequest request = new CompleteRequest()
       .setRef(CompletionReference.promptRef("test"));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
-    context.assertTrue(response.getError().getMessage().contains("argument"));
+    try {
+      getClient().sendRequest(request).await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
+      context.assertTrue(e.getMessage().contains("argument"));
+    }
   }
 
   @Test
@@ -221,14 +206,13 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
         .setName("arg")
         .setValue(""));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .await(10, TimeUnit.SECONDS);
-
-    context.assertNotNull(response.getError(), "Should have error");
-    context.assertEquals(JsonError.INVALID_PARAMS, response.getError().getCode(), "Should be invalid params");
-    context.assertTrue(response.getError().getMessage().contains("Unknown reference type"));
+    try {
+      getClient().sendRequest(request).await(10, TimeUnit.SECONDS);
+      context.fail("Should have thrown ClientRequestException");
+    } catch (ClientRequestException e) {
+      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
+      context.assertTrue(e.getMessage().contains("Unknown reference type"));
+    }
   }
 
   @Test
@@ -286,16 +270,15 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
       .setContext(new CompletionContext()
         .setArguments(Map.of("category", "fruit")));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CompleteResult response = (CompleteResult) getClient().sendRequest(request)
+      .expecting(result -> result instanceof CompleteResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
+    Completion completion = response.getCompletion();
+    context.assertNotNull(completion, "Should have completion");
 
-    JsonObject completion = result.getJsonObject("completion");
-    JsonArray values = completion.getJsonArray("values");
+    List<String> values = completion.getValues();
+    context.assertNotNull(values, "Should have values");
     context.assertEquals(3, values.size(), "Should have 3 fruit items");
     context.assertTrue(values.contains("apple"));
     context.assertTrue(values.contains("banana"));
@@ -324,16 +307,15 @@ public class CompletionServerFeatureTest extends HttpTransportTestBase {
         .setName("arg")
         .setValue(""));
 
-    JsonResponse response = sendRequest(HttpMethod.POST, request)
-      .compose(HttpClientResponse::body)
-      .map(body -> JsonResponse.fromJson(body.toJsonObject()))
-      .expecting(JsonResponse::isSuccess)
+    CompleteResult response = (CompleteResult) getClient().sendRequest(request)
+      .expecting(result -> result instanceof CompleteResult)
       .await(10, TimeUnit.SECONDS);
 
-    JsonObject result = (JsonObject) response.getResult();
+    Completion completion = response.getCompletion();
+    context.assertNotNull(completion, "Should have completion");
 
-    JsonObject completion = result.getJsonObject("completion");
-    JsonArray values = completion.getJsonArray("values");
+    List<String> values = completion.getValues();
+    context.assertNotNull(values, "Should have values");
     context.assertEquals(0, values.size(), "Should be empty when no handler");
   }
 }

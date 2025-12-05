@@ -1,35 +1,54 @@
 package io.vertx.mcp.client.transport.http;
 
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Timer;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.StreamResetException;
+import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.internal.PromiseInternal;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.mcp.client.ClientRequest;
 import io.vertx.mcp.client.ClientResponse;
 import io.vertx.mcp.client.ClientSession;
+import io.vertx.mcp.client.MessageWriteStream;
 import io.vertx.mcp.common.rpc.JsonRequest;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class StreamableHttpClientRequest extends MessageWriteStreamBase<StreamableHttpClientRequest> implements ClientRequest {
+public class StreamableHttpClientRequest implements MessageWriteStream, ClientRequest {
 
+  private final ContextInternal context;
+  private final WriteStream<Buffer> writeStream;
   private final HttpClientRequest httpRequest;
   private final boolean scheduleDeadline;
+  private final ClientSession session;
+
   private Future<ClientResponse> response;
   private long timeout;
   private TimeUnit timeoutUnit;
   private String timeoutHeader;
   private Timer deadline;
 
-  private final ClientSession session;
+  private String mediaType;
+  private String encoding;
+  private boolean headersSent;
+  private boolean trailersSent;
+  private boolean cancelled;
+
+  private MultiMap headers;
+  private MultiMap trailers;
+
+  private Handler<Throwable> exceptionHandler;
 
   public StreamableHttpClientRequest(HttpClientRequest httpRequest, long maxMessageSize, boolean scheduleDeadline, ClientSession session) {
-    super(((PromiseInternal<?>) httpRequest.response()).context(), httpRequest);
+    this.context = (ContextInternal) ((PromiseInternal<?>) httpRequest.response()).context();
+    this.writeStream = httpRequest;
     this.httpRequest = httpRequest;
     this.session = session;
     this.scheduleDeadline = scheduleDeadline;
@@ -65,6 +84,14 @@ public class StreamableHttpClientRequest extends MessageWriteStreamBase<Streamab
       });
   }
 
+  public void init() {
+    writeStream.exceptionHandler(err -> {
+      if (err instanceof StreamResetException) {
+      }
+      handleException(err);
+    });
+  }
+
   @Override
   public String path() {
     return httpRequest.path();
@@ -85,13 +112,106 @@ public class StreamableHttpClientRequest extends MessageWriteStreamBase<Streamab
     return this.endMessage(request.toJson());
   }
 
-  @Override
-  protected Future<Void> sendHead() {
-    return httpRequest.sendHead();
+  private void handleException(Throwable err) {
+    Handler<Throwable> handler = exceptionHandler;
+    if (handler != null) {
+      handler.handle(err);
+    }
   }
 
   @Override
-  protected void setHeaders(MultiMap headers) {
+  public boolean isCancelled() {
+    return cancelled;
+  }
+
+  @Override
+  public void cancel() {
+    if (!cancelled) {
+      cancelled = sendCancel();
+    }
+  }
+
+  public final ContextInternal context() {
+    return context;
+  }
+
+  public boolean isHeadersSent() {
+    return headersSent;
+  }
+
+  public boolean isTrailersSent() {
+    return trailersSent;
+  }
+
+  @Override
+  public final MultiMap headers() {
+    if (headersSent) {
+      throw new IllegalStateException("Headers already sent");
+    }
+    if (headers == null) {
+      headers = MultiMap.caseInsensitiveMultiMap();
+    }
+    return headers;
+  }
+
+  public final MultiMap trailers() {
+    if (trailersSent) {
+      throw new IllegalStateException("Trailers already sent");
+    }
+    if (trailers == null) {
+      trailers = MultiMap.caseInsensitiveMultiMap();
+    }
+    return trailers;
+  }
+
+  @Override
+  public final boolean writeQueueFull() {
+    return writeStream.writeQueueFull();
+  }
+
+  @Override
+  public final StreamableHttpClientRequest drainHandler(Handler<Void> handler) {
+    writeStream.drainHandler(handler);
+    return this;
+  }
+
+  @Override
+  public final StreamableHttpClientRequest exceptionHandler(Handler<Throwable> handler) {
+    exceptionHandler = handler;
+    return this;
+  }
+
+  @Override
+  public StreamableHttpClientRequest setWriteQueueMaxSize(int maxSize) {
+    writeStream.setWriteQueueMaxSize(maxSize);
+    return this;
+  }
+
+  @Override
+  public final Future<Void> write(JsonObject message) {
+    return writeMessage(message);
+  }
+
+  @Override
+  public final Future<Void> end(JsonObject message) {
+    return endMessage(message);
+  }
+
+  @Override
+  public final Future<Void> writeMessage(JsonObject data) {
+    return writeMessage(data, false);
+  }
+
+  @Override
+  public final Future<Void> endMessage(JsonObject message) {
+    return writeMessage(message, true);
+  }
+
+  public final Future<Void> end() {
+    return writeMessage(null, true);
+  }
+
+  private void setHeaders(MultiMap headers) {
     if (headers != null) {
       MultiMap requestHeaders = httpRequest.headers();
       for (Map.Entry<String, String> header : headers) {
@@ -146,19 +266,55 @@ public class StreamableHttpClientRequest extends MessageWriteStreamBase<Streamab
     }*/
   }
 
-  @Override
-  protected void setTrailers(MultiMap trailers) {
+  private void setTrailers(MultiMap trailers) {
   }
 
-  @Override
-  protected Future<Void> sendMessage(Buffer message) {
+  private Future<Void> sendMessage(Buffer message) {
     httpRequest.putHeader(HttpHeaders.CONTENT_LENGTH, Integer.toString(message.length()));
     return httpRequest.write(message);
   }
 
-  @Override
-  protected Future<Void> sendEnd() {
+  Future<Void> sendEnd() {
     return httpRequest.end();
+  }
+
+  private Future<Void> sendHead() {
+    return httpRequest.sendHead();
+  }
+
+  private boolean sendCancel() {
+    httpRequest
+      .reset();
+    return true;
+  }
+
+  public final Future<Void> writeHead() {
+    return writeMessage(null, false);
+  }
+
+  private Future<Void> writeMessage(JsonObject message, boolean end) {
+    if (trailersSent) {
+      throw new IllegalStateException("The stream has been closed");
+    }
+
+    if (!headersSent) {
+      headersSent = true;
+      setHeaders(headers);
+    }
+    if (end) {
+      trailersSent = true;
+      if (message != null) {
+        sendMessage(message.toBuffer());
+      }
+      setTrailers(trailers);
+      return sendEnd();
+    } else {
+      if (message != null) {
+        return sendMessage(message.toBuffer());
+      } else {
+        return sendHead();
+      }
+    }
   }
 
   void cancelTimeout() {
@@ -171,14 +327,6 @@ public class StreamableHttpClientRequest extends MessageWriteStreamBase<Streamab
   @Override
   public Future<ClientResponse> response() {
     return response;
-  }
-
-  @Override
-  protected boolean sendCancel() {
-    httpRequest
-      .reset();
-    //.onSuccess(v -> handleError(GrpcError.CANCELLED));
-    return true;
   }
 }
 

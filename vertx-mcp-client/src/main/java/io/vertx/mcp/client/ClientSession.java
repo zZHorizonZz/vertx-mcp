@@ -9,6 +9,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
+import io.vertx.mcp.common.rpc.JsonNotification;
+import io.vertx.mcp.common.rpc.JsonRequest;
+import io.vertx.mcp.common.rpc.JsonResponse;
 
 /**
  * Represents a session between the client and server. Sessions are used to manage SSE (Server-Sent Events) connections and streaming state.
@@ -48,7 +51,9 @@ public interface ClientSession extends Handler<JsonObject>, Closeable {
    * @param request the sendRequest to send
    * @return a future that completes with the result
    */
-  Future<JsonObject> sendRequest(Request request);
+  Future<JsonResponse> sendRequest(Request request);
+
+  Future<JsonResponse> sendRequest(JsonRequest request);
 
   /**
    * Sends a notification to the server. This method is typically used to deliver an asynchronous notification without expecting any response from the server.
@@ -57,6 +62,8 @@ public interface ClientSession extends Handler<JsonObject>, Closeable {
    * @return a future that completes when the notification has been sent successfully
    */
   Future<Void> sendNotification(Notification notification);
+
+  Future<Void> sendNotification(JsonNotification notification);
 
   /**
    * Checks if the session is currently in a streaming state.

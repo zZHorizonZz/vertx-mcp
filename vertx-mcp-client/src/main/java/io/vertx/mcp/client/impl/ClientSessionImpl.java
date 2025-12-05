@@ -5,7 +5,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
-import io.vertx.core.streams.WriteStream;
 import io.vertx.mcp.client.ClientFeature;
 import io.vertx.mcp.client.ClientNotificationHandler;
 import io.vertx.mcp.client.ClientSession;
@@ -14,7 +13,9 @@ import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.rpc.JsonCodec;
+import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.common.rpc.JsonRequest;
+import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -73,8 +74,6 @@ public class ClientSessionImpl implements ClientSession {
       notificationHandler.get().handle(JsonCodec.decodeNotification(method, request.getJsonObject("params")));
       return;
     }
-
-    throw new IllegalArgumentException("No handler found for method: " + method);
   }
 
   @Override
@@ -88,25 +87,45 @@ public class ClientSessionImpl implements ClientSession {
   }
 
   @Override
-  public Future<JsonObject> sendRequest(Request request) {
+  public Future<JsonResponse> sendRequest(Request request) {
+    return this.sendRequest(request.toRequest(requestCount.incrementAndGet()));
+  }
+
+  @Override
+  public Future<JsonResponse> sendRequest(JsonRequest request) {
     if (!active.get()) {
       return Future.failedFuture("Session is not active");
     }
 
-    Promise<JsonObject> promise = Promise.promise();
+    Promise<JsonResponse> promise = Promise.promise();
 
-    return transport.request(this).compose(req -> req.end(request.toRequest(requestCount.incrementAndGet())).compose(v -> req.response())
-      .onSuccess(resp -> resp.handler(promise::complete).exceptionHandler(promise::fail))
+    return transport.request(this).compose(req -> req.end(request).compose(v -> req.response())
+      .onSuccess(resp -> resp
+        .handler(response -> {
+          JsonResponse jsonResponse = JsonResponse.fromJson(response);
+          if (jsonResponse.getError() != null) {
+            promise.fail(new io.vertx.mcp.client.ClientRequestException(jsonResponse.getError()));
+          } else {
+            promise.complete(jsonResponse);
+          }
+        })
+        .exceptionHandler(promise::fail)
+      )
       .compose(v -> promise.future()));
   }
 
   @Override
   public Future<Void> sendNotification(Notification notification) {
+    return sendNotification(notification.toNotification());
+  }
+
+  @Override
+  public Future<Void> sendNotification(JsonNotification notification) {
     if (!active.get()) {
       return Future.failedFuture("Session is not active");
     }
 
-    return transport.request(this).compose(req -> req.end(notification.toNotification()).mapEmpty());
+    return transport.request(this).compose(req -> req.end(notification).mapEmpty());
   }
 
   @Override
