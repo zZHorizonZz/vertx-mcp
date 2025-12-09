@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class ElicitRequest extends Request {
 
-  private static final String METHOD = "elicitation/create";
+  public static final String METHOD = "elicitation/create";
 
   private String message;
   private JsonObject requestedSchema;

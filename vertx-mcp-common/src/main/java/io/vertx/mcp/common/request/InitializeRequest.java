@@ -11,7 +11,7 @@ import io.vertx.mcp.common.capabilities.ClientCapabilities;
 @JsonGen(publicConverter = false)
 public class InitializeRequest extends Request {
 
-  private static final String METHOD = "initialize";
+  public static final String METHOD = "initialize";
 
   private String protocolVersion;
   private ClientCapabilities capabilities;

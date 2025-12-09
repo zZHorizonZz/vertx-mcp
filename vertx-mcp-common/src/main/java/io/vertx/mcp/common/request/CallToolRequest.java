@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false, inheritConverter = true)
 public class CallToolRequest extends Request {
 
-  private static final String METHOD = "tools/call";
+  public static final String METHOD = "tools/call";
 
   private String name;
   private JsonObject arguments;

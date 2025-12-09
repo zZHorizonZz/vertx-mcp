@@ -12,7 +12,7 @@ import io.vertx.mcp.common.completion.CompletionReference;
 @JsonGen(publicConverter = false)
 public class CompleteRequest extends Request {
 
-  private static final String METHOD = "completion/complete";
+  public static final String METHOD = "completion/complete";
 
   private CompletionReference ref;
   private CompletionArgument argument;

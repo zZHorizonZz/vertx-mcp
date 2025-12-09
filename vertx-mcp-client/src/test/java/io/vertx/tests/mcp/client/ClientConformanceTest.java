@@ -10,34 +10,31 @@
  */
 package io.vertx.tests.mcp.client;
 
-import io.vertx.core.Future;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.mcp.client.ClientOptions;
-import io.vertx.mcp.client.ClientSession;
-import io.vertx.mcp.client.ClientTransport;
-import io.vertx.mcp.client.ModelContextProtocolClient;
-import io.vertx.mcp.client.transport.http.StreamableHttpClientTransport;
-import io.vertx.mcp.common.capabilities.ClientCapabilities;
-import io.vertx.mcp.common.request.CallToolRequest;
-import io.vertx.mcp.common.request.ListToolsRequest;
-import io.vertx.mcp.common.result.CallToolResult;
-import io.vertx.mcp.common.result.ListToolsResult;
 import io.vertx.tests.mcp.common.TestContainerTestBase;
 import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.ToStringConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
+import java.nio.file.Paths;
+import java.time.Duration;
 
 /**
- * Client conformance tests using Testcontainers to run MCP scenario servers.
- * Each test runs a scenario server in a container and uses the Vert.x MCP client
- * to connect and perform operations. The scenario validates client behavior.
+ * Client conformance tests using the MCP conformance framework.
  * <p>
- * Maven profile: mvn test -Pmcp-client-conformance
+ * The conformance framework runs inside a Docker container that has:
+ * - Node.js and the @modelcontextprotocol/conformance package
+ * - Java runtime and the compiled MCP client JAR
+ * - The conformance framework manages scenario servers and validates client behavior
+ * <p>
+ * Prerequisites:
+ * - Docker must be running
+ * - Maven build must have been run to compile the client JAR and dependencies
+ * <p>
+ * Usage: mvn test -Pmcp-client-conformance -Dtest=ClientConformanceTest
  */
 public class ClientConformanceTest extends TestContainerTestBase {
 
@@ -47,138 +44,120 @@ public class ClientConformanceTest extends TestContainerTestBase {
   public void setUp(TestContext context) {
     super.setUp(context);
 
-    File dockerfile = new File("src/test/resources/conformance.Dockerfile");
-    conformanceImage = new ImageFromDockerfile().withFileFromFile("Dockerfile", dockerfile);
+    System.out.println("[setup] Building conformance Docker image...");
+
+    // Get project paths
+    File resourcesDir = new File("src/test/resources");
+    File dockerfile = new File(resourcesDir, "conformance.Dockerfile");
+    File wrapperScript = new File(resourcesDir, "conformance-client-wrapper.sh");
+    File targetDir = new File("target");
+
+    // Build Docker image with all necessary files
+    conformanceImage = new ImageFromDockerfile()
+      .withFileFromFile("Dockerfile", dockerfile)
+      .withFileFromFile("conformance-client-wrapper.sh", wrapperScript)
+      .withFileFromPath("target", targetDir.toPath());
+
+    System.out.println("[setup] Docker image build configuration complete");
   }
 
   @Test
-  public void testInitialize(TestContext context) throws Throwable {
-    runScenario(context, "initialize", session -> {
-      // Just connecting triggers initialize
-      return Future.succeededFuture();
-    });
+  public void testInitialize(TestContext context) throws Exception {
+    runConformanceScenario(context, "initialize");
   }
 
   @Test
-  public void testToolsCall(TestContext context) throws Throwable {
-    runScenario(context, "tools-call", session -> {
-      // List tools
-      return session.sendRequest(new ListToolsRequest())
-        .expecting(r -> r instanceof ListToolsResult)
-        .compose(result -> {
-          ListToolsResult listResult = (ListToolsResult) result;
-          System.out.println("[client] Found " + listResult.getTools().size() + " tools");
-
-          // Call the add_numbers tool
-          JsonObject callParams = new JsonObject()
-            .put("name", "add_numbers")
-            .put("arguments", new JsonObject()
-              .put("a", 5)
-              .put("b", 7));
-
-          return session.sendRequest(new CallToolRequest(callParams))
-            .expecting(r -> r instanceof CallToolResult);
-        })
-        .compose(result -> {
-          CallToolResult callResult = (CallToolResult) result;
-          System.out.println("[client] Tool call completed: " + callResult.getContent());
-          return Future.succeededFuture();
-        });
-    });
+  public void testToolsCall(TestContext context) throws Exception {
+    runConformanceScenario(context, "tools-call");
   }
 
-  private void runScenario(TestContext context, String scenario, ClientAction action) throws Throwable {
-    System.out.println("[test] Running scenario: " + scenario);
+  /**
+   * Runs a conformance test scenario in a Docker container.
+   * The container runs the conformance framework which validates the client behavior.
+   */
+  private void runConformanceScenario(TestContext context, String scenario) throws Exception {
+    System.out.println("\n" + "=".repeat(80));
+    System.out.println("Running conformance test for scenario: " + scenario);
+    System.out.println("=".repeat(80) + "\n");
 
     ToStringConsumer logConsumer = new ToStringConsumer();
 
     try (GenericContainer<?> container = new GenericContainer<>(conformanceImage)) {
       container
         .withEnv("SCENARIO", scenario)
-        .withExposedPorts(3000)
-        .withLogConsumer(logConsumer);
+        .withLogConsumer(logConsumer)
+        .withStartupCheckStrategy(new org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy()
+          .withTimeout(Duration.ofMinutes(5)));
 
-      container.start();
+      System.out.println("[test] Starting conformance container...");
 
-      int port = container.getMappedPort(3000);
-      String serverUrl = "http://localhost:" + port;
-
-      System.out.println("[test] Scenario server running at: " + serverUrl);
-
-      // Wait a bit for scenario server to be ready
-      Thread.sleep(2000);
-
-      // Create and connect client
-      ClientOptions options = new ClientOptions()
-        .setClientName("mcp-client-conformance-test")
-        .setClientVersion("1.0.0")
-        .setStreamingEnabled(false);
-
-      ClientTransport transport = new StreamableHttpClientTransport(vertx, serverUrl, options);
-      ModelContextProtocolClient client = ModelContextProtocolClient.create(vertx, transport, options);
-
-      System.out.println("[test] Connecting client...");
-      ClientSession session = client.connect(new ClientCapabilities())
-        .await(10, TimeUnit.SECONDS);
-
-      System.out.println("[test] Client connected, executing scenario actions...");
-
-      // Execute scenario-specific actions
-      action.execute(session).await(30, TimeUnit.SECONDS);
-
-      System.out.println("[test] Scenario actions completed");
-
-      // Wait a bit for scenario to finalize checks
-      Thread.sleep(1000);
-
-      // Stop container and get output
-      container.stop();
-
-      String output = logConsumer.toUtf8String();
-      System.out.println("[test] Scenario output:\n" + output);
-
-      // Parse and validate output
-      validateOutput(context, scenario, output);
-
-      System.out.println("[test] Scenario completed: " + scenario);
-    }
-  }
-
-  private void validateOutput(TestContext context, String scenario, String output) {
-    System.out.println("\n[" + scenario + "] Validating conformance output:");
-    System.out.println("=".repeat(60));
-
-    // Count passed and failed from output
-    int passedCount = 0;
-    int failedCount = 0;
-
-    // Look for check results in output
-    // The conformance framework outputs results - parse them
-    String[] lines = output.split("\n");
-    for (String line : lines) {
-      if (line.contains("SUCCESS") || line.contains("✓") || line.contains("PASS")) {
-        passedCount++;
-        System.out.println("[SUCCESS] " + line);
-      } else if (line.contains("FAILURE") || line.contains("✗") || line.contains("FAIL")) {
-        failedCount++;
-        System.err.println("[FAILURE] " + line);
+      Integer exitCode = null;
+      try {
+        container.start();
+        exitCode = 0;
+      } catch (Exception e) {
+        // Container may exit with non-zero for conformance failures
+        System.out.println("[test] Container exited (possibly with non-zero): " + e.getMessage());
       }
-    }
 
-    System.out.println("=".repeat(60));
-    System.out.println("Results: " + passedCount + " passed, " + failedCount + " failed\n");
+      // Get output
+      String output = logConsumer.toUtf8String();
+      System.out.println("\n[test] Container output:");
+      System.out.println(output);
 
-    if (failedCount > 0) {
-      context.fail("Scenario '" + scenario + "' had " + failedCount + " failures. See output above.");
-    }
+      // Try to get actual exit code if available
+      try {
+        Integer actualExitCode = container.getCurrentContainerInfo().getState().getExitCode();
+        if (actualExitCode != null) {
+          exitCode = actualExitCode;
+        }
+      } catch (Exception e) {
+        System.out.println("[test] Could not retrieve exit code: " + e.getMessage());
+      }
 
-    if (passedCount == 0 && failedCount == 0) {
-      System.out.println("Warning: Could not parse conformance results from output");
+      System.out.println("[test] Container finished with exit code: " + exitCode);
+
+      // Validate results
+      validateConformanceOutput(context, scenario, output, exitCode);
+
+      System.out.println("\n" + "=".repeat(80));
+      System.out.println("Scenario '" + scenario + "' completed");
+      System.out.println("=".repeat(80) + "\n");
     }
   }
 
-  @FunctionalInterface
-  private interface ClientAction {
-    Future<Void> execute(ClientSession session);
+  /**
+   * Validates the conformance test output.
+   * The conformance framework returns exit code 0 for success, non-zero for failure.
+   */
+  private void validateConformanceOutput(TestContext context, String scenario, String output, Integer exitCode) {
+    System.out.println("\n[validation] Analyzing conformance results:");
+
+    // Count checks in output
+    int passedCount = countOccurrences(output, "✓");
+    int failedCount = countOccurrences(output, "✗");
+
+    System.out.println("[validation] Passed checks: " + passedCount);
+    System.out.println("[validation] Failed checks: " + failedCount);
+    System.out.println("[validation] Exit code: " + exitCode);
+
+    // Exit code 0 means all conformance checks passed
+    if (exitCode == null || exitCode != 0) {
+      context.fail("Conformance test failed for scenario '" + scenario +
+                   "' with exit code " + exitCode +
+                   " (" + failedCount + " failed checks). See output above.");
+    }
+
+    System.out.println("[validation] ✓ All conformance checks passed");
+  }
+
+  private int countOccurrences(String str, String sub) {
+    int count = 0;
+    int idx = 0;
+    while ((idx = str.indexOf(sub, idx)) != -1) {
+      count++;
+      idx += sub.length();
+    }
+    return count;
   }
 }

@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class GetPromptRequest extends Request {
 
-  private static final String METHOD = "prompts/get";
+  public static final String METHOD = "prompts/get";
 
   private String name;
   private JsonObject arguments;

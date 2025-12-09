@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 @JsonGen(publicConverter = false)
 public class CancelledNotification extends Notification {
 
-  private static final String METHOD = "notifications/cancelled";
+  public static final String METHOD = "notifications/cancelled";
 
   private String requestId;
   private String reason;

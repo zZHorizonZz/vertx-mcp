@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class ListRootsRequest extends Request {
 
-  private static final String METHOD = "roots/list";
+  public static final String METHOD = "roots/list";
 
   public ListRootsRequest() {
     super(METHOD, null);

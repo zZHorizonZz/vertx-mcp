@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class ListResourceTemplatesRequest extends PaginatedRequest {
 
-  private static final String METHOD = "resources/templates/list";
+  public static final String METHOD = "resources/templates/list";
 
   public ListResourceTemplatesRequest() {
     super(METHOD, null);

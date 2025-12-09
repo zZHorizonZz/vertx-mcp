@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class UnsubscribeRequest extends Request {
 
-  private static final String METHOD = "resources/unsubscribe";
+  public static final String METHOD = "resources/unsubscribe";
 
   private String uri;
 

@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 @JsonGen(publicConverter = false)
 public class PromptListChangedNotification extends Notification {
 
-  private static final String METHOD = "notifications/prompts/list_changed";
+  public static final String METHOD = "notifications/prompts/list_changed";
 
   public PromptListChangedNotification() {
     super(METHOD, null);

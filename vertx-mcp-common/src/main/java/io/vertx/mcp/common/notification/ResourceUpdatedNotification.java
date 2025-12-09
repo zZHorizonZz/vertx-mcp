@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 @JsonGen(publicConverter = false)
 public class ResourceUpdatedNotification extends Notification {
 
-  private static final String METHOD = "notifications/resources/updated";
+  public static final String METHOD = "notifications/resources/updated";
 
   private String uri;
 

@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class ListPromptsRequest extends PaginatedRequest {
 
-  private static final String METHOD = "prompts/list";
+  public static final String METHOD = "prompts/list";
 
   public ListPromptsRequest() {
     super(METHOD, null);

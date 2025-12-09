@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 @JsonGen(publicConverter = false)
 public class InitializedNotification extends Notification {
 
-  private static final String METHOD = "notifications/initialized";
+  public static final String METHOD = "notifications/initialized";
 
   public InitializedNotification() {
     super(METHOD, null);

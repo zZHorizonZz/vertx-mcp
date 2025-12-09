@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 @JsonGen(publicConverter = false)
 public class RootsListChangedNotification extends Notification {
 
-  private static final String METHOD = "notifications/roots/list_changed";
+  public static final String METHOD = "notifications/roots/list_changed";
 
   public RootsListChangedNotification() {
     super(METHOD, null);

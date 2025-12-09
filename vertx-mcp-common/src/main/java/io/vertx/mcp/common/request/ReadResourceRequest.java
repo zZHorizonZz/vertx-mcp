@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class ReadResourceRequest extends Request {
 
-  private static final String METHOD = "resources/read";
+  public static final String METHOD = "resources/read";
 
   private String uri;
 

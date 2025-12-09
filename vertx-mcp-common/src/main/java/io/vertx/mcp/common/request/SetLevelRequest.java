@@ -11,7 +11,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class SetLevelRequest extends Request {
 
-  private static final String METHOD = "logging/setLevel";
+  public static final String METHOD = "logging/setLevel";
 
   private LoggingLevel level;
 

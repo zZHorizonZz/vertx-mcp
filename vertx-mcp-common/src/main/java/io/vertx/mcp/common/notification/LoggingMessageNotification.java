@@ -10,7 +10,7 @@ import io.vertx.mcp.common.LoggingLevel;
 @JsonGen(publicConverter = false)
 public class LoggingMessageNotification extends Notification {
 
-  private static final String METHOD = "notifications/message";
+  public static final String METHOD = "notifications/message";
 
   private LoggingLevel level;
   private String logger;

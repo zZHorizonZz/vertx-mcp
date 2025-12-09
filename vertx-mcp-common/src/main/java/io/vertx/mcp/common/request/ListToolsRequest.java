@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class ListToolsRequest extends PaginatedRequest {
 
-  private static final String METHOD = "tools/list";
+  public static final String METHOD = "tools/list";
 
   public ListToolsRequest() {
     super(METHOD, null);

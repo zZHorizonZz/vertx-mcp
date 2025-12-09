@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 @JsonGen(publicConverter = false)
 public class ProgressNotification extends Notification {
 
-  private static final String METHOD = "notifications/progress";
+  public static final String METHOD = "notifications/progress";
 
   private String progressToken;
   private Double progress;

@@ -9,7 +9,7 @@ import io.vertx.mcp.common.Meta;
 @JsonGen(publicConverter = false)
 public class PingRequest extends Request {
 
-  private static final String METHOD = "ping";
+  public static final String METHOD = "ping";
 
   public PingRequest() {
     super(METHOD, null);

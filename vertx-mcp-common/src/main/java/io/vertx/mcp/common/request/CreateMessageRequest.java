@@ -13,7 +13,7 @@ import java.util.List;
 @JsonGen(publicConverter = false)
 public class CreateMessageRequest extends Request {
 
-  private static final String METHOD = "sampling/createMessage";
+  public static final String METHOD = "sampling/createMessage";
 
   private List<SamplingMessage> messages;
   private ModelPreferences modelPreferences;

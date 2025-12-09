@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 @JsonGen(publicConverter = false)
 public class ToolListChangedNotification extends Notification {
 
-  private static final String METHOD = "notifications/tools/list_changed";
+  public static final String METHOD = "notifications/tools/list_changed";
 
   public ToolListChangedNotification() {
     super(METHOD, null);
