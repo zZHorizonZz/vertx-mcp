@@ -29,9 +29,9 @@ import java.time.Duration;
  * <p>
  * Prerequisites: Docker must be running.
  * <p>
- * Usage: mvn test -Pmcp-conformance -Dtest=ClientConformanceTest
+ * Usage: mvn test -Pmcp-conformance -Dtest=ConformanceTest
  */
-public class ClientConformanceTest extends TestContainerTestBase {
+public class ConformanceTest extends TestContainerTestBase {
 
   private ImageFromDockerfile conformanceImage;
 
