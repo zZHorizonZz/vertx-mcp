@@ -10,6 +10,7 @@ import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
 import io.vertx.mcp.common.result.Result;
 import io.vertx.mcp.common.rpc.JsonCodec;
+import io.vertx.mcp.common.rpc.JsonError;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -98,7 +99,7 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
         .compose(v -> req.response().onSuccess(resp -> {
           resp.handler(json -> {
             if (json.containsKey("error")) {
-              promise.fail(new ClientRequestException(io.vertx.mcp.common.rpc.JsonError.fromJson(json.getJsonObject("error"))));
+              promise.fail(new ClientRequestException(JsonError.fromJson(json.getJsonObject("error"))));
             } else {
               promise.complete(JsonCodec.decodeResult(request.getMethod(), json.getJsonObject("result")));
             }
