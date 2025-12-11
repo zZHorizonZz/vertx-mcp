@@ -77,6 +77,7 @@ public class ClientConformanceTest extends TestContainerTestBase {
         container.start();
         exitCode = 0;
       } catch (Exception e) {
+        System.err.println("Failed to start container: " + e.getMessage());
         // Container may exit with non-zero for conformance failures
       }
 
