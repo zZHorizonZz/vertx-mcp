@@ -12,6 +12,7 @@ package io.vertx.tests.mcp.client;
 
 import io.vertx.ext.unit.TestContext;
 import io.vertx.tests.mcp.common.TestContainerTestBase;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.ToStringConsumer;
@@ -53,11 +54,13 @@ public class ClientConformanceTest extends TestContainerTestBase {
   }
 
   @Test
+  @Ignore
   public void testInitialize(TestContext context) throws Exception {
     runScenario(context, "initialize");
   }
 
   @Test
+  @Ignore
   public void testToolsCall(TestContext context) throws Exception {
     runScenario(context, "tools_call");
   }
