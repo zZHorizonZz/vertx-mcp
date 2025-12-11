@@ -37,7 +37,7 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
     this.vertx = vertx;
     this.transport = transport;
     this.options = options;
-    
+
     this.features.add(new ProtocolClientFeature());
   }
 
@@ -70,8 +70,8 @@ public class ModelContextProtocolClientImpl implements ModelContextProtocolClien
   }
 
   @Override
-  public Future<ClientSession> connect(ClientCapabilities capabilities) {
-    return transport.subscribe(this, capabilities);
+  public Future<ClientSession> subscribe(ClientCapabilities capabilities, ClientSession session) {
+    return transport.subscribe(this, capabilities, session);
   }
 
   @Override

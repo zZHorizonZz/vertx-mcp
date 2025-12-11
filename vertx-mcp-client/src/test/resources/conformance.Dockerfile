@@ -1,9 +1,17 @@
-# Dockerfile for running MCP client conformance tests
-# This container has both Node.js (for the conformance framework) and Java (for the client)
+FROM maven:3.9-eclipse-temurin-17 AS builder
+
+WORKDIR /build
+COPY . .
+RUN mvn install -DskipTests -q
+
+WORKDIR /conformance-client
+COPY vertx-mcp-client/src/test/resources/conformance/pom.xml .
+RUN mkdir -p src/main/java/io/vertx/tests/mcp/client
+COPY vertx-mcp-client/src/test/java/io/vertx/tests/mcp/client/ConformanceClient.java src/main/java/io/vertx/tests/mcp/client/
+RUN mvn package -q
 
 FROM eclipse-temurin:17-jdk
 
-# Install Node.js
 RUN apt-get update && \
     apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
@@ -11,22 +19,17 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-# Install the MCP conformance framework
 RUN npm install -g @modelcontextprotocol/conformance@0.1.7
 
-# Copy the built JAR and dependencies (will be added by test)
-COPY target/lib /app/lib
-COPY target/*.jar /app/vertx-mcp-client.jar
+COPY --from=builder /conformance-client/target/conformance-client.jar /app/conformance-client.jar
 
-# Copy the client wrapper script
-COPY conformance-client-wrapper.sh /app/conformance-client-wrapper.sh
-RUN chmod +x /app/conformance-client-wrapper.sh
+RUN echo '#!/bin/bash' > /app/run.sh && \
+    echo 'npx @modelcontextprotocol/conformance@0.1.7 client --command "java -jar /app/conformance-client.jar ${SCENARIO:-initialize}" --scenario "${SCENARIO:-initialize}" --verbose --timeout 60000' >> /app/run.sh && \
+    echo 'EXIT_CODE=$?' >> /app/run.sh && \
+    echo 'echo ""' >> /app/run.sh && \
+    echo 'echo "=== RESULTS ==="' >> /app/run.sh && \
+    echo 'find results -name "checks.json" -exec sh -c '"'"'cat "{}"'"'"' \;' >> /app/run.sh && \
+    echo 'exit $EXIT_CODE' >> /app/run.sh && \
+    chmod +x /app/run.sh
 
-# The conformance framework command
-# The SCENARIO env var is set by the test
-CMD npx @modelcontextprotocol/conformance client \
-    --command "/app/conformance-client-wrapper.sh" \
-    --scenario "${SCENARIO:-initialize}" \
-    --verbose \
-    --timeout 60000
+ENTRYPOINT ["/app/run.sh"]

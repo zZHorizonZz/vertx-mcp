@@ -67,7 +67,7 @@ public class MCPClientDemo {
     try {
       // Connect to server
       ClientCapabilities capabilities = new ClientCapabilities();
-      ClientSession session = client.connect(capabilities).await();
+      ClientSession session = client.subscribe(capabilities).await();
 
       System.out.println("  Connected to server");
       System.out.println("  Session ID: " + session.id());

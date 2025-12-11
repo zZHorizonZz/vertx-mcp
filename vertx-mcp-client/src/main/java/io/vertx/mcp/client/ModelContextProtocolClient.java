@@ -9,6 +9,7 @@ import io.vertx.mcp.client.impl.ModelContextProtocolClientImpl;
 import io.vertx.mcp.common.capabilities.ClientCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
+import io.vertx.mcp.common.result.InitializeResult;
 import io.vertx.mcp.common.result.Result;
 
 import java.util.List;
@@ -85,7 +86,18 @@ public interface ModelContextProtocolClient {
    * @return a future that completes with the established session
    */
   @GenIgnore
-  Future<ClientSession> connect(ClientCapabilities capabilities);
+  default Future<ClientSession> subscribe(ClientCapabilities capabilities) {
+    return subscribe(capabilities, null);
+  }
+
+  /**
+   * Connects to an MCP server via HTTP transport.
+   *
+   * @param capabilities the client capabilities to advertise
+   * @return a future that completes with the established session
+   */
+  @GenIgnore
+  Future<ClientSession> subscribe(ClientCapabilities capabilities, ClientSession session);
 
   @GenIgnore
   Future<ClientRequest> request();

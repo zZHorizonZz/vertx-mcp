@@ -5,10 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
-import io.vertx.mcp.client.ClientFeature;
-import io.vertx.mcp.client.ClientNotificationHandler;
-import io.vertx.mcp.client.ClientSession;
-import io.vertx.mcp.client.ClientTransport;
+import io.vertx.mcp.client.*;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
@@ -104,7 +101,7 @@ public class ClientSessionImpl implements ClientSession {
         .handler(response -> {
           JsonResponse jsonResponse = JsonResponse.fromJson(response);
           if (jsonResponse.getError() != null) {
-            promise.fail(new io.vertx.mcp.client.ClientRequestException(jsonResponse.getError()));
+            promise.fail(new ClientRequestException(jsonResponse.getError()));
           } else {
             promise.complete(jsonResponse);
           }
@@ -145,7 +142,7 @@ public class ClientSessionImpl implements ClientSession {
     pendingRequests.values().forEach(promise -> promise.fail("Session closed"));
     pendingRequests.clear();
 
-    completable.succeed();
+    transport.unsubscribe(this).onComplete(completable);
   }
 
   private void completeRequest(Object requestId, JsonObject result) {

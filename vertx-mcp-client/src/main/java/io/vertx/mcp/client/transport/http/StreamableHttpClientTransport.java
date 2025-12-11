@@ -13,6 +13,7 @@ import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.request.InitializeRequest;
 import io.vertx.mcp.common.result.InitializeResult;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -45,43 +46,14 @@ public class StreamableHttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Future<ClientSession> subscribe(ModelContextProtocolClient client, ClientCapabilities capabilities) {
-    Promise<ClientSession> promise = Promise.promise();
+  public Future<ClientSession> subscribe(ModelContextProtocolClient client, ClientCapabilities capabilities, ClientSession session) {
+    if (session != null) {
+      //TODO: Implement session re-use
+      return Future.succeededFuture(session);
+    }
 
-    // Create initialize sendRequest
-    InitializeRequest initRequest = new InitializeRequest()
-      .setProtocolVersion(DEFAULT_PROTOCOL_VERSION)
-      .setClientInfo(new Implementation()
-        .setName(clientOptions.getClientName())
-        .setVersion(clientOptions.getClientVersion()))
-      .setCapabilities(capabilities);
-
-    request()
-      .compose(request -> request.end(initRequest.toRequest(requestIdGenerator.incrementAndGet())).compose(v -> request.response()))
-      .onSuccess(response -> response.handler(json -> {
-        try {
-          StreamableHttpClientResponse httpResponse = (StreamableHttpClientResponse) response;
-          InitializeResult result = new InitializeResult(json);
-          ServerCapabilities serverCapabilities = result.getCapabilities();
-
-          // Create session
-          ClientSession session = new ClientSessionImpl(
-            httpResponse.headers().get(MCP_SESSION_ID_HEADER),
-            clientOptions.getStreamingEnabled(),
-            serverCapabilities,
-            this,
-            client.features(),
-            client.notificationHandlers()
-          );
-
-          promise.complete(session);
-        } catch (Exception e) {
-          promise.fail(e);
-        }
-      })).onFailure(promise::fail);
-
-    return promise.future().compose(session -> httpClient
-      .request(new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(baseUrl).addHeader(MCP_SESSION_ID_HEADER, session.id()))
+    return initialize(client, capabilities).compose(s -> httpClient
+      .request(new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(baseUrl).addHeader(MCP_SESSION_ID_HEADER, s.id()))
       .map(httpRequest -> {
         ClientRequest request = new StreamableHttpClientRequest(httpRequest, 256 * 1024, true, null);
         configureTimeout(request);
@@ -91,8 +63,17 @@ public class StreamableHttpClientTransport implements ClientTransport {
         return request;
       })
       .compose(request -> ((StreamableHttpClientRequest) request).sendEnd().compose(v -> request.response()))
-      .onSuccess(response -> ((ClientSessionImpl) session).init(response))
-      .map(v -> session));
+      .onSuccess(response -> ((ClientSessionImpl) s).init(response))
+      .map(v -> s));
+  }
+
+  @Override
+  public Future<Void> unsubscribe(ClientSession session) {
+    return httpClient.request(HttpMethod.DELETE, baseUrl).compose(httpRequest -> {
+      httpRequest.putHeader(MCP_SESSION_ID_HEADER, session.id());
+      httpRequest.putHeader(MCP_PROTOCOL_VERSION_HEADER, DEFAULT_PROTOCOL_VERSION);
+      return httpRequest.send();
+    }).mapEmpty();
   }
 
   @Override
@@ -110,24 +91,53 @@ public class StreamableHttpClientTransport implements ClientTransport {
       });
   }
 
-  private void configureTimeout(ClientRequest request) {
-    ContextInternal current = (ContextInternal) vertx.getOrCreateContext();
-  }
+  private Future<ClientSession> initialize(ModelContextProtocolClient client, ClientCapabilities capabilities) {
+    Promise<ClientSession> promise = Promise.promise();
 
-  public Future<Void> closeSession(ClientSession session) {
-    Promise<Void> promise = Promise.promise();
-    String fullUrl = baseUrl + "/mcp";
+    initialize(capabilities).onSuccess(response -> response.handler(json -> {
+      try {
+        InitializeResult result = new InitializeResult(json);
+        ServerCapabilities serverCapabilities = result.getCapabilities();
+        StreamableHttpClientResponse httpResponse = (StreamableHttpClientResponse) response;
 
-    httpClient.request(HttpMethod.DELETE, fullUrl)
-      .compose(httpRequest -> {
-        httpRequest.putHeader(MCP_SESSION_ID_HEADER, session.id());
-        httpRequest.putHeader(MCP_PROTOCOL_VERSION_HEADER, DEFAULT_PROTOCOL_VERSION);
-        return httpRequest.send();
-      })
-      .onSuccess(httpResponse -> session.close(promise))
-      .onFailure(err -> session.close(promise));
+        Optional<String> sessionId = httpResponse.headers().getAll(MCP_SESSION_ID_HEADER).stream().findFirst();
+        if (sessionId.isEmpty()) {
+          promise.fail(new IllegalStateException("No session ID returned from server"));
+        }
+
+        // Create session
+        ClientSession session = new ClientSessionImpl(
+          httpResponse.headers().get(MCP_SESSION_ID_HEADER),
+          clientOptions.getStreamingEnabled(),
+          serverCapabilities,
+          this,
+          client.features(),
+          client.notificationHandlers()
+        );
+
+        promise.complete(session);
+      } catch (Exception e) {
+        promise.fail(e);
+      }
+    })).onFailure(promise::fail);
 
     return promise.future();
+  }
+
+  private Future<ClientResponse> initialize(ClientCapabilities capabilities) {
+    InitializeRequest initialize = new InitializeRequest()
+      .setProtocolVersion(DEFAULT_PROTOCOL_VERSION)
+      .setClientInfo(new Implementation()
+        .setName(clientOptions.getClientName())
+        .setVersion(clientOptions.getClientVersion())
+      )
+      .setCapabilities(capabilities);
+
+    return request().compose(request -> request.end(initialize.toRequest(requestIdGenerator.incrementAndGet())).compose(v -> request.response()));
+  }
+
+  private void configureTimeout(ClientRequest request) {
+    ContextInternal current = (ContextInternal) vertx.getOrCreateContext();
   }
 }
 

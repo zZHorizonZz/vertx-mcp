@@ -96,6 +96,6 @@ public abstract class HttpTransportTestBase {
   }
 
   protected Future<ClientSession> createSession() {
-    return getClient().connect(new ClientCapabilities());
+    return getClient().subscribe(new ClientCapabilities());
   }
 }

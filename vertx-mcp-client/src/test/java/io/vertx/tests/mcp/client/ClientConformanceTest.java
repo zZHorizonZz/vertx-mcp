@@ -15,26 +15,21 @@ import io.vertx.tests.mcp.common.TestContainerTestBase;
 import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.ToStringConsumer;
-import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.time.Duration;
 
 /**
  * Client conformance tests using the MCP conformance framework.
  * <p>
- * The conformance framework runs inside a Docker container that has:
- * - Node.js and the @modelcontextprotocol/conformance package
- * - Java runtime and the compiled MCP client JAR
- * - The conformance framework manages scenario servers and validates client behavior
+ * Runs the @modelcontextprotocol/conformance framework in Docker to validate
+ * the vertx-mcp-client implementation against the MCP specification.
  * <p>
- * Prerequisites:
- * - Docker must be running
- * - Maven build must have been run to compile the client JAR and dependencies
+ * Prerequisites: Docker must be running.
  * <p>
- * Usage: mvn test -Pmcp-client-conformance -Dtest=ClientConformanceTest
+ * Usage: mvn test -Pmcp-conformance -Dtest=ClientConformanceTest
  */
 public class ClientConformanceTest extends TestContainerTestBase {
 
@@ -44,52 +39,38 @@ public class ClientConformanceTest extends TestContainerTestBase {
   public void setUp(TestContext context) {
     super.setUp(context);
 
-    System.out.println("[setup] Building conformance Docker image...");
+    try {
+      File moduleDir = new File(".").getCanonicalFile();
+      File projectRoot = findProjectRoot(moduleDir);
+      File dockerfile = new File(moduleDir, "src/test/resources/conformance.Dockerfile");
 
-    // Get project paths
-    File resourcesDir = new File("src/test/resources");
-    File dockerfile = new File(resourcesDir, "conformance.Dockerfile");
-    File wrapperScript = new File(resourcesDir, "conformance-client-wrapper.sh");
-    File targetDir = new File("target");
-
-    // Build Docker image with all necessary files
-    conformanceImage = new ImageFromDockerfile()
-      .withFileFromFile("Dockerfile", dockerfile)
-      .withFileFromFile("conformance-client-wrapper.sh", wrapperScript)
-      .withFileFromPath("target", targetDir.toPath());
-
-    System.out.println("[setup] Docker image build configuration complete");
+      conformanceImage = new ImageFromDockerfile()
+        .withFileFromPath(".", projectRoot.toPath())
+        .withFileFromFile("Dockerfile", dockerfile);
+    } catch (Exception e) {
+      context.fail("Failed to set up conformance test: " + e.getMessage());
+    }
   }
 
   @Test
   public void testInitialize(TestContext context) throws Exception {
-    runConformanceScenario(context, "initialize");
+    runScenario(context, "initialize");
   }
 
   @Test
   public void testToolsCall(TestContext context) throws Exception {
-    runConformanceScenario(context, "tools-call");
+    runScenario(context, "tools_call");
   }
 
-  /**
-   * Runs a conformance test scenario in a Docker container.
-   * The container runs the conformance framework which validates the client behavior.
-   */
-  private void runConformanceScenario(TestContext context, String scenario) throws Exception {
-    System.out.println("\n" + "=".repeat(80));
-    System.out.println("Running conformance test for scenario: " + scenario);
-    System.out.println("=".repeat(80) + "\n");
-
+  private void runScenario(TestContext context, String scenario) {
     ToStringConsumer logConsumer = new ToStringConsumer();
 
     try (GenericContainer<?> container = new GenericContainer<>(conformanceImage)) {
       container
         .withEnv("SCENARIO", scenario)
         .withLogConsumer(logConsumer)
-        .withStartupCheckStrategy(new org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy()
+        .withStartupCheckStrategy(new OneShotStartupCheckStrategy()
           .withTimeout(Duration.ofMinutes(5)));
-
-      System.out.println("[test] Starting conformance container...");
 
       Integer exitCode = null;
       try {
@@ -97,58 +78,43 @@ public class ClientConformanceTest extends TestContainerTestBase {
         exitCode = 0;
       } catch (Exception e) {
         // Container may exit with non-zero for conformance failures
-        System.out.println("[test] Container exited (possibly with non-zero): " + e.getMessage());
       }
 
-      // Get output
       String output = logConsumer.toUtf8String();
-      System.out.println("\n[test] Container output:");
       System.out.println(output);
 
-      // Try to get actual exit code if available
       try {
         Integer actualExitCode = container.getCurrentContainerInfo().getState().getExitCode();
         if (actualExitCode != null) {
           exitCode = actualExitCode;
         }
-      } catch (Exception e) {
-        System.out.println("[test] Could not retrieve exit code: " + e.getMessage());
+      } catch (Exception ignored) {
       }
 
-      System.out.println("[test] Container finished with exit code: " + exitCode);
-
-      // Validate results
-      validateConformanceOutput(context, scenario, output, exitCode);
-
-      System.out.println("\n" + "=".repeat(80));
-      System.out.println("Scenario '" + scenario + "' completed");
-      System.out.println("=".repeat(80) + "\n");
+      validateResults(context, scenario, output, exitCode);
     }
   }
 
-  /**
-   * Validates the conformance test output.
-   * The conformance framework returns exit code 0 for success, non-zero for failure.
-   */
-  private void validateConformanceOutput(TestContext context, String scenario, String output, Integer exitCode) {
-    System.out.println("\n[validation] Analyzing conformance results:");
+  private void validateResults(TestContext context, String scenario, String output, Integer exitCode) {
+    int failedCount = countOccurrences(output, "\"status\": \"FAILURE\"") +
+                      countOccurrences(output, "\"status\":\"FAILURE\"");
 
-    // Count checks in output
-    int passedCount = countOccurrences(output, "✓");
-    int failedCount = countOccurrences(output, "✗");
-
-    System.out.println("[validation] Passed checks: " + passedCount);
-    System.out.println("[validation] Failed checks: " + failedCount);
-    System.out.println("[validation] Exit code: " + exitCode);
-
-    // Exit code 0 means all conformance checks passed
     if (exitCode == null || exitCode != 0) {
-      context.fail("Conformance test failed for scenario '" + scenario +
-                   "' with exit code " + exitCode +
-                   " (" + failedCount + " failed checks). See output above.");
+      context.fail("Conformance test '" + scenario + "' failed with exit code " + exitCode +
+                   " (" + failedCount + " failed checks)");
     }
+  }
 
-    System.out.println("[validation] ✓ All conformance checks passed");
+  private File findProjectRoot(File moduleDir) {
+    File projectRoot = moduleDir.getParentFile();
+    File clientModule = new File(projectRoot, "vertx-mcp-client");
+    if (!clientModule.exists()) {
+      clientModule = new File(moduleDir, "vertx-mcp-client");
+      if (clientModule.exists()) {
+        return moduleDir;
+      }
+    }
+    return projectRoot;
   }
 
   private int countOccurrences(String str, String sub) {
