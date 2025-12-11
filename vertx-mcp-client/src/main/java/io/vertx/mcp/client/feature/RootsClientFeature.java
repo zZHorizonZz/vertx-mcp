@@ -2,7 +2,6 @@ package io.vertx.mcp.client.feature;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mcp.client.RootsHandler;
 import io.vertx.mcp.client.impl.ClientFeatureBase;
 import io.vertx.mcp.common.result.ListRootsResult;
 import io.vertx.mcp.common.root.Root;
