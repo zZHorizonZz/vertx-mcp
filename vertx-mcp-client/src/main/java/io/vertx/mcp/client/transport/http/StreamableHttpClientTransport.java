@@ -108,7 +108,6 @@ public class StreamableHttpClientTransport implements ClientTransport {
         // Create session
         ClientSession session = new ClientSessionImpl(
           httpResponse.headers().get(MCP_SESSION_ID_HEADER),
-          clientOptions.getStreamingEnabled(),
           serverCapabilities,
           this,
           client.features(),

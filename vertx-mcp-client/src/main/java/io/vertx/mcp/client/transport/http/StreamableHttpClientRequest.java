@@ -47,7 +47,7 @@ public class StreamableHttpClientRequest implements MessageWriteStream, ClientRe
   private Handler<Throwable> exceptionHandler;
 
   public StreamableHttpClientRequest(HttpClientRequest httpRequest, long maxMessageSize, boolean scheduleDeadline, ClientSession session) {
-    this.context = (ContextInternal) ((PromiseInternal<?>) httpRequest.response()).context();
+    this.context = ((PromiseInternal<?>) httpRequest.response()).context();
     this.writeStream = httpRequest;
     this.httpRequest = httpRequest;
     this.session = session;

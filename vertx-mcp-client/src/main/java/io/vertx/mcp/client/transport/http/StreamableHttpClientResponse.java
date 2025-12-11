@@ -13,7 +13,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.mcp.client.*;
 
-public class StreamableHttpClientResponse implements MessageReadStream, ClientResponse, Handler<Buffer> {
+public class StreamableHttpClientResponse implements ClientResponse, Handler<Buffer> {
 
   private final ContextInternal context;
   private final ReadStream<Buffer> stream;

@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ClientSessionImpl implements ClientSession {
 
   private final String id;
-  private final boolean streaming;
   private final ServerCapabilities serverCapabilities;
 
   private final ClientTransport transport;
@@ -35,10 +34,11 @@ public class ClientSessionImpl implements ClientSession {
   private final Map<String, ClientNotificationHandler> notificationHandlers;
   private final Map<Object, Promise<JsonObject>> pendingRequests = new ConcurrentHashMap<>();
 
-  public ClientSessionImpl(String id, boolean streaming, ServerCapabilities serverCapabilities, ClientTransport transport, List<ClientFeature> featureHandlers,
+  private ReadStream<JsonObject> readStream;
+
+  public ClientSessionImpl(String id, ServerCapabilities serverCapabilities, ClientTransport transport, List<ClientFeature> featureHandlers,
     Map<String, ClientNotificationHandler> notificationHandlers) {
     this.id = id;
-    this.streaming = streaming;
     this.serverCapabilities = serverCapabilities;
     this.transport = transport;
     this.featureHandlers = featureHandlers;
@@ -46,6 +46,7 @@ public class ClientSessionImpl implements ClientSession {
   }
 
   public void init(ReadStream<JsonObject> readStream) {
+    this.readStream = readStream;
     readStream.handler(this);
   }
 
@@ -127,7 +128,8 @@ public class ClientSessionImpl implements ClientSession {
 
   @Override
   public boolean isStreaming() {
-    return this.streaming;
+    //TODO: In future have a way to detect if the stream is actually streaming
+    return this.readStream != null;
   }
 
   @Override
