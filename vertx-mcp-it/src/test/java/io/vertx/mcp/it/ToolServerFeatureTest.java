@@ -14,7 +14,6 @@ import io.vertx.mcp.common.request.ListToolsRequest;
 import io.vertx.mcp.common.result.CallToolResult;
 import io.vertx.mcp.common.result.ListToolsResult;
 import io.vertx.mcp.common.rpc.JsonError;
-import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.tool.Tool;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.feature.ToolServerFeature;
@@ -206,11 +205,9 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testCallToolMissingName(TestContext context) throws Throwable {
-    JsonObject params = new JsonObject().put("arguments", new JsonObject());
-
     try {
       createSession()
-        .compose(session -> session.sendRequest(JsonRequest.createRequest("tools/call", params, 1)))
+        .compose(session -> session.sendRequest(new CallToolRequest()))
         .await(10, TimeUnit.SECONDS);
       context.fail("Should have thrown ClientRequestException");
     } catch (ClientRequestException e) {
@@ -246,18 +243,6 @@ public class ToolServerFeatureTest extends HttpTransportTestBase {
     CallToolResult result = (CallToolResult) getClient().sendRequest(new CallToolRequest(params)).await(10, TimeUnit.SECONDS);
 
     context.assertTrue(result.getIsError());
-  }
-
-  @Test
-  public void testUnsupportedToolMethod(TestContext context) throws Throwable {
-    try {
-      createSession()
-        .compose(session -> session.sendRequest(JsonRequest.createRequest("tools/unsupported", new JsonObject(), 1)))
-        .await(10, TimeUnit.SECONDS);
-      context.fail("Should have thrown ClientRequestException");
-    } catch (ClientRequestException e) {
-      context.assertEquals(JsonError.METHOD_NOT_FOUND, e.getCode(), "Should be method not found");
-    }
   }
 
   @Test

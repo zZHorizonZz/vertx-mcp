@@ -82,18 +82,6 @@ public class LoggingServerFeatureTest extends HttpTransportTestBase {
   }
 
   @Test
-  public void testSetLevelMissingParams(TestContext context) throws Throwable {
-    ClientSession session = createSession().await(10, TimeUnit.SECONDS);
-
-    try {
-      session.sendRequest(JsonRequest.createRequest("logging/setLevel", null, 1)).await(10, TimeUnit.SECONDS);
-      context.fail("Should have thrown ClientRequestException");
-    } catch (ClientRequestException e) {
-      context.assertEquals(JsonError.INVALID_PARAMS, e.getCode(), "Should be invalid params");
-    }
-  }
-
-  @Test
   public void testSetLevelRequiresSession(TestContext context) throws Throwable {
     try {
       getClient().sendRequest(new SetLevelRequest().setLevel(LoggingLevel.INFO)).await(10, TimeUnit.SECONDS);

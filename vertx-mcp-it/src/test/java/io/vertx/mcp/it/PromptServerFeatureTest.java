@@ -14,7 +14,6 @@ import io.vertx.mcp.common.request.ListPromptsRequest;
 import io.vertx.mcp.common.result.GetPromptResult;
 import io.vertx.mcp.common.result.ListPromptsResult;
 import io.vertx.mcp.common.rpc.JsonError;
-import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.feature.PromptServerFeature;
 import org.junit.Before;
@@ -121,8 +120,8 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
     );
 
     GetPromptResult result = (GetPromptResult) getClient().sendRequest(new GetPromptRequest(
-      new JsonObject().put("name", "code_review").put("arguments", new JsonObject().put("code", "def hello():\n    print('world')")))
-    )
+        new JsonObject().put("name", "code_review").put("arguments", new JsonObject().put("code", "def hello():\n    print('world')")))
+      )
       .expecting(r -> r instanceof GetPromptResult)
       .await(10, TimeUnit.SECONDS);
 
@@ -157,7 +156,7 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
   public void testGetPromptMissingName(TestContext context) throws Throwable {
     try {
       createSession()
-        .compose(session -> session.sendRequest(JsonRequest.createRequest("prompts/get", new JsonObject(), 1)))
+        .compose(session -> session.sendRequest(new GetPromptRequest()))
         .await(10, TimeUnit.SECONDS);
       context.fail("Should have thrown ClientRequestException");
     } catch (ClientRequestException e) {
@@ -215,17 +214,5 @@ public class PromptServerFeatureTest extends HttpTransportTestBase {
     context.assertEquals("user", messages.get(0).getRole());
     context.assertEquals("assistant", messages.get(1).getRole());
     context.assertEquals("user", messages.get(2).getRole());
-  }
-
-  @Test
-  public void testUnsupportedPromptMethod(TestContext context) throws Throwable {
-    try {
-      createSession()
-        .compose(session -> session.sendRequest(JsonRequest.createRequest("prompts/unsupported", new JsonObject(), 1)))
-        .await(10, TimeUnit.SECONDS);
-      context.fail("Should have thrown ClientRequestException");
-    } catch (ClientRequestException e) {
-      context.assertEquals(JsonError.METHOD_NOT_FOUND, e.getCode(), "Should be method not found");
-    }
   }
 }

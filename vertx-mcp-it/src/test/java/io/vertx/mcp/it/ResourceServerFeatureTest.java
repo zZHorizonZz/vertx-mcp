@@ -14,7 +14,6 @@ import io.vertx.mcp.common.result.ListResourceTemplatesResult;
 import io.vertx.mcp.common.result.ListResourcesResult;
 import io.vertx.mcp.common.result.ReadResourceResult;
 import io.vertx.mcp.common.rpc.JsonError;
-import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.feature.ResourceServerFeature;
 import org.junit.Before;
@@ -135,7 +134,7 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
   public void testReadResourceMissingUri(TestContext context) throws Throwable {
     try {
       createSession()
-        .compose(session -> session.sendRequest(JsonRequest.createRequest("resources/read", new JsonObject(), 1)))
+        .compose(session -> session.sendRequest(new ReadResourceRequest()))
         .await(10, TimeUnit.SECONDS);
       context.fail("Should have thrown ClientRequestException");
     } catch (ClientRequestException e) {
@@ -168,18 +167,6 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
       context.fail("Should have thrown ClientRequestException");
     } catch (ClientRequestException e) {
       context.assertEquals(JsonError.INTERNAL_ERROR, e.getCode(), "Should be internal error");
-    }
-  }
-
-  @Test
-  public void testUnsupportedResourceMethod(TestContext context) throws Throwable {
-    try {
-      createSession()
-        .compose(session -> session.sendRequest(JsonRequest.createRequest("resources/unsupported", new JsonObject(), 1)))
-        .await(10, TimeUnit.SECONDS);
-      context.fail("Should have thrown ClientRequestException");
-    } catch (ClientRequestException e) {
-      context.assertEquals(JsonError.METHOD_NOT_FOUND, e.getCode(), "Should be method not found");
     }
   }
 
@@ -337,8 +324,7 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
     );
 
     try {
-      getClient().sendRequest(new ReadResourceRequest(new JsonObject().put("uri", "resource://failing/123")))
-        .await(10, TimeUnit.SECONDS);
+      getClient().sendRequest(new ReadResourceRequest(new JsonObject().put("uri", "resource://failing/123"))).await(10, TimeUnit.SECONDS);
       context.fail("Should have thrown ClientRequestException");
     } catch (ClientRequestException e) {
       context.assertEquals(JsonError.INTERNAL_ERROR, e.getCode(), "Should be internal error");
@@ -355,8 +341,9 @@ public class ResourceServerFeatureTest extends HttpTransportTestBase {
         .setText("Resource with variable at start: " + params.get("type")))
     );
 
-    ReadResourceResult result = (ReadResourceResult) getClient().sendRequest(new ReadResourceRequest(new JsonObject().put("uri", "file://resource/data")))
+    ReadResourceResult result = getClient().sendRequest(new ReadResourceRequest(new JsonObject().put("uri", "file://resource/data")))
       .expecting(r -> r instanceof ReadResourceResult)
+      .map(r -> (ReadResourceResult) r)
       .await(10, TimeUnit.SECONDS);
 
     JsonArray contents = result.getContents();

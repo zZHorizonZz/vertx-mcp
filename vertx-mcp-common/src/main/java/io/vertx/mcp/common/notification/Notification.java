@@ -18,6 +18,15 @@ public abstract class Notification implements Meta {
     this._meta = _meta;
   }
 
+  public static Notification createNotification(String method, JsonObject json) {
+    return new Notification(method, json) {
+      @Override
+      public JsonObject toJson() {
+        return new JsonObject();
+      }
+    };
+  }
+
   public abstract JsonObject toJson();
 
   public JsonNotification toNotification() {

@@ -9,8 +9,8 @@ import io.vertx.mcp.client.*;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.request.Request;
+import io.vertx.mcp.common.result.Result;
 import io.vertx.mcp.common.rpc.JsonCodec;
-import io.vertx.mcp.common.rpc.JsonNotification;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 
@@ -85,26 +85,21 @@ public class ClientSessionImpl implements ClientSession {
   }
 
   @Override
-  public Future<JsonResponse> sendRequest(Request request) {
-    return this.sendRequest(request.toRequest(requestCount.incrementAndGet()));
-  }
-
-  @Override
-  public Future<JsonResponse> sendRequest(JsonRequest request) {
+  public Future<Result> sendRequest(Request request) {
     if (!active.get()) {
       return Future.failedFuture("Session is not active");
     }
 
-    Promise<JsonResponse> promise = Promise.promise();
+    Promise<Result> promise = Promise.promise();
 
-    return transport.request(this).compose(req -> req.end(request).compose(v -> req.response())
+    return transport.request(this).compose(req -> req.end(request.toRequest(requestCount.incrementAndGet())).compose(v -> req.response())
       .onSuccess(resp -> resp
         .handler(response -> {
           JsonResponse jsonResponse = JsonResponse.fromJson(response);
           if (jsonResponse.getError() != null) {
             promise.fail(new ClientRequestException(jsonResponse.getError()));
           } else {
-            promise.complete(jsonResponse);
+            promise.complete(JsonCodec.decodeResult(request.getMethod(), (JsonObject) jsonResponse.getResult()));
           }
         })
         .exceptionHandler(promise::fail)
@@ -114,16 +109,11 @@ public class ClientSessionImpl implements ClientSession {
 
   @Override
   public Future<Void> sendNotification(Notification notification) {
-    return sendNotification(notification.toNotification());
-  }
-
-  @Override
-  public Future<Void> sendNotification(JsonNotification notification) {
     if (!active.get()) {
       return Future.failedFuture("Session is not active");
     }
 
-    return transport.request(this).compose(req -> req.end(notification).mapEmpty());
+    return transport.request(this).compose(req -> req.end(notification.toNotification()).mapEmpty());
   }
 
   @Override
