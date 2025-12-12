@@ -10,6 +10,7 @@ import io.vertx.mcp.common.rpc.JsonResponse;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
  */
 public class RootsClientFeature extends ClientFeatureBase {
 
-  private final Map<String, Root> roots = new HashMap<>();
+  private final Map<String, Root> roots = new ConcurrentHashMap<>();
 
   @Override
   public Map<String, Function<JsonRequest, Future<JsonObject>>> getHandlers() {
@@ -49,6 +50,6 @@ public class RootsClientFeature extends ClientFeatureBase {
   }
 
   public Map<String, Root> roots() {
-    return roots;
+    return new HashMap<>(roots);
   }
 }
