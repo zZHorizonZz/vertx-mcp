@@ -54,10 +54,6 @@ public class MCPClientDemo {
       System.out.println("  Progress: " + (progress.getProgress() + 1) + "/5");
     });
 
-    // Register notification handlers to receive progress and logging updates
-    //client.addNotificationHandler(ProgressNotificationHandler.defaultHandler());
-    //client.addNotificationHandler(LoggingNotificationHandler.defaultHandler());
-
     System.out.println("=".repeat(60));
     System.out.println("MCP Client Demo");
     System.out.println("=".repeat(60));

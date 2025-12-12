@@ -1,16 +1,9 @@
 == Vert.x MCP Client
 
-The Vert.x MCP Client provides a client implementation for connecting to MCP servers and invoking tools, reading
-resources, and using prompts.
+The Vert.x MCP Client provides a client implementation for connecting to MCP servers and invoking tools, reading resources, and using prompts.
 
 For detailed information about MCP client capabilities, see the
 https://modelcontextprotocol.io/specification/2025-06-18/client[MCP Client Specification].
-
-[NOTE]
-====
-The Vert.x MCP Client documentation is coming soon. In the meantime, please refer to the
-https://modelcontextprotocol.io/[MCP specification] for protocol details.
-====
 
 === Using Vert.x MCP Client
 
@@ -38,3 +31,232 @@ dependencies {
 }
 ----
 ====
+
+=== Creating an MCP Client
+
+The {@link io.vertx.mcp.client.ModelContextProtocolClient} interface is the main entry point for interacting with an MCP server.
+To create a client, you need a {@link io.vertx.mcp.client.ClientTransport} implementation:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#createClient}
+----
+
+You can also specify client options during creation:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#createClientWithOptions}
+----
+
+=== Client Options
+
+The {@link io.vertx.mcp.client.ClientOptions} class provides configuration for the MCP client:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#clientOptions}
+----
+
+The available options are:
+
+[cols="1,1,3"]
+|===
+|Option |Default |Description
+
+|`clientName`
+|`vertx-mcp-client`
+|The name of the client sent to the server during initialization.
+
+|`clientVersion`
+|`1.0.0`
+|The version of the client sent to the server during initialization.
+
+|`sessionsEnabled`
+|`true`
+|Whether to enable session management for stateful connections.
+
+|`streamingEnabled`
+|`true`
+|Whether to enable Server-Sent Events (SSE) streaming. Requires sessions to be enabled.
+
+|`notificationsEnabled`
+|`true`
+|Whether to enable notification handling from the server.
+
+|`loggingEnabled`
+|`true`
+|Whether to enable logging notifications. Requires sessions to be enabled.
+
+|`requestTimeoutMs`
+|`30000`
+|Timeout in milliseconds for individual requests.
+
+|`connectTimeoutMs`
+|`10000`
+|Timeout in milliseconds for establishing a connection.
+|===
+
+=== Transport Layer
+
+The transport layer handles the underlying communication protocol with the MCP server.
+
+==== Streamable HTTP Transport
+
+The {@link io.vertx.mcp.client.transport.http.StreamableHttpClientTransport} provides HTTP-based communication with optional SSE streaming:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#httpTransport}
+----
+
+You can also provide custom HTTP client options:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#httpTransportWithOptions}
+----
+
+The HTTP transport supports:
+
+* HTTP POST for standard request/response communication
+* HTTP GET with Server-Sent Events (SSE) for streaming responses
+* HTTP DELETE for session cleanup
+* Automatic session ID management via the `Mcp-Session-Id` header
+
+=== Connecting to a Server
+
+To connect to an MCP server, use the {@link io.vertx.mcp.client.ModelContextProtocolClient#subscribe} method:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#subscribe}
+----
+
+The returned {@link io.vertx.mcp.client.ClientSession} represents the connection and provides access to server capabilities:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#sessionCapabilities}
+----
+
+=== Making Requests
+
+Once connected, you can send requests to the server using the {@link io.vertx.mcp.client.ModelContextProtocolClient#sendRequest} method.
+
+==== Listing and Calling Tools
+
+[source,java]
+----
+{@link examples.MCPClientExamples#callTool}
+----
+
+==== Listing and Reading Resources
+
+[source,java]
+----
+{@link examples.MCPClientExamples#readResource}
+----
+
+==== Listing and Getting Prompts
+
+[source,java]
+----
+{@link examples.MCPClientExamples#getPrompt}
+----
+
+=== Handling Notifications
+
+MCP servers can send notifications to clients.
+Register handlers to process these notifications:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#notificationHandlers}
+----
+
+=== Client Features
+
+Client features allow the client to advertise capabilities to the server and handle incoming requests.
+Features are registered using {@link io.vertx.mcp.client.ModelContextProtocolClient#addClientFeature}.
+
+==== Roots Feature
+
+The {@link io.vertx.mcp.client.feature.RootsClientFeature} allows the client to expose file system roots to the server:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#rootsFeature}
+----
+
+Roots can be dynamically added and removed:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#manageRoots}
+----
+
+==== Sampling Feature
+
+The {@link io.vertx.mcp.client.feature.SamplingClientFeature} enables the server to request LLM completions from the client:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#samplingFeature}
+----
+
+==== Elicitation Feature
+
+The {@link io.vertx.mcp.client.feature.ElicitationClientFeature} allows the server to request structured user input:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#elicitationFeature}
+----
+
+=== Creating Custom Features
+
+You can create custom client features by extending {@link io.vertx.mcp.client.impl.ClientFeatureBase}:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#customFeature}
+----
+
+=== Error Handling
+
+When a request fails, a {@link io.vertx.mcp.client.ClientRequestException} is thrown containing the JSON-RPC error details:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#errorHandling}
+----
+
+=== Session Management
+
+Sessions enable stateful communication between client and server.
+The session is automatically managed when
+`sessionsEnabled` is set to `true` in the client options.
+
+To access the current session from a Vert.x context:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#sessionFromContext}
+----
+
+To close a session and disconnect from the server:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#closeSession}
+----
+
+=== Complete Example
+
+Here's a complete example demonstrating the main client capabilities:
+
+[source,java]
+----
+{@link examples.MCPClientExamples#completeExample}
+----
