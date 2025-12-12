@@ -17,10 +17,7 @@ import io.vertx.mcp.common.resources.TextResourceContent;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerSession;
-import io.vertx.mcp.server.feature.LoggingServerFeature;
-import io.vertx.mcp.server.feature.PromptServerFeature;
-import io.vertx.mcp.server.feature.ResourceServerFeature;
-import io.vertx.mcp.server.feature.ToolServerFeature;
+import io.vertx.mcp.server.feature.*;
 import io.vertx.mcp.server.transport.http.StreamableHttpServerTransport;
 
 import java.util.ArrayList;
@@ -33,6 +30,9 @@ public class McpServerExamples {
   public void createServer(Vertx vertx) {
     // Create the MCP server
     ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(vertx);
+
+    // Add the protocol feature this handles basic MCP features like initialize and ping
+    mcpServer.addServerFeature(new ProtocolServerFeature());
 
     // Create HTTP transport
     StreamableHttpServerTransport transport = new StreamableHttpServerTransport(vertx, mcpServer);
@@ -54,7 +54,6 @@ public class McpServerExamples {
     ServerOptions options = new ServerOptions()
       .setServerName("my-mcp-server")
       .setServerVersion("2.0.0")
-      .setSessionsEnabled(true)
       .setStreamingEnabled(true)
       .setSessionTimeoutMs(60 * 60 * 1000L); // 1 hour
 
@@ -213,7 +212,6 @@ public class McpServerExamples {
     ServerOptions options = new ServerOptions()
       .setServerName("my-server")
       .setServerVersion("1.0.0")
-      .setSessionsEnabled(true)
       .setStreamingEnabled(true)
       .setSessionTimeoutMs(30 * 60 * 1000L)
       .setMaxSessions(500);

@@ -1,5 +1,6 @@
 package io.vertx.mcp.common.transport;
 
+import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Handler;
 import io.vertx.core.streams.ReadStream;
@@ -13,24 +14,31 @@ import io.vertx.mcp.common.rpc.JsonResponse;
  */
 @VertxGen
 public interface Session extends ReadStream<JsonResponse>, WriteStream<JsonRequest> {
+  @Fluent
   @Override
   Session exceptionHandler(Handler<Throwable> handler);
 
+  @Fluent
   @Override
   Session pause();
 
+  @Fluent
   @Override
   Session resume();
 
+  @Fluent
   @Override
   Session fetch(long amount);
 
+  @Fluent
   @Override
   Session endHandler(Handler<Void> endHandler);
 
+  @Fluent
   @Override
   Session setWriteQueueMaxSize(int maxSize);
 
+  @Fluent
   @Override
   Session drainHandler(Handler<Void> handler);
 }

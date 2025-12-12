@@ -92,7 +92,7 @@ public class StreamableHttpServerTransport implements Handler<HttpServerRequest>
     ServerSession session = null;
 
     // If there's a session ID and sessions are enabled, retrieve existing session
-    if (sessionId != null && options.getSessionsEnabled()) {
+    if (sessionId != null && options.getStreamingEnabled()) {
       session = sessionManager.getSession(sessionId);
       if (session == null) {
         httpRequest.response().setStatusCode(404).end("Session not found");
@@ -126,7 +126,7 @@ public class StreamableHttpServerTransport implements Handler<HttpServerRequest>
       return;
     }
 
-    if (!options.getSessionsEnabled()) {
+    if (!options.getStreamingEnabled()) {
       httpRequest.response().setStatusCode(400).end("Sessions are not enabled");
       return;
     }

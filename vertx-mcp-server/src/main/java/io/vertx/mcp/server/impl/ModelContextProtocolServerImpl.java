@@ -37,26 +37,12 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
     this.options = options;
   }
 
-  /**
-   * Gets the server options.
-   *
-   * @return the server options
-   */
-  public ServerOptions getOptions() {
-    return options;
-  }
-
   @Override
   public void handle(ServerRequest request) {
     try {
       JsonRequest jsonRequest = request.getJsonRequest();
       String method = jsonRequest.getMethod();
       boolean isNotification = jsonRequest instanceof JsonNotification;
-
-      if (isNotification && !options.getNotificationsEnabled()) {
-        request.response().end();
-        return;
-      }
 
       Optional<ServerFeature> feature = features.stream().filter(f -> f.hasCapability(method)).findFirst();
 
@@ -84,7 +70,7 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
 
     this.features.add(feature);
 
-    feature.init(this.vertx);
+    feature.init(this, this.vertx);
 
     return this;
   }
@@ -92,5 +78,10 @@ public class ModelContextProtocolServerImpl implements ModelContextProtocolServe
   @Override
   public List<ServerFeature> features() {
     return List.copyOf(features);
+  }
+
+  @Override
+  public ServerOptions getOptions() {
+    return options;
   }
 }

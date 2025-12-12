@@ -11,6 +11,7 @@ import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerOptions;
+import io.vertx.mcp.server.feature.ProtocolServerFeature;
 import io.vertx.mcp.server.feature.ResourceServerFeature;
 import org.junit.Test;
 
@@ -22,6 +23,8 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   public void testInitializeReturnsServerInfo(TestContext context) throws Throwable {
     ServerOptions options = new ServerOptions().setServerName("test-server").setServerVersion("1.0.0");
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
+
+    server.addServerFeature(new ProtocolServerFeature());
 
     startServer(context, server);
 
@@ -45,9 +48,10 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testInitializeWithResourcesCapability(TestContext context) throws Throwable {
-    ServerOptions options = new ServerOptions().setSessionsEnabled(true);
+    ServerOptions options = new ServerOptions();
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
+    server.addServerFeature(new ProtocolServerFeature());
     server.addServerFeature(new ResourceServerFeature());
 
     startServer(context, server);
@@ -68,9 +72,10 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
 
   @Test
   public void testInitializeWithoutSessionsNoSubscribe(TestContext context) throws Throwable {
-    ServerOptions options = new ServerOptions().setStreamingEnabled(false).setSessionsEnabled(false);
+    ServerOptions options = new ServerOptions().setStreamingEnabled(false);
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
+    server.addServerFeature(new ProtocolServerFeature());
     server.addServerFeature(new ResourceServerFeature());
 
     startServer(context, server);
@@ -93,6 +98,8 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   public void testPing(TestContext context) throws Throwable {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
 
+    server.addServerFeature(new ProtocolServerFeature());
+
     startServer(context, server);
 
     JsonResponse response = sendRequest(HttpMethod.POST, new PingRequest())
@@ -109,6 +116,8 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   public void testUnknownMethod(TestContext context) throws Throwable {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
 
+    server.addServerFeature(new ProtocolServerFeature());
+
     startServer(context, server);
 
     JsonResponse response = sendRequest(HttpMethod.POST, JsonRequest.createRequest("unknown/method", new JsonObject(), 1))
@@ -124,6 +133,8 @@ public class ProtocolServerFeatureTest extends HttpTransportTestBase {
   @Test
   public void testInvalidJsonRpcRequest(TestContext context) throws Throwable {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
+
+    server.addServerFeature(new ProtocolServerFeature());
 
     startServer(context, server);
 

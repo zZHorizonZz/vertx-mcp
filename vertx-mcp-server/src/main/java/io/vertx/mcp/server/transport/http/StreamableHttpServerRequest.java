@@ -127,7 +127,7 @@ public class StreamableHttpServerRequest implements ServerRequest {
 
         this.jsonRequest = JsonRequestDecoder.fromJson(json);
 
-        if (this.jsonRequest.getMethod().equals("initialize") && options.getSessionsEnabled() && session == null) {
+        if (this.jsonRequest.getMethod().equals("initialize") && options.getStreamingEnabled() && session == null) {
           InitializeRequest initialize = new InitializeRequest(json);
           httpRequest.response().putHeader(StreamableHttpServerTransport.MCP_SESSION_ID_HEADER, sessionManager.createSession(initialize.getCapabilities()).id());
         }

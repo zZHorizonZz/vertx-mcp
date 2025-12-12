@@ -23,13 +23,6 @@ import java.util.function.BiFunction;
  */
 public class LoggingServerFeature extends ServerFeatureBase {
 
-  private Vertx vertx;
-
-  @Override
-  public void init(Vertx vertx) {
-    this.vertx = vertx;
-  }
-
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
     return Map.of("logging/setLevel", this::handleSetLevel);

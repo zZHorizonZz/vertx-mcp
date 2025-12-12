@@ -32,24 +32,9 @@ public class ServerOptions {
   public static final String DEFAULT_SERVER_VERSION = "1.0.0";
 
   /**
-   * Whether sessions are enabled by default = {@code true}
-   */
-  public static final boolean DEFAULT_SESSIONS_ENABLED = true;
-
-  /**
    * Whether streaming (SSE) is enabled by default = {@code true}
    */
   public static final boolean DEFAULT_STREAMING_ENABLED = true;
-
-  /**
-   * Whether notifications are enabled by default = {@code true}
-   */
-  public static final boolean DEFAULT_NOTIFICATIONS_ENABLED = true;
-
-  /**
-   * Whether logging is enabled by default = {@code true}
-   */
-  public static final boolean DEFAULT_LOGGING_ENABLED = true;
 
   /**
    * The default session timeout in milliseconds = {@code 30 minutes}
@@ -63,20 +48,14 @@ public class ServerOptions {
 
   private String serverName;
   private String serverVersion;
-  private boolean sessionsEnabled;
   private boolean streamingEnabled;
-  private boolean notificationsEnabled;
-  private boolean loggingEnabled;
   private long sessionTimeoutMs;
   private int maxSessions;
 
   public ServerOptions() {
     serverName = DEFAULT_SERVER_NAME;
     serverVersion = DEFAULT_SERVER_VERSION;
-    sessionsEnabled = DEFAULT_SESSIONS_ENABLED;
     streamingEnabled = DEFAULT_STREAMING_ENABLED;
-    notificationsEnabled = DEFAULT_NOTIFICATIONS_ENABLED;
-    loggingEnabled = DEFAULT_LOGGING_ENABLED;
     sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
     maxSessions = DEFAULT_MAX_SESSIONS;
   }
@@ -84,10 +63,7 @@ public class ServerOptions {
   public ServerOptions(ServerOptions other) {
     serverName = other.serverName;
     serverVersion = other.serverVersion;
-    sessionsEnabled = other.sessionsEnabled;
     streamingEnabled = other.streamingEnabled;
-    notificationsEnabled = other.notificationsEnabled;
-    loggingEnabled = other.loggingEnabled;
     sessionTimeoutMs = other.sessionTimeoutMs;
     maxSessions = other.maxSessions;
   }
@@ -144,48 +120,6 @@ public class ServerOptions {
   }
 
   /**
-   * Gets whether session management is enabled.
-   * <p>
-   * Sessions are required for resource subscriptions and streaming responses.
-   *
-   * @return true if sessions are enabled
-   */
-  public boolean getSessionsEnabled() {
-    return sessionsEnabled;
-  }
-
-  /**
-   * Sets whether session management is enabled.
-   * <p>
-   * When sessions are enabled:
-   * <ul>
-   *   <li>The server will create and track session IDs for clients</li>
-   *   <li>Clients can subscribe to resources using {@code resources/subscribe}</li>
-   *   <li>Streaming responses (SSE) are available if also enabled</li>
-   * </ul>
-   * <p>
-   * When sessions are disabled:
-   * <ul>
-   *   <li>Subscribe/unsubscribe operations will fail</li>
-   *   <li>Streaming cannot be enabled</li>
-   *   <li>Each request is handled independently</li>
-   * </ul>
-   *
-   * @param sessionsEnabled true to enable sessions
-   * @return a reference to this, so the API can be used fluently
-   */
-  public ServerOptions setSessionsEnabled(boolean sessionsEnabled) {
-    this.sessionsEnabled = sessionsEnabled;
-
-    if (!sessionsEnabled) {
-      setStreamingEnabled(false);
-      setLoggingEnabled(false);
-    }
-
-    return this;
-  }
-
-  /**
    * Gets whether streaming (Server-Sent Events) is enabled.
    * <p>
    * Streaming allows the server to send multiple responses for a single request.
@@ -206,78 +140,13 @@ public class ServerOptions {
    *   <li>Long-running operations can stream progress</li>
    * </ul>
    * <p>
-   * <strong>Note:</strong> Streaming requires sessions to be enabled. Attempting to enable streaming
-   * without sessions will throw an {@link IllegalArgumentException}.
    *
    * @param streamingEnabled true to enable streaming
    * @return a reference to this, so the API can be used fluently
    * @throws IllegalArgumentException if sessions are not enabled
    */
   public ServerOptions setStreamingEnabled(boolean streamingEnabled) {
-    if (streamingEnabled && !sessionsEnabled) {
-      throw new IllegalArgumentException("Cannot enable streaming without sessions. Enable sessions first.");
-    }
     this.streamingEnabled = streamingEnabled;
-    return this;
-  }
-
-  /**
-   * Gets whether client notifications are enabled.
-   * <p>
-   * Notifications are one-way messages from the client that don't expect a response.
-   *
-   * @return true if notifications are enabled
-   */
-  public boolean getNotificationsEnabled() {
-    return notificationsEnabled;
-  }
-
-  /**
-   * Sets whether client notifications are enabled.
-   * <p>
-   * When enabled, the server will accept and process notification messages from clients. When disabled, notification messages will be ignored.
-   *
-   * @param notificationsEnabled true to enable notifications
-   * @return a reference to this, so the API can be used fluently
-   */
-  public ServerOptions setNotificationsEnabled(boolean notificationsEnabled) {
-    this.notificationsEnabled = notificationsEnabled;
-    return this;
-  }
-
-  /**
-   * Gets whether logging is enabled.
-   * <p>
-   * Logging allows clients to set their desired log level and receive log messages as notifications.
-   *
-   * @return true if logging is enabled
-   */
-  public boolean getLoggingEnabled() {
-    return loggingEnabled;
-  }
-
-  /**
-   * Sets whether logging is enabled.
-   * <p>
-   * When logging is enabled:
-   * <ul>
-   *   <li>The server will automatically add the logging feature</li>
-   *   <li>Clients can set their desired log level using {@code logging/setLevel}</li>
-   *   <li>Servers can send log messages as notifications</li>
-   * </ul>
-   * <p>
-   * <strong>Note:</strong> Logging requires sessions to be enabled. Attempting to enable logging
-   * without sessions will throw an {@link IllegalArgumentException}.
-   *
-   * @param loggingEnabled true to enable logging
-   * @return a reference to this, so the API can be used fluently
-   * @throws IllegalArgumentException if sessions are not enabled
-   */
-  public ServerOptions setLoggingEnabled(boolean loggingEnabled) {
-    if (loggingEnabled && !sessionsEnabled) {
-      throw new IllegalArgumentException("Cannot enable logging without sessions. Enable sessions first.");
-    }
-    this.loggingEnabled = loggingEnabled;
     return this;
   }
 

@@ -19,8 +19,18 @@ public interface ServerFeature extends Handler<ServerRequest> {
    *
    * @param vertx the Vert.x instance to be used for initialization
    */
-  default void init(Vertx vertx) {
+  default void init(ModelContextProtocolServer server, Vertx vertx) {
     // Default implementation does nothing
+  }
+
+  /**
+   * Retrieves a set of notification channels associated with the server feature. Notification channels represent distinct communication paths or topics that the server feature can
+   * use to notify clients about specific events or updates.
+   *
+   * @return a set of strings where each string represents a unique notification channel
+   */
+  default Set<String> getNotificationChannels() {
+    return Set.of();
   }
 
   /**

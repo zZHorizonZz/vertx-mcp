@@ -1,11 +1,11 @@
 package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 import io.vertx.mcp.common.content.Content;
+import io.vertx.mcp.common.notification.ToolListChangedNotification;
 import io.vertx.mcp.common.request.CallToolRequest;
 import io.vertx.mcp.common.result.CallToolResult;
 import io.vertx.mcp.common.result.ListToolsResult;
@@ -22,6 +22,7 @@ import io.vertx.mcp.server.impl.ServerFeatureStorage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -34,19 +35,8 @@ import java.util.function.Function;
  */
 public class ToolServerFeature extends ServerFeatureBase {
 
-  private final ServerFeatureStorage<StructuredToolHandler> structuredTools;
-  private final ServerFeatureStorage<UnstructuredToolHandler> unstructuredTools;
-  private Vertx vertx;
-
-  public ToolServerFeature() {
-    this.structuredTools = new ServerFeatureStorage<>(() -> vertx, "notifications/tools/list_changed");
-    this.unstructuredTools = new ServerFeatureStorage<>(() -> vertx, "notifications/tools/list_changed");
-  }
-
-  @Override
-  public void init(Vertx vertx) {
-    this.vertx = vertx;
-  }
+  private final ServerFeatureStorage<StructuredToolHandler> structuredTools = new ServerFeatureStorage<>(this::getVertx, ToolListChangedNotification.METHOD);
+  private final ServerFeatureStorage<UnstructuredToolHandler> unstructuredTools = new ServerFeatureStorage<>(this::getVertx, ToolListChangedNotification.METHOD);
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
@@ -54,6 +44,11 @@ public class ToolServerFeature extends ServerFeatureBase {
       "tools/list", this::handleListTools,
       "tools/call", this::handleCallTool
     );
+  }
+
+  @Override
+  public Set<String> getNotificationChannels() {
+    return Set.of(ToolListChangedNotification.METHOD);
   }
 
   private Future<JsonResponse> handleListTools(ServerRequest serverRequest, JsonRequest request) {

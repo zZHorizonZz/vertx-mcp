@@ -7,6 +7,9 @@ import io.vertx.mcp.common.capabilities.PromptsCapability;
 import io.vertx.mcp.common.capabilities.ResourcesCapability;
 import io.vertx.mcp.common.capabilities.ServerCapabilities;
 import io.vertx.mcp.common.capabilities.ToolsCapability;
+import io.vertx.mcp.common.notification.PromptListChangedNotification;
+import io.vertx.mcp.common.notification.ResourceListChangedNotification;
+import io.vertx.mcp.common.notification.ToolListChangedNotification;
 import io.vertx.mcp.common.result.InitializeResult;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
@@ -29,14 +32,6 @@ import java.util.function.BiFunction;
  */
 public class ProtocolServerFeature extends ServerFeatureBase {
 
-  private final ModelContextProtocolServer server;
-  private final ServerOptions options;
-
-  public ProtocolServerFeature(ModelContextProtocolServer server, ServerOptions options) {
-    this.server = server;
-    this.options = options;
-  }
-
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
     return Map.of(
@@ -49,26 +44,26 @@ public class ProtocolServerFeature extends ServerFeatureBase {
     // Build server capabilities from registered features
     ServerCapabilities capabilities = new ServerCapabilities();
 
-    for (ServerFeature feature : server.features()) {
+    for (ServerFeature feature : getServer().features()) {
       Set<String> featureCapabilities = feature.getCapabilities();
 
       // Check for specific capability patterns and set them based on options
       if (featureCapabilities.stream().anyMatch(cap -> cap.startsWith("prompts/"))) {
-        capabilities.setPrompts(new PromptsCapability().setListChanged(options.getNotificationsEnabled()));
+        capabilities.setPrompts(new PromptsCapability().setListChanged(feature.getNotificationChannels().contains(PromptListChangedNotification.METHOD)));
       }
       if (featureCapabilities.stream().anyMatch(cap -> cap.startsWith("resources/"))) {
         ResourcesCapability resourcesCap = new ResourcesCapability();
 
         // Subscribe capability requires sessions
-        if (options.getSessionsEnabled()) {
+        if (getServer().getOptions().getStreamingEnabled()) {
           resourcesCap.setSubscribe(true);
         }
 
-        resourcesCap.setListChanged(options.getNotificationsEnabled());
+        resourcesCap.setListChanged(feature.getNotificationChannels().contains(ResourceListChangedNotification.METHOD));
         capabilities.setResources(resourcesCap);
       }
       if (featureCapabilities.stream().anyMatch(cap -> cap.startsWith("tools/"))) {
-        capabilities.setTools(new ToolsCapability().setListChanged(options.getNotificationsEnabled()));
+        capabilities.setTools(new ToolsCapability().setListChanged(feature.getNotificationChannels().contains(ToolListChangedNotification.METHOD)));
       }
       if (featureCapabilities.stream().anyMatch(cap -> cap.equals("logging"))) {
         capabilities.setLogging(new JsonObject());
@@ -80,8 +75,8 @@ public class ProtocolServerFeature extends ServerFeatureBase {
 
     InitializeResult result = new InitializeResult()
       .setServerInfo(new Implementation()
-        .setName(options.getServerName())
-        .setVersion(options.getServerVersion()))
+        .setName(getServer().getOptions().getServerName())
+        .setVersion(getServer().getOptions().getServerVersion()))
       .setCapabilities(capabilities);
 
     return Future.succeededFuture(JsonResponse.success(request, result.toJson()));

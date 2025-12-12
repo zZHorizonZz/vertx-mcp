@@ -4,9 +4,6 @@ import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.mcp.server.feature.LoggingServerFeature;
-import io.vertx.mcp.server.feature.ProtocolServerFeature;
-import io.vertx.mcp.server.feature.SessionServerFeature;
 import io.vertx.mcp.server.impl.ModelContextProtocolServerImpl;
 
 import java.util.List;
@@ -48,25 +45,7 @@ public interface ModelContextProtocolServer extends Handler<ServerRequest> {
    * @return a new instance of {@code ModelContextProtocolServer} initialized with the provided options
    */
   static ModelContextProtocolServer create(Vertx vertx, ServerOptions options) {
-    ModelContextProtocolServer server = new ModelContextProtocolServerImpl(vertx, options);
-
-    // Register protocol feature (handles initialize, ping)
-    ProtocolServerFeature protocolFeature = new ProtocolServerFeature(server, options);
-    server.addServerFeature(protocolFeature);
-
-    // Register session feature if sessions are enabled (handles subscribe, unsubscribe)
-    if (options.getSessionsEnabled()) {
-      SessionServerFeature sessionFeature = new SessionServerFeature(options, server);
-      server.addServerFeature(sessionFeature);
-
-      // Register logging feature if logging is enabled (handles logging/setLevel)
-      if (options.getLoggingEnabled()) {
-        LoggingServerFeature loggingFeature = new LoggingServerFeature();
-        server.addServerFeature(loggingFeature);
-      }
-    }
-
-    return server;
+    return new ModelContextProtocolServerImpl(vertx, options);
   }
 
   /**
@@ -85,4 +64,11 @@ public interface ModelContextProtocolServer extends Handler<ServerRequest> {
    * @return a list of registered server features
    */
   List<ServerFeature> features();
+
+  /**
+   * Gets the server options.
+   *
+   * @return the server options
+   */
+  ServerOptions getOptions();
 }

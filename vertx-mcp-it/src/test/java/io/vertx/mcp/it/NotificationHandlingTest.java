@@ -12,6 +12,8 @@ import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerRequest;
+import io.vertx.mcp.server.feature.ProtocolServerFeature;
+import io.vertx.mcp.server.feature.SessionServerFeature;
 import org.junit.Test;
 
 import java.util.Set;
@@ -22,7 +24,7 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
   @Test
   public void testNotificationReturns202Accepted(TestContext context) throws Throwable {
-    ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
+    ServerOptions options = new ServerOptions();
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
 
     AtomicBoolean notificationReceived = new AtomicBoolean(false);
@@ -39,6 +41,9 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
       }
     });
 
+    server.addServerFeature(new ProtocolServerFeature());
+    server.addServerFeature(new SessionServerFeature());
+
     startServer(context, server);
 
     createSession().compose(session -> session.sendNotification(new JsonNotification("notifications/test", new JsonObject()))).await(10, TimeUnit.SECONDS);
@@ -50,8 +55,11 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
   @Test
   public void testNotificationWithoutHandlerReturns202(TestContext context) throws Throwable {
-    ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
+    ServerOptions options = new ServerOptions();
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
+
+    server.addServerFeature(new ProtocolServerFeature());
+    server.addServerFeature(new SessionServerFeature());
 
     startServer(context, server);
 
@@ -65,38 +73,12 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
   }
 
   @Test
-  public void testNotificationsDisabledIgnoresSilently(TestContext context) throws Throwable {
-    ServerOptions options = new ServerOptions().setNotificationsEnabled(false);
-    AtomicBoolean notificationReceived = new AtomicBoolean(false);
-    ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
-
-    server.addServerFeature(new ServerFeature() {
-      @Override
-      public void handle(ServerRequest request) {
-        notificationReceived.set(true);
-      }
-
-      @Override
-      public Set<String> getCapabilities() {
-        return Set.of("notifications/test");
-      }
-    });
-
-    startServer(context, server);
-
-    createSession()
-      .compose(session -> session.sendNotification(new JsonNotification("notifications/test", new JsonObject())))
-      .await(10, TimeUnit.SECONDS);
-
-    Thread.sleep(100);
-
-    context.assertFalse(notificationReceived.get(), "Notification handler should not be called when disabled");
-  }
-
-  @Test
   public void testRequestWithIdReturnsJsonResponse(TestContext context) throws Throwable {
-    ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
+    ServerOptions options = new ServerOptions();
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
+
+    server.addServerFeature(new ProtocolServerFeature());
+    server.addServerFeature(new SessionServerFeature());
 
     startServer(context, server);
 
@@ -112,8 +94,11 @@ public class NotificationHandlingTest extends HttpTransportTestBase {
 
   @Test
   public void testNotificationVsRequestDistinction(TestContext context) throws Throwable {
-    ServerOptions options = new ServerOptions().setNotificationsEnabled(true);
+    ServerOptions options = new ServerOptions();
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx, options);
+
+    server.addServerFeature(new ProtocolServerFeature());
+    server.addServerFeature(new SessionServerFeature());
 
     startServer(context, server);
 

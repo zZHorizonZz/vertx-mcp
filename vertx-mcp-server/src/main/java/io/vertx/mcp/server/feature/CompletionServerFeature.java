@@ -12,7 +12,6 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
 import io.vertx.mcp.server.CompletionProvider;
-import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.impl.ServerFeatureBase;
@@ -30,12 +29,6 @@ import java.util.function.BiFunction;
  * @see <a href="https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/completion">Server Utilities - Completion</a>
  */
 public class CompletionServerFeature extends ServerFeatureBase {
-
-  private final ModelContextProtocolServer server;
-
-  public CompletionServerFeature(ModelContextProtocolServer server) {
-    this.server = server;
-  }
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
@@ -140,7 +133,7 @@ public class CompletionServerFeature extends ServerFeatureBase {
   }
 
   private CompletionProvider findCompletionProvider(String refType) {
-    for (ServerFeature feature : server.features()) {
+    for (ServerFeature feature : getServer().features()) {
       if (feature instanceof CompletionProvider) {
         CompletionProvider provider = (CompletionProvider) feature;
         if (provider.getCompletionCapabilities().contains(refType)) {

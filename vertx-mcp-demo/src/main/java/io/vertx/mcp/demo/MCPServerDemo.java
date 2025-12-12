@@ -23,10 +23,7 @@ import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.PromptHandler;
 import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerSession;
-import io.vertx.mcp.server.feature.CompletionServerFeature;
-import io.vertx.mcp.server.feature.PromptServerFeature;
-import io.vertx.mcp.server.feature.ResourceServerFeature;
-import io.vertx.mcp.server.feature.ToolServerFeature;
+import io.vertx.mcp.server.feature.*;
 import io.vertx.mcp.server.transport.http.StreamableHttpServerTransport;
 
 import java.time.LocalDateTime;
@@ -64,7 +61,6 @@ public class MCPServerDemo {
     ServerOptions serverOptions = new ServerOptions()
       .setServerName("task-manager-mcp")
       .setServerVersion("1.0.0")
-      .setSessionsEnabled(true)
       .setStreamingEnabled(true);
 
     ModelContextProtocolServer mcpServer = ModelContextProtocolServer.create(vertx, serverOptions);
@@ -73,10 +69,14 @@ public class MCPServerDemo {
     initializeSampleData();
 
     // Setup all features
+    mcpServer.addServerFeature(new ProtocolServerFeature());
+    mcpServer.addServerFeature(new SessionServerFeature());
+    mcpServer.addServerFeature(new LoggingServerFeature());
+    mcpServer.addServerFeature(new CompletionServerFeature());
+
     mcpServer.addServerFeature(setupTools());
     mcpServer.addServerFeature(setupResources());
     mcpServer.addServerFeature(setupPrompts());
-    mcpServer.addServerFeature(new CompletionServerFeature(mcpServer));
 
     // Create and start HTTP server
     StreamableHttpServerTransport transport = new StreamableHttpServerTransport(vertx, mcpServer);

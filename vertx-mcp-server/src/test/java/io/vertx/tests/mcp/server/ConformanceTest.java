@@ -36,11 +36,9 @@ import io.vertx.mcp.common.resources.TextResourceContent;
 import io.vertx.mcp.common.sampling.SamplingMessage;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.PromptHandler;
+import io.vertx.mcp.server.ServerOptions;
 import io.vertx.mcp.server.ServerSession;
-import io.vertx.mcp.server.feature.CompletionServerFeature;
-import io.vertx.mcp.server.feature.PromptServerFeature;
-import io.vertx.mcp.server.feature.ResourceServerFeature;
-import io.vertx.mcp.server.feature.ToolServerFeature;
+import io.vertx.mcp.server.feature.*;
 import io.vertx.mcp.server.transport.http.StreamableHttpServerTransport;
 import io.vertx.tests.mcp.common.TestContainerTestBase;
 import junit.framework.AssertionFailedError;
@@ -77,6 +75,10 @@ public class ConformanceTest extends TestContainerTestBase {
     super.setUp(context);
 
     mcpServer = ModelContextProtocolServer.create(vertx);
+
+    mcpServer.addServerFeature(new ProtocolServerFeature());
+    mcpServer.addServerFeature(new SessionServerFeature());
+    mcpServer.addServerFeature(new LoggingServerFeature());
 
     setupTools(mcpServer);
     setupPrompts(mcpServer);
@@ -642,8 +644,7 @@ public class ConformanceTest extends TestContainerTestBase {
   }
 
   private void setupCompletions(ModelContextProtocolServer mcpServer) {
-    CompletionServerFeature completionFeature = new CompletionServerFeature(mcpServer);
-    mcpServer.addServerFeature(completionFeature);
+    mcpServer.addServerFeature(new CompletionServerFeature());
   }
 
   @Test

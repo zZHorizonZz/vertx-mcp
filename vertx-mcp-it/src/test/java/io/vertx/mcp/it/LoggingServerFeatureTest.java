@@ -19,6 +19,9 @@ import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerSession;
+import io.vertx.mcp.server.feature.LoggingServerFeature;
+import io.vertx.mcp.server.feature.ProtocolServerFeature;
+import io.vertx.mcp.server.feature.SessionServerFeature;
 import io.vertx.mcp.server.feature.ToolServerFeature;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +36,11 @@ public class LoggingServerFeatureTest extends HttpTransportTestBase {
   @Before
   public void setUpFeatures(TestContext context) {
     ModelContextProtocolServer server = ModelContextProtocolServer.create(super.vertx);
+
+    server.addServerFeature(new ProtocolServerFeature());
+    server.addServerFeature(new LoggingServerFeature());
+    server.addServerFeature(new SessionServerFeature());
+
     super.startServer(context, server);
   }
 

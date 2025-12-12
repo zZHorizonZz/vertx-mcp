@@ -8,6 +8,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.completion.CompletionArgument;
 import io.vertx.mcp.common.completion.CompletionContext;
+import io.vertx.mcp.common.notification.ResourceListChangedNotification;
 import io.vertx.mcp.common.notification.ResourceUpdatedNotification;
 import io.vertx.mcp.common.resources.Resource;
 import io.vertx.mcp.common.resources.ResourceTemplate;
@@ -41,20 +42,9 @@ import java.util.regex.Pattern;
  */
 public class ResourceServerFeature extends ServerFeatureBase implements CompletionProvider, SubscriptionProvider {
 
-  private final ServerFeatureStorage<StaticResourceHandler> staticHandlers;
-  private final ServerFeatureStorage<DynamicResourceHandler> dynamicHandlers;
+  private final ServerFeatureStorage<StaticResourceHandler> staticHandlers = new ServerFeatureStorage<>(this::getVertx, ResourceListChangedNotification.METHOD);
+  private final ServerFeatureStorage<DynamicResourceHandler> dynamicHandlers = new ServerFeatureStorage<>(this::getVertx, ResourceListChangedNotification.METHOD);
   private final Map<String, Set<String>> subscriptions = new ConcurrentHashMap<>();
-  private Vertx vertx;
-
-  public ResourceServerFeature() {
-    this.staticHandlers = new ServerFeatureStorage<>(() -> vertx, "notifications/resources/list_changed");
-    this.dynamicHandlers = new ServerFeatureStorage<>(() -> vertx, "notifications/resources/list_changed");
-  }
-
-  @Override
-  public void init(Vertx vertx) {
-    this.vertx = vertx;
-  }
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
@@ -63,6 +53,11 @@ public class ResourceServerFeature extends ServerFeatureBase implements Completi
       "resources/read", this::handleReadResource,
       "resources/templates/list", this::handleListResourceTemplates
     );
+  }
+
+  @Override
+  public Set<String> getNotificationChannels() {
+    return Set.of(ResourceListChangedNotification.METHOD);
   }
 
   @Override

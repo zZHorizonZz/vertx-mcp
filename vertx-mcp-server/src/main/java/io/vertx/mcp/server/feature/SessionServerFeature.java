@@ -1,6 +1,7 @@
 package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.mcp.common.request.SubscribeRequest;
 import io.vertx.mcp.common.request.UnsubscribeRequest;
 import io.vertx.mcp.common.result.EmptyResult;
@@ -25,15 +26,8 @@ import java.util.function.BiFunction;
  */
 public class SessionServerFeature extends ServerFeatureBase {
 
-  private final ServerOptions options;
-  private final ModelContextProtocolServer server;
   private final AtomicInteger sessionCount = new AtomicInteger(0);
   private final Map<String, Set<String>> subscriptions = new ConcurrentHashMap<>();
-
-  public SessionServerFeature(ServerOptions options, ModelContextProtocolServer server) {
-    this.options = options;
-    this.server = server;
-  }
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
@@ -45,7 +39,7 @@ public class SessionServerFeature extends ServerFeatureBase {
   }
 
   private Future<JsonResponse> handleSubscribe(ServerRequest serverRequest, JsonRequest request) {
-    if (!options.getSessionsEnabled()) {
+    if (!getServer().getOptions().getStreamingEnabled()) {
       return Future.succeededFuture(
         JsonResponse.error(request, JsonError.methodNotAllowed())
       );
@@ -91,7 +85,7 @@ public class SessionServerFeature extends ServerFeatureBase {
   }
 
   private SubscriptionProvider findSubscriptionProvider() {
-    for (ServerFeature feature : server.features()) {
+    for (ServerFeature feature : getServer().features()) {
       if (feature instanceof SubscriptionProvider) {
         return (SubscriptionProvider) feature;
       }
@@ -100,7 +94,7 @@ public class SessionServerFeature extends ServerFeatureBase {
   }
 
   private Future<JsonResponse> handleUnsubscribe(ServerRequest serverRequest, JsonRequest request) {
-    if (!options.getSessionsEnabled()) {
+    if (!getServer().getOptions().getStreamingEnabled()) {
       return Future.succeededFuture(
         JsonResponse.error(request, JsonError.methodNotAllowed())
       );
@@ -140,13 +134,7 @@ public class SessionServerFeature extends ServerFeatureBase {
   }
 
   private Future<JsonResponse> handleInitializeNotifications(ServerRequest serverRequest, JsonRequest request) {
-    if (!options.getSessionsEnabled()) {
-      return Future.succeededFuture(
-        JsonResponse.error(request, JsonError.methodNotAllowed())
-      );
-    }
-
-    if (!options.getStreamingEnabled()) {
+    if (!getServer().getOptions().getStreamingEnabled()) {
       return Future.succeededFuture(
         JsonResponse.error(request, JsonError.invalidRequest("Streaming is not enabled on this server"))
       );
@@ -160,7 +148,7 @@ public class SessionServerFeature extends ServerFeatureBase {
       );
     }
 
-    if (sessionCount.get() >= options.getMaxSessions()) {
+    if (sessionCount.get() >= getServer().getOptions().getMaxSessions()) {
       return Future.succeededFuture(
         JsonResponse.error(request, JsonError.serverError(-32001, "Maximum session limit reached"))
       );

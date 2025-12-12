@@ -1,12 +1,12 @@
 package io.vertx.mcp.server.feature;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.common.dsl.ArraySchemaBuilder;
 import io.vertx.mcp.common.completion.Completion;
 import io.vertx.mcp.common.completion.CompletionArgument;
 import io.vertx.mcp.common.completion.CompletionContext;
+import io.vertx.mcp.common.notification.PromptListChangedNotification;
 import io.vertx.mcp.common.prompt.Prompt;
 import io.vertx.mcp.common.prompt.PromptMessage;
 import io.vertx.mcp.common.request.GetPromptRequest;
@@ -37,17 +37,7 @@ import java.util.function.Function;
  */
 public class PromptServerFeature extends ServerFeatureBase implements CompletionProvider {
 
-  private final ServerFeatureStorage<PromptHandler> prompts;
-  private Vertx vertx;
-
-  public PromptServerFeature() {
-    this.prompts = new ServerFeatureStorage<>(() -> vertx, "notifications/prompts/list_changed");
-  }
-
-  @Override
-  public void init(Vertx vertx) {
-    this.vertx = vertx;
-  }
+  private final ServerFeatureStorage<PromptHandler> prompts = new ServerFeatureStorage<>(this::getVertx, PromptListChangedNotification.METHOD);
 
   @Override
   public Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers() {
@@ -55,6 +45,11 @@ public class PromptServerFeature extends ServerFeatureBase implements Completion
       "prompts/list", this::handleListPrompts,
       "prompts/get", this::handleGetPrompt
     );
+  }
+
+  @Override
+  public Set<String> getNotificationChannels() {
+    return Set.of(PromptListChangedNotification.METHOD);
   }
 
   @Override

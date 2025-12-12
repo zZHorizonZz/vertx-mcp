@@ -6,6 +6,7 @@ import io.vertx.mcp.common.notification.Notification;
 import io.vertx.mcp.common.rpc.JsonError;
 import io.vertx.mcp.common.rpc.JsonRequest;
 import io.vertx.mcp.common.rpc.JsonResponse;
+import io.vertx.mcp.server.ModelContextProtocolServer;
 import io.vertx.mcp.server.ServerFeature;
 import io.vertx.mcp.server.ServerRequest;
 import io.vertx.mcp.server.SessionManager;
@@ -16,7 +17,16 @@ import java.util.function.BiFunction;
 
 public abstract class ServerFeatureBase implements ServerFeature {
 
+  private Vertx vertx;
+  private ModelContextProtocolServer server;
+
   public abstract Map<String, BiFunction<ServerRequest, JsonRequest, Future<JsonResponse>>> getHandlers();
+
+  @Override
+  public void init(ModelContextProtocolServer server, Vertx vertx) {
+    this.vertx = vertx;
+    this.server = server;
+  }
 
   @Override
   public void handle(ServerRequest serverRequest) {
@@ -51,6 +61,11 @@ public abstract class ServerFeatureBase implements ServerFeature {
   }
 
   @Override
+  public Set<String> getNotificationChannels() {
+    return Set.of();
+  }
+
+  @Override
   public Set<String> getCapabilities() {
     return getHandlers().keySet();
   }
@@ -67,5 +82,13 @@ public abstract class ServerFeatureBase implements ServerFeature {
     }
 
     vertx.eventBus().send(SessionManager.NOTIFICATION_ADDRESS, notification.toNotification().toJson());
+  }
+
+  protected Vertx getVertx() {
+    return vertx;
+  }
+
+  protected ModelContextProtocolServer getServer() {
+    return server;
   }
 }
